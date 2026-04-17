@@ -376,11 +376,11 @@ export function Apartments() {
           <p style={{ margin: '4px 0 0', color: 'var(--text-2)', fontSize: 14 }}>{apartments.length} unidade(s)</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn-primary hide-on-mobile" onClick={openCreate}><Plus size={16} /> Novo Apartamento</button>
+          <button className="btn-primary" onClick={openCreate}>
+            <Plus size={16} /><span className="hide-on-mobile"> Novo Apartamento</span>
+          </button>
         </div>
       </div>
-
-      <button className="fab" onClick={openCreate}><Plus size={22} /></button>
 
       {apartments.length === 0 ? (
         <div className="card" style={{ padding: 48, textAlign: 'center' }}>
