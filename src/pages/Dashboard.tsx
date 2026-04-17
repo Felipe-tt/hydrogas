@@ -169,6 +169,13 @@ export function Dashboard() {
     return { mes: MONTHS[m - 1], agua: +water.toFixed(2), gas: +gas.toFixed(2), total: +(water + gas).toFixed(2) }
   }), [readings, selectedMonth, selectedYear])
 
+  // ── Chart height responsive to screen width ─────────────────────────────
+  const chartHeight = typeof window !== 'undefined'
+    ? window.innerWidth >= 2560 ? 380
+    : window.innerWidth >= 1600 ? 300
+    : 220
+    : 220
+
   // ── Early return DEPOIS de todos os hooks ────────────────────────────────
   const isLoading = config === null && apartments.length === 0 && readings.length === 0
   if (isLoading) return <DashboardSkeleton />
@@ -246,7 +253,7 @@ export function Dashboard() {
 
         <div className="card dash-chart-card">
           <SectionHeader title="Tendência de Custos" subtitle="Últimos 6 meses" />
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradAgua" x1="0" y1="0" x2="0" y2="1">
@@ -275,12 +282,12 @@ export function Dashboard() {
         <div className="card dash-chart-card">
           <SectionHeader title="Consumo por Apartamento" subtitle="m³ neste mês" />
           {chartData.length === 0 ? (
-            <div className="chart-empty">
+            <div className="chart-empty" style={{ height: chartHeight }}>
               <Droplets size={28} style={{ color: 'var(--text-3)', marginBottom: 8 }} />
               <span>Sem dados neste mês</span>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={chartData} barSize={14} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis dataKey="apt" tick={{ fontSize: 11, fill: tickColor }} axisLine={false} tickLine={false} />
