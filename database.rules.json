@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "apartments": {
+      ".read":  "auth != null",
+      ".write": "auth != null"
+    },
+    "readings": {
+      ".read":  "auth != null",
+      ".write": "auth != null"
+    },
+    "config": {
+      ".read":  "auth != null",
+      ".write": "auth != null"
+    },
+    "public": {
+      "$token": {
+        ".read":  true,
+        ".write": "auth != null"
+      }
+    },
+    "$other": {
+      ".read":  false,
+      ".write": false
+    }
+  }
+}
