@@ -188,7 +188,7 @@ exports.adminLogin = onRequest(
 // Chamada autenticada: recebe a senha plain text, retorna o hash Argon2id.
 // O frontend armazena APENAS o hash no Firebase — a senha plain text nunca persiste.
 exports.hashApartmentPassword = onCall(
-  { region: 'us-central1' },
+  { region: 'us-central1', secrets: ['DATABASE_URL'] },
   async (request) => {
     // Só admins autenticados podem chamar
     if (!request.auth || request.auth.uid !== ADMIN_UID) {
@@ -213,7 +213,7 @@ exports.hashApartmentPassword = onCall(
 // ── getPublicApartment ────────────────────────────────────────────────────────
 // Rate limiting por token para evitar força bruta na senha do apartamento.
 exports.getPublicApartment = onCall(
-  { region: 'us-central1' },
+  { region: 'us-central1', secrets: ['DATABASE_URL'] },
   async (request) => {
     const { token, password } = request.data || {}
 
