@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Droplets, Flame, Building2, Moon, Sun, Info } from 'lucide-react'
+import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell } from 'lucide-react'
 import { useAppStore, useUIStore } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
@@ -7,7 +7,7 @@ import { friendlyError } from '../lib/friendlyError'
 import { ConfigSkeleton, Spinner } from '../components/ui/Skeleton'
 
 export function Config() {
-  const { config } = useAppStore()
+  const { config, readings, apartments } = useAppStore()
   const { toast } = useToast()
   const { darkMode, setDarkMode } = useUIStore()
   const [form, setForm] = useState({ waterRate: '0.033', gasRate: '0.033', condominiumName: '' })
@@ -21,7 +21,6 @@ export function Config() {
     })
   }, [config])
 
-  // Skeleton enquanto config ainda não chegou do Firebase
   if (!config) return <ConfigSkeleton />
 
   const save = async () => {
@@ -38,169 +37,261 @@ export function Config() {
     setLoading(false)
   }
 
-  const waterPreview = (10 * parseFloat(form.waterRate || '0')).toFixed(2)
-  const gasPreview   = (10 * parseFloat(form.gasRate   || '0')).toFixed(2)
+  const waterPreview  = (10 * parseFloat(form.waterRate || '0')).toFixed(2)
+  const gasPreview    = (10 * parseFloat(form.gasRate   || '0')).toFixed(2)
+  const waterRate     = parseFloat(form.waterRate || '0')
+  const gasRate       = parseFloat(form.gasRate   || '0')
+
+  // Stats derived from real data
+  const closedReadings   = readings.filter(r => r.closedAt)
+  const totalWaterCost   = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.totalCost ?? 0), 0)
+  const totalGasCost     = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.totalCost ?? 0), 0)
+  const totalWaterM3     = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.consumption ?? 0), 0)
+  const totalGasM3       = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.consumption ?? 0), 0)
+  const activeApts       = apartments.filter(a => a.active).length
 
   return (
-    <div className="page config-page">
+    <div className="page">
 
-      {/* ── Page header ──────────────────────────────────────────── */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Configurações</h1>
+      {/* ── Page header ── */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Configurações</h1>
         <p style={{ margin: '4px 0 0', color: 'var(--text-2)', fontSize: 14 }}>
           Gerencie as tarifas e preferências do sistema
         </p>
       </div>
 
-      {/* ── Section: Condomínio ───────────────────────────────────── */}
-      <Section
-        icon={<Building2 size={16} color="#7c3aed" />}
-        iconBg="rgba(124,58,237,0.1)"
-        title="Condomínio"
-        description="Dados gerais do condomínio"
-      >
-        <div>
-          <label className="label">Nome do condomínio</label>
-          <input
-            className="input"
-            value={form.condominiumName}
-            onChange={e => setForm(f => ({ ...f, condominiumName: e.target.value }))}
-            placeholder="Ex: Condomínio Residencial das Flores"
-          />
-        </div>
-      </Section>
+      {/* ── Two-column layout ── */}
+      <div className="config-layout">
 
-      <Divider />
+        {/* ── LEFT: forms ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-      {/* ── Section: Tarifas ─────────────────────────────────────── */}
-      <Section
-        icon={<Droplets size={16} color="var(--water)" />}
-        iconBg="var(--water-light)"
-        title="Tarifas"
-        description="Custo por m³ para cada serviço"
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+          {/* Condomínio */}
+          <Section
+            icon={<Building2 size={16} color="#7c3aed" />}
+            iconBg="rgba(124,58,237,0.1)"
+            title="Condomínio"
+            description="Dados gerais do condomínio"
+          >
+            <div>
+              <label className="label">Nome do condomínio</label>
+              <input
+                className="input"
+                value={form.condominiumName}
+                onChange={e => setForm(f => ({ ...f, condominiumName: e.target.value }))}
+                placeholder="Ex: Condomínio Residencial das Flores"
+              />
+            </div>
+          </Section>
 
-          {/* Água */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-              <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--water-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Droplets size={12} color="var(--water)" />
+          <Divider />
+
+          {/* Tarifas */}
+          <Section
+            icon={<Droplets size={16} color="var(--water)" />}
+            iconBg="var(--water-light)"
+            title="Tarifas"
+            description="Custo por m³ para cada serviço"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+
+                {/* Água */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--water-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Droplets size={12} color="var(--water)" />
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Água</span>
+                  </div>
+                  <label className="label">Valor por m³ (R$)</label>
+                  <input
+                    className="input"
+                    type="number" inputMode="decimal" step="0.0001" min="0"
+                    value={form.waterRate}
+                    onChange={e => setForm(f => ({ ...f, waterRate: e.target.value }))}
+                  />
+                  <PreviewBadge color="var(--water)" bg="var(--water-light)" preview={waterPreview} rate={form.waterRate} />
+                </div>
+
+                {/* Gás */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--gas-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Flame size={12} color="var(--gas)" />
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Gás</span>
+                  </div>
+                  <label className="label">Valor por m³ (R$)</label>
+                  <input
+                    className="input"
+                    type="number" inputMode="decimal" step="0.0001" min="0"
+                    value={form.gasRate}
+                    onChange={e => setForm(f => ({ ...f, gasRate: e.target.value }))}
+                  />
+                  <PreviewBadge color="var(--gas)" bg="var(--gas-light)" preview={gasPreview} rate={form.gasRate} />
+                </div>
               </div>
-              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Água</span>
-            </div>
-            <label className="label">Valor por m³ (R$)</label>
-            <input
-              className="input"
-              type="number" inputMode="decimal" step="0.0001" min="0"
-              value={form.waterRate}
-              onChange={e => setForm(f => ({ ...f, waterRate: e.target.value }))}
-            />
-            <PreviewBadge color="var(--water)" bg="var(--water-light)" preview={waterPreview} rate={form.waterRate} />
-          </div>
 
-          {/* Gás */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-              <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--gas-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Flame size={12} color="var(--gas)" />
+              {/* Fórmula hint */}
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '10px 13px',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 9,
+                fontSize: 12,
+                color: 'var(--text-2)',
+                lineHeight: 1.6,
+              }}>
+                <Info size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>
+                  <strong style={{ color: 'var(--text)', fontWeight: 600 }}>Cálculo:</strong>{' '}
+                  Consumo = Leitura final − Leitura inicial &nbsp;·&nbsp; Custo = Consumo × Tarifa
+                </span>
               </div>
-              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Gás</span>
             </div>
-            <label className="label">Valor por m³ (R$)</label>
-            <input
-              className="input"
-              type="number" inputMode="decimal" step="0.0001" min="0"
-              value={form.gasRate}
-              onChange={e => setForm(f => ({ ...f, gasRate: e.target.value }))}
-            />
-            <PreviewBadge color="var(--gas)" bg="var(--gas-light)" preview={gasPreview} rate={form.gasRate} />
+          </Section>
+
+          <Divider />
+
+          {/* Aparência */}
+          <Section
+            icon={darkMode ? <Moon size={16} color="#818cf8" /> : <Sun size={16} color="#f59e0b" />}
+            iconBg={darkMode ? 'rgba(129,140,248,0.15)' : 'rgba(245,158,11,0.12)'}
+            title="Aparência"
+            description="Tema visual da interface"
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '13px 16px',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+            }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
+                  {darkMode ? 'Modo escuro' : 'Modo claro'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                  {darkMode ? 'Interface com fundo escuro' : 'Interface com fundo claro'}
+                </div>
+              </div>
+              <label className="dark-toggle" title="Alternar modo escuro">
+                <input type="checkbox" checked={darkMode} onChange={e => setDarkMode(e.target.checked)} />
+                <span className="dark-toggle-track" />
+                <span className="dark-toggle-thumb" />
+              </label>
+            </div>
+          </Section>
+
+          <Divider />
+
+          {/* Save */}
+          <div style={{ paddingTop: 4, paddingBottom: 8 }}>
+            <button
+              className="btn-primary"
+              onClick={save}
+              disabled={loading}
+              style={{ fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, width: '100%', justifyContent: 'center', minHeight: 42 }}
+            >
+              {loading ? (
+                <><Spinner size={15} color="white" />Salvando...</>
+              ) : (
+                <><Save size={15} />Salvar configurações</>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Fórmula hint */}
-        <div style={{
-          marginTop: 14,
-          display: 'flex', alignItems: 'flex-start', gap: 8,
-          padding: '10px 13px',
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 9,
-          fontSize: 12,
-          color: 'var(--text-2)',
-          lineHeight: 1.6,
-        }}>
-          <Info size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            <strong style={{ color: 'var(--text)', fontWeight: 600 }}>Cálculo:</strong>{' '}
-            Consumo = Leitura final − Leitura inicial &nbsp;·&nbsp; Custo = Consumo × Tarifa
-          </span>
-        </div>
-      </Section>
+        {/* ── RIGHT: info panels ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      <Divider />
-
-      {/* ── Section: Aparência ───────────────────────────────────── */}
-      <Section
-        icon={darkMode ? <Moon size={16} color="#818cf8" /> : <Sun size={16} color="#f59e0b" />}
-        iconBg={darkMode ? 'rgba(129,140,248,0.15)' : 'rgba(245,158,11,0.12)'}
-        title="Aparência"
-        description="Tema visual da interface"
-      >
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '13px 16px',
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-        }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
-              {darkMode ? 'Modo escuro' : 'Modo claro'}
+          {/* Sistema */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(8,145,178,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calculator size={15} color="#0891b2" />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Simulador de tarifa</span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
-              {darkMode ? 'Interface com fundo escuro' : 'Interface com fundo claro'}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[5, 10, 20, 50].map(m3 => (
+                <div key={m3} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 500 }}>{m3} m³</span>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <span style={{ fontSize: 12, color: 'var(--water)', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
+                      💧 R$ {(m3 * waterRate).toFixed(2)}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--gas)', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
+                      🔥 R$ {(m3 * gasRate).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <label className="dark-toggle" title="Alternar modo escuro">
-            <input type="checkbox" checked={darkMode} onChange={e => setDarkMode(e.target.checked)} />
-            <span className="dark-toggle-track" />
-            <span className="dark-toggle-thumb" />
-          </label>
+
+          {/* Resumo do sistema */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={15} color="#7c3aed" />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Resumo do sistema</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { label: 'Apartamentos ativos', value: String(activeApts), color: 'var(--text)' },
+                { label: 'Total leituras', value: String(closedReadings.length), color: 'var(--text)' },
+                { label: 'Volume água (total)', value: `${totalWaterM3.toFixed(1)} m³`, color: 'var(--water)' },
+                { label: 'Volume gás (total)', value: `${totalGasM3.toFixed(1)} m³`, color: 'var(--gas)' },
+                { label: 'Faturado água', value: `R$ ${totalWaterCost.toFixed(2)}`, color: 'var(--water)' },
+                { label: 'Faturado gás', value: `R$ ${totalGasCost.toFixed(2)}`, color: 'var(--gas)' },
+                { label: 'Total geral', value: `R$ ${(totalWaterCost + totalGasCost).toFixed(2)}`, color: 'var(--text)' },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                  <span style={{ fontSize: 13, color, fontWeight: 700, fontFamily: 'DM Mono, monospace' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tarifas atuais */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bell size={15} color="#10b981" />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Tarifas salvas</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1, padding: '12px 14px', background: 'var(--water-light)', borderRadius: 10, border: '1px solid rgba(37,99,235,0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <Droplets size={13} color="var(--water)" />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--water)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Água</span>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>
+                  R$ {config.waterRate.toFixed(4)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--water)', opacity: 0.7, marginTop: 2 }}>por m³</div>
+              </div>
+              <div style={{ flex: 1, padding: '12px 14px', background: 'var(--gas-light)', borderRadius: 10, border: '1px solid rgba(234,88,12,0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <Flame size={13} color="var(--gas)" />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gas)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Gás</span>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>
+                  R$ {config.gasRate.toFixed(4)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--gas)', opacity: 0.7, marginTop: 2 }}>por m³</div>
+              </div>
+            </div>
+          </div>
+
         </div>
-      </Section>
-
-      <Divider />
-
-      {/* ── Save bar ─────────────────────────────────────────────── */}
-      <div style={{ paddingTop: 4, paddingBottom: 8, display: 'flex', justifyContent: 'center' }}>
-        <button
-          className="btn-primary"
-          onClick={save}
-          disabled={loading}
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            width: 'stretch',
-            justifyContent: 'center',
-            minHeight: 42,
-          }}
-        >
-          {loading ? (
-            <>
-              <Spinner size={15} color="white" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save size={15} />
-              Salvar configurações
-            </>
-          )}
-        </button>
       </div>
 
     </div>
@@ -219,9 +310,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <div className="config-section-row" style={{ alignItems: 'start', padding: '4px 0' }}>
-
-      {/* Left: label column */}
+    <div className="config-section-row" style={{ padding: '4px 0' }}>
       <div style={{ paddingTop: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 5 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -231,8 +320,6 @@ function Section({
         </div>
         <p style={{ margin: '0 0 0 37px', fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>{description}</p>
       </div>
-
-      {/* Right: fields */}
       <div>{children}</div>
     </div>
   )
@@ -244,15 +331,7 @@ function Divider() {
 
 function PreviewBadge({ color, bg, preview, rate }: { color: string; bg: string; preview: string; rate: string }) {
   return (
-    <div style={{
-      marginTop: 9,
-      padding: '8px 12px',
-      background: bg,
-      borderRadius: 8,
-      fontSize: 12,
-      color: 'var(--text-2)',
-      lineHeight: 1.5,
-    }}>
+    <div style={{ marginTop: 9, padding: '8px 12px', background: bg, borderRadius: 8, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
       Exemplo: 10 m³ × R$ {rate || '0'}/m³ ={' '}
       <strong style={{ color, fontWeight: 700 }}>R$ {preview}</strong>
     </div>
