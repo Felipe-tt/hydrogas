@@ -207,6 +207,13 @@ select.input { cursor: pointer; }
 .app-main { flex: 1; overflow-y: auto; min-width: 0; }
 .page { padding: 28px 32px; }
 
+@media (min-width: 1600px) {
+  .page { padding: 36px 48px; }
+}
+@media (min-width: 2560px) {
+  .page { padding: 44px 64px; }
+}
+
 /* Mobile modal */
 @media (max-width: 768px) {
   .app-main { padding-bottom: var(--nav-h); }
@@ -282,7 +289,30 @@ select.input { cursor: pointer; }
 
 /* ── Page layout ─────────────────────────────────────────── */
 .dash-page {
-  max-width: 1200px;
+  max-width: min(94vw, 1800px);
+}
+
+@media (min-width: 1600px) {
+  .dash-page {
+    max-width: min(92vw, 2400px);
+  }
+  .kpi-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .kpi-card {
+    padding: 22px 22px 24px;
+    border-radius: 20px;
+  }
+  .kpi-value { font-size: 28px; }
+  .kpi-label { font-size: 13px; }
+  .kpi-sub   { font-size: 12px; }
+  .kpi-icon  { width: 42px; height: 42px; border-radius: 12px; }
+  .dash-charts { gap: 22px; }
+  .dash-chart-card { padding: 26px 26px 20px; }
+  .section-title { font-size: 16px; }
+  .section-sub   { font-size: 13px; }
+  .chart-empty   { height: 300px; }
 }
 
 /* ── Header ──────────────────────────────────────────────── */
@@ -481,4 +511,42 @@ select.input { cursor: pointer; }
   .kpi-card { padding: 14px 14px 16px; border-radius: 14px; }
   .kpi-value { font-size: 18px; }
   .kpi-icon { width: 30px; height: 30px; border-radius: 8px; }
+}
+
+/* ── Config page — responsive layout ────────────────────── */
+.config-page {
+  max-width: min(94vw, 960px);
+}
+
+.config-section-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 640px) {
+  .config-section-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .config-page {
+    max-width: min(88vw, 1400px);
+  }
+  .config-section-row {
+    grid-template-columns: 260px 1fr;
+    gap: 48px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .config-page {
+    max-width: min(80vw, 1800px);
+  }
+  .config-section-row {
+    grid-template-columns: 320px 1fr;
+    gap: 64px;
+  }
 }
