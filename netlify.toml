@@ -13,4 +13,3 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Strict-Transport-Security = "max-age=31536000"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' *.googleapis.com *.gstatic.com www.google.com www.recaptcha.net; style-src 'self' 'unsafe-inline' *.googleapis.com *.gstatic.com; font-src 'self' *.gstatic.com data:; img-src 'self' data: *.googleapis.com; connect-src 'self' *.firebaseio.com *.googleapis.com *.firebase.com wss://*.firebaseio.com www.google.com www.recaptcha.net; frame-src www.google.com www.recaptcha.net"
