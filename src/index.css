@@ -278,9 +278,9 @@ select.input { cursor: pointer; }
 
 @media (max-width: 768px) {
   .app-main { padding-bottom: var(--nav-h); }
-  .page { padding: 16px; }
+  .page { padding: 16px; padding-bottom: calc(var(--nav-h) + 80px); }
   .overlay { align-items: flex-end; padding: 0; }
-  .modal { padding: 20px 16px; border-radius: 20px 20px 0 0; max-width: 100%; margin: 0; max-height: 90vh; overflow-y: auto; margin-bottom: 65px; }
+  .modal { padding: 20px 16px; border-radius: 20px 20px 0 0; max-width: 100%; margin: 0; max-height: 90vh; overflow-y: auto; margin-bottom: 0; }
 }
 
 /* Page header */
@@ -288,9 +288,9 @@ select.input { cursor: pointer; }
 .page-header-actions { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 480px) {
   .page-header { margin-bottom: 16px; }
-  .page-header-actions { width: 100%; }
+  .page-header-actions { gap: 6px; }
   .page-header-actions .btn-primary,
-  .page-header-actions .btn-secondary { flex: 1; justify-content: center; }
+  .page-header-actions .btn-secondary { padding: 9px 12px; }
 }
 
 /* Grids */
