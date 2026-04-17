@@ -503,16 +503,11 @@ export function Readings() {
         </div>
         <div className="page-header-actions">
           <MonthSelector />
-          <button className="btn-primary hide-on-mobile" onClick={() => setShowOpen(true)} disabled={apartments.length === 0}>
-            <Plus size={16} /> Nova Leitura
+          <button className="btn-primary" onClick={() => setShowOpen(true)} disabled={apartments.length === 0}>
+            <Plus size={16} /><span className="hide-on-mobile">Nova Leitura</span>
           </button>
         </div>
       </div>
-
-      {/* FAB */}
-      <button className="fab" onClick={() => setShowOpen(true)} disabled={apartments.length === 0}>
-        <Plus size={22} />
-      </button>
 
       {/* Summary strip */}
       {monthReadings.length > 0 && (
