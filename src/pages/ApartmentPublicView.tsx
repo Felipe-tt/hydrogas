@@ -1,11 +1,11 @@
-import { useEffect, useState }  from 'react'
-import { useParams }            from 'react-router-dom'
-import { Droplets, Flame, Building2, AlertCircle, TrendingUp, KeyRound, Eye, EyeOff, ArrowRight, ChevronDown } from 'lucide-react'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { getApp }               from 'firebase/app'
-import { get, ref }             from 'firebase/database'
-import { db, auth }             from '../infrastructure/firebase'
-import { signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth'
+import { useEffect, useState, useRef }  from 'react'
+import { useParams }                    from 'react-router-dom'
+import { Droplets, Flame, Building2, AlertCircle, TrendingUp, KeyRound, Eye, EyeOff, ArrowRight, ChevronDown, Settings, Moon, Sun, Type } from 'lucide-react'
+import { getFunctions, httpsCallable }  from 'firebase/functions'
+import { getApp }                       from 'firebase/app'
+import { get, ref }                     from 'firebase/database'
+import { signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'
+import { db, auth }                     from '../infrastructure/firebase'
 
 const functions = getFunctions(getApp(), 'us-central1')
 
@@ -38,7 +38,117 @@ interface PublicData {
 // Grouped structure: year -> month -> readings[]
 type GroupedReadings = Record<string, Record<string, PublicReading[]>>
 
+// ── Resident preferences ──────────────────────────────────────────────────────
+// Salva apenas preferências visuais (tema, fonte) — nada sensível.
+function useResidentPrefs() {
+  const [darkMode, setDarkModeState] = useState<boolean>(() => {
+    try { const s = localStorage.getItem('hidrogas-resident-dark'); if (s !== null) return s === 'true' } catch {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+  })
+  const [fontSize, setFontSizeState] = useState<'normal' | 'large'>(() => {
+    try { return (localStorage.getItem('hidrogas-resident-font') as any) ?? 'normal' } catch { return 'normal' }
+  })
 
+  useEffect(() => {
+    const root = document.documentElement
+    if (darkMode) root.setAttribute('data-theme', 'dark')
+    else root.removeAttribute('data-theme')
+    try { localStorage.setItem('hidrogas-resident-dark', String(darkMode)) } catch {}
+  }, [darkMode])
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSize === 'large' ? '17px' : ''
+    try { localStorage.setItem('hidrogas-resident-font', fontSize) } catch {}
+  }, [fontSize])
+
+  return { darkMode, setDarkMode: setDarkModeState, fontSize, setFontSize: setFontSizeState }
+}
+
+// ── Settings Panel ────────────────────────────────────────────────────────────
+function SettingsPanel({
+  onClose, darkMode, setDarkMode, fontSize, setFontSize,
+}: {
+  onClose: () => void
+  darkMode: boolean
+  setDarkMode: (v: boolean) => void
+  fontSize: 'normal' | 'large'
+  setFontSize: (v: 'normal' | 'large') => void
+}) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose()
+    }
+    setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
+    <button
+      onClick={onToggle}
+      style={{
+        width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+        background: on ? 'var(--water)' : 'var(--surface-4)',
+        position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: 3, left: on ? 23 : 3,
+        width: 18, height: 18, borderRadius: '50%', background: 'white',
+        transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+        display: 'block',
+      }} />
+    </button>
+  )
+
+  const Row = ({ icon, label, control }: { icon: React.ReactNode; label: string; control: React.ReactNode }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '12px 16px', borderBottom: '1px solid var(--border)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: 'var(--text-3)' }}>{icon}</span>
+        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</span>
+      </div>
+      {control}
+    </div>
+  )
+
+  return (
+    <div ref={panelRef} style={{
+      position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+      width: 260, background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      zIndex: 200, overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '11px 16px', borderBottom: '1px solid var(--border)',
+        background: 'var(--surface-2)',
+      }}>
+        <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Preferências
+        </span>
+      </div>
+
+      <Row
+        icon={darkMode ? <Moon size={15} /> : <Sun size={15} />}
+        label={darkMode ? 'Modo escuro' : 'Modo claro'}
+        control={<Toggle on={darkMode} onToggle={() => setDarkMode(!darkMode)} />}
+      />
+      <Row
+        icon={<Type size={15} />}
+        label="Texto grande"
+        control={<Toggle on={fontSize === 'large'} onToggle={() => setFontSize(fontSize === 'large' ? 'normal' : 'large')} />}
+      />
+
+      <div style={{ padding: '10px 16px', fontSize: 11, color: 'var(--text-3)', background: 'var(--surface-2)' }}>
+        Salvo neste dispositivo
+      </div>
+    </div>
+  )
+}
 
 // ── MonthCard ────────────────────────────────────────────────────────────────
 function MonthCard({ month, year, readings }: { month: number; year: number; readings: PublicReading[] }) {
@@ -268,68 +378,78 @@ function YearSection({ year, months }: { year: string; months: Record<string, Pu
 export function ApartmentPublicView() {
   const { token } = useParams<{ token: string }>()
 
-  const [status,      setStatus]      = useState<Status>('loading')
-  const [data,        setData]        = useState<PublicData | null>(null)
-  const [condoName,   setCondoName]   = useState<string>('Condomínio')
-  const [password,    setPassword]    = useState('')
-  const [showPass,    setShowPass]    = useState(false)
-  const [passError,   setPassError]   = useState('')
-  const [authLoading, setAuthLoading] = useState(false)
+  const [status,       setStatus]      = useState<Status>('loading')
+  const [data,         setData]        = useState<PublicData | null>(null)
+  const [condoName,    setCondoName]   = useState<string>('Condomínio')
+  const [password,     setPassword]    = useState('')
+  const [showPass,     setShowPass]    = useState(false)
+  const [passError,    setPassError]   = useState('')
+  const [authLoading,  setAuthLoading] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
-  // Busca dados direto do RTDB (sem chamar Cloud Function).
-  // Usado no reload quando o morador já está autenticado via Firebase Auth.
-  async function fetchDataFromRTDB(tok: string) {
-    const snap = await get(ref(db, `public/${tok}`))
-    if (!snap.exists()) { setStatus('invalid'); return }
-    const raw = snap.val()
-    const { accessPasswordHash, hasPassword: _hp, _firebaseToken: _ft, ...safeData } = raw
+  const { darkMode, setDarkMode, fontSize, setFontSize } = useResidentPrefs()
+
+  // Chama a Cloud Function — valida senha no servidor e retorna Firebase Custom Token
+  async function fetchDataFromFunction(tok: string, pwd: string) {
+    const fn = httpsCallable<
+      { token: string; password: string },
+      PublicData & { _firebaseToken?: string }
+    >(functions, 'getPublicApartment')
+
+    const result = await fn({ token: tok, password: pwd })
+    const { _firebaseToken, ...safeData } = result.data as any
+
+    // Autentica silenciosamente com o Custom Token do Firebase.
+    // O SDK do Firebase persiste a sessão internamente (seguro, sem dado sensível).
+    // Isso permite que onAuthStateChanged detecte o usuário no próximo reload.
+    if (_firebaseToken) {
+      try { await signInWithCustomToken(auth, _firebaseToken) } catch (e) {
+        // Falha no sign-in não bloqueia — dados já foram obtidos
+        console.warn('signInWithCustomToken falhou:', e)
+      }
+    }
+
     setData(safeData as PublicData)
     setStatus('found')
   }
 
-  // Chama a Cloud Function (valida senha + retorna Firebase Custom Token)
-  async function fetchDataFromFunction(tok: string, pwd: string) {
-    const fn = httpsCallable<{ token: string; password: string }, PublicData & { _firebaseToken?: string }>(
-      functions,
-      'getPublicApartment'
-    )
-    const result = await fn({ token: tok, password: pwd })
-    const { _firebaseToken, ...data } = result.data as any
-
-    // Faz login no Firebase com o Custom Token — permite reload sem reautenticar
-    if (_firebaseToken) {
-      try { await signInWithCustomToken(auth, _firebaseToken) } catch {}
-    }
-
-    setData(data as PublicData)
+  // Busca dados direto do RTDB — usado no reload quando sessão Firebase já existe.
+  // O nó public/${token} não contém dados sensíveis (hash nunca é escrito lá).
+  async function fetchDataFromRTDB(tok: string) {
+    const snap = await get(ref(db, `public/${tok}`))
+    if (!snap.exists()) { setStatus('invalid'); return }
+    const { accessPasswordHash: _h, hasPassword: _hp, _firebaseToken: _ft, ...safeData } = snap.val()
+    setData(safeData as PublicData)
     setStatus('found')
   }
 
   useEffect(() => {
     if (!token) { setStatus('invalid'); return }
 
-    // Verifica se o morador já tem sessão Firebase ativa (sobrevive ao reload)
-    const unsubAuth = onAuthStateChanged(auth, async (user) => {
-      unsubAuth() // ouve só uma vez
+    // Carrega nome do condomínio em paralelo (leitura pública)
+    get(ref(db, 'config'))
+      .then(s => { if (s.exists()) setCondoName(s.val().condominiumName ?? 'Condomínio') })
+      .catch(() => {})
 
-      // Carrega o nome do condomínio (leitura pública, sem auth)
-      try {
-        const configSnap = await get(ref(db, 'config'))
-        if (configSnap.exists()) setCondoName(configSnap.val().condominiumName ?? 'Condomínio')
-      } catch {}
+    // onAuthStateChanged dispara imediatamente com o estado atual do Firebase Auth.
+    // Se o morador já autenticou antes, user != null e o SDK restaurou a sessão
+    // automaticamente — sem nenhum dado persistido manualmente.
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      unsub() // ouve só uma vez na inicialização
 
       if (user) {
-        // Sessão Firebase ativa: o morador já autenticou antes.
-        // Busca os dados direto do RTDB — sem chamar a Cloud Function de novo.
+        // Sessão Firebase ativa (sobreviveu ao reload).
+        // Busca os dados direto do RTDB sem chamar a Cloud Function de novo.
         try {
           await fetchDataFromRTDB(token)
         } catch {
+          // Sessão expirou ou token inválido — volta para login
           setStatus('auth')
         }
         return
       }
 
-      // Sem sessão: verifica se o apt tem senha
+      // Sem sessão — verifica se o apartamento tem senha
       try {
         const hasPassSnap = await get(ref(db, `public/${token}/hasPassword`))
         const needsPassword = hasPassSnap.exists() && hasPassSnap.val() === true
@@ -383,6 +503,7 @@ export function ApartmentPublicView() {
   const totalWater = readings.filter(r => r.type === 'water').reduce((a, r) => a + r.totalCost, 0)
   const totalGas   = readings.filter(r => r.type === 'gas').reduce((a, r) => a + r.totalCost, 0)
 
+  // Header compartilhado entre todas as telas (loading, auth, found)
   const Header = () => (
     <header style={{
       background: 'var(--sidebar-bg)',
@@ -403,6 +524,36 @@ export function ApartmentPublicView() {
           <div style={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1 }}>HidroGás</div>
           <div style={{ color: 'var(--sidebar-text)', fontSize: 11, marginTop: 2 }}>{condoName}</div>
         </div>
+
+        {/* ── Engrenagem de preferências ── */}
+        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <button
+            onClick={() => setShowSettings(v => !v)}
+            title="Preferências"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 9,
+              background: showSettings ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              cursor: 'pointer', color: 'rgba(255,255,255,0.75)',
+              transition: 'background 0.15s',
+            }}
+          >
+            <Settings
+              size={16}
+              style={{ transition: 'transform 0.4s', transform: showSettings ? 'rotate(60deg)' : 'none' }}
+            />
+          </button>
+          {showSettings && (
+            <SettingsPanel
+              onClose={() => setShowSettings(false)}
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              fontSize={fontSize}
+              setFontSize={setFontSize}
+            />
+          )}
+        </div>
       </div>
     </header>
   )
@@ -410,11 +561,14 @@ export function ApartmentPublicView() {
   // ── States ──────────────────────────────────────────────────────────────────
   if (status === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, border: '3px solid var(--border)', borderTopColor: 'var(--water)', borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: 'var(--text-2)', margin: 0, fontSize: 14 }}>Carregando...</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 44, height: 44, border: '3px solid var(--border)', borderTopColor: 'var(--water)', borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 1s linear infinite' }} />
+            <p style={{ color: 'var(--text-2)', margin: 0, fontSize: 14 }}>Carregando...</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         </div>
       </div>
     )
@@ -422,13 +576,16 @@ export function ApartmentPublicView() {
 
   if (status === 'invalid') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 20 }}>
-        <div style={{ textAlign: 'center', maxWidth: 320 }}>
-          <div style={{ width: 60, height: 60, background: '#fef2f2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-            <AlertCircle size={28} color="#dc2626" />
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ textAlign: 'center', maxWidth: 320 }}>
+            <div style={{ width: 60, height: 60, background: '#fef2f2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+              <AlertCircle size={28} color="#dc2626" />
+            </div>
+            <h2 style={{ margin: '0 0 8px', color: 'var(--text)', fontSize: 18 }}>Link inválido</h2>
+            <p style={{ color: 'var(--text-2)', margin: 0, fontSize: 14, lineHeight: 1.5 }}>Este link não corresponde a nenhum apartamento cadastrado.</p>
           </div>
-          <h2 style={{ margin: '0 0 8px', color: 'var(--text)', fontSize: 18 }}>Link inválido</h2>
-          <p style={{ color: 'var(--text-2)', margin: 0, fontSize: 14, lineHeight: 1.5 }}>Este link não corresponde a nenhum apartamento cadastrado.</p>
         </div>
       </div>
     )
