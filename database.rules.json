@@ -1,20 +1,51 @@
 {
   "rules": {
     "apartments": {
-      ".read":  "auth != null",
-      ".write": "auth != null"
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$apt": {
+        ".validate": "newData.hasChildren(['number', 'publicToken'])",
+        "number":      { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "publicToken": { ".validate": "newData.isString() && newData.val().length === 36" },
+        "block":       { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "responsible": { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "observation": { ".validate": "newData.isString() && newData.val().length <= 500" },
+        "active":      { ".validate": "newData.isBoolean()" },
+        "createdAt":   { ".validate": "newData.isNumber()" },
+        "accessPasswordHash": { ".validate": "newData.isString()" },
+        "$other":      { ".validate": false }
+      }
     },
     "readings": {
-      ".read":  "auth != null",
-      ".write": "auth != null"
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$reading": {
+        ".validate": "newData.hasChildren(['apartmentId', 'type', 'month', 'year'])",
+        "apartmentId": { ".validate": "newData.isString()" },
+        "type":        { ".validate": "newData.isString() && (newData.val() === 'water' || newData.val() === 'gas')" },
+        "month":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12" },
+        "year":        { ".validate": "newData.isNumber() && newData.val() >= 2000 && newData.val() <= 2100" },
+        "startValue":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "endValue":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "consumption": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "totalCost":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "createdAt":   { ".validate": "newData.isNumber()" },
+        "closedAt":    { ".validate": "newData.isNumber()" },
+        "$other":      { ".validate": false }
+      }
     },
     "config": {
-      ".read":  "auth != null",
-      ".write": "auth != null"
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "waterRate":       { ".validate": "newData.isNumber() && newData.val() > 0" },
+      "gasRate":         { ".validate": "newData.isNumber() && newData.val() > 0" },
+      "condominiumName": { ".validate": "newData.isString() && newData.val().length <= 100" },
+      "updatedAt":       { ".validate": "newData.isNumber()" },
+      "$other":          { ".validate": false }
     },
     "public": {
       "$token": {
-        ".read":  true,
+        ".read":  "auth != null && auth.token.aptToken === $token",
         ".write": "auth != null"
       }
     },
