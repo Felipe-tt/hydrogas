@@ -50,6 +50,11 @@ function KPICard({ label, value, sub, color, icon: Icon, index, trend }: any) {
       <div className="kpi-label">{label}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
       <div className="kpi-accent" style={{ background: color }} />
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `radial-gradient(ellipse at 100% 0%, ${color}10 0%, transparent 60%)`,
+        pointerEvents: 'none',
+      }} />
     </div>
   )
 }
