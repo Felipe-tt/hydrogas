@@ -1,3 +1,4 @@
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
 import { initializeApp }    from 'firebase/app'
 import { getDatabase, ref, push, set, get, update, remove, onValue, off, query, orderByChild, equalTo } from 'firebase/database'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
