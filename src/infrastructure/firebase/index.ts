@@ -20,6 +20,11 @@ export const app  = initializeApp(firebaseConfig)
 export const db   = getDatabase(app)
 export const auth = getAuth(app)
 
+initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
+  isTokenAutoRefreshEnabled: true,
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function snap<T>(snapshot: any): T[] {
   if (!snapshot.exists()) return []
