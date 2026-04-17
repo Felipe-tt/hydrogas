@@ -305,8 +305,25 @@ exports.getPublicApartment = onCall(
       await clearRateLimit(rateLimitKey)
     }
 
+    // Gera um Custom Token de curta duração para o morador
+    // Isso permite que o Firebase SDK restaure a sessão automaticamente no reload,
+    // sem precisar guardar nada sensível no browser.
+    // O token tem claim { role: 'resident', token } para que as regras do RTDB
+    // possam ser usadas futuramente se necessário.
+    let residentFirebaseToken = null
+    try {
+      const uid = `resident-${sanitizeKey(token)}`
+      residentFirebaseToken = await getAuth().createCustomToken(uid, {
+        role: 'resident',
+        aptToken: token,
+      })
+    } catch (err) {
+      logger.warn('Não foi possível gerar custom token para morador:', err)
+      // Não bloqueia — retorna os dados mesmo sem o token
+    }
+
     // Remove campos sensíveis antes de retornar
     const { accessPasswordHash, hasPassword, ...safeData } = data
-    return safeData
+    return { ...safeData, _firebaseToken: residentFirebaseToken }
   }
 )
