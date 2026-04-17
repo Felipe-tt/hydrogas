@@ -18,6 +18,10 @@
         ".write": "auth != null"
       }
     },
+    "_rateLimit": {
+      ".read":  false,
+      ".write": false
+    },
     "$other": {
       ".read":  false,
       ".write": false
