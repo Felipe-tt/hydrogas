@@ -39,9 +39,14 @@ function useAdminLogin() {
 
     try {
       // 1. Chamar Cloud Function para validar credenciais
+      const fnUrl = import.meta.env.VITE_CLOUD_FN_URL
+      if (!fnUrl) {
+        setError('URL da função de autenticação não configurada. Defina VITE_CLOUD_FN_URL no .env.')
+        return
+      }
       let res: Response
       try {
-        res = await fetch(import.meta.env.VITE_CLOUD_FN_URL, {
+        res = await fetch(fnUrl, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ username: username.trim(), password }),
