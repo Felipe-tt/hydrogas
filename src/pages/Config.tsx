@@ -42,7 +42,7 @@ export function Config() {
   const gasPreview   = (10 * parseFloat(form.gasRate   || '0')).toFixed(2)
 
   return (
-    <div className="page" style={{ maxWidth: 720 }}>
+    <div className="page config-page">
 
       {/* ── Page header ──────────────────────────────────────────── */}
       <div style={{ marginBottom: 32 }}>
@@ -219,7 +219,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 32, alignItems: 'start', padding: '4px 0' }}>
+    <div className="config-section-row" style={{ alignItems: 'start', padding: '4px 0' }}>
 
       {/* Left: label column */}
       <div style={{ paddingTop: 2 }}>
