@@ -1,10 +1,115 @@
-import { useEffect, useState }  from 'react'
+import { useEffect, useState, useRef }  from 'react'
 import { useParams }            from 'react-router-dom'
-import { Droplets, Flame, Building2, AlertCircle, TrendingUp, KeyRound, Eye, EyeOff, ArrowRight, ChevronDown } from 'lucide-react'
+import { Droplets, Flame, Building2, AlertCircle, TrendingUp, KeyRound, Eye, EyeOff, ArrowRight, ChevronDown, Settings, Moon, Sun, Type } from 'lucide-react'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getApp }               from 'firebase/app'
 import { get, ref }             from 'firebase/database'
 import { db }                   from '../infrastructure/firebase'
+
+// ── Resident preferences (persisted in localStorage) ─────────────────────────
+function useResidentPrefs() {
+  const [darkMode, setDarkModeState] = useState<boolean>(() => {
+    try { const s = localStorage.getItem('hidrogas-resident-dark'); if (s !== null) return s === 'true' } catch {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+  })
+  const [fontSize, setFontSizeState] = useState<'normal' | 'large'>(() => {
+    try { return (localStorage.getItem('hidrogas-resident-font') as any) ?? 'normal' } catch { return 'normal' }
+  })
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (darkMode) root.setAttribute('data-theme', 'dark')
+    else root.removeAttribute('data-theme')
+    try { localStorage.setItem('hidrogas-resident-dark', String(darkMode)) } catch {}
+  }, [darkMode])
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSize === 'large' ? '17px' : ''
+    try { localStorage.setItem('hidrogas-resident-font', fontSize) } catch {}
+  }, [fontSize])
+
+  return {
+    darkMode, setDarkMode: setDarkModeState,
+    fontSize, setFontSize: setFontSizeState,
+  }
+}
+
+// ── Settings Panel ─────────────────────────────────────────────────────────────
+function SettingsPanel({ onClose, darkMode, setDarkMode, fontSize, setFontSize }: {
+  onClose: () => void
+  darkMode: boolean
+  setDarkMode: (v: boolean) => void
+  fontSize: 'normal' | 'large'
+  setFontSize: (v: 'normal' | 'large') => void
+}) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose()
+    }
+    setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  const row = (label: string, icon: React.ReactNode, control: React.ReactNode) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: 'var(--text-3)' }}>{icon}</span>
+        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</span>
+      </div>
+      {control}
+    </div>
+  )
+
+  const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
+    <button
+      onClick={onToggle}
+      style={{
+        width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+        background: on ? 'var(--water)' : 'var(--surface-4)',
+        position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: 3, left: on ? 23 : 3,
+        width: 18, height: 18, borderRadius: '50%',
+        background: 'white', transition: 'left 0.2s',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }} />
+    </button>
+  )
+
+  return (
+    <div ref={panelRef} style={{
+      position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+      width: 280, background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      zIndex: 200, overflow: 'hidden',
+    }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Preferências</span>
+      </div>
+
+      {row(
+        darkMode ? 'Modo escuro' : 'Modo claro',
+        darkMode ? <Moon size={15} /> : <Sun size={15} />,
+        <Toggle on={darkMode} onToggle={() => setDarkMode(!darkMode)} />
+      )}
+
+      {row(
+        'Texto grande',
+        <Type size={15} />,
+        <Toggle on={fontSize === 'large'} onToggle={() => setFontSize(fontSize === 'large' ? 'normal' : 'large')} />
+      )}
+
+      <div style={{ padding: '10px 16px', fontSize: 11, color: 'var(--text-3)', background: 'var(--surface-2)' }}>
+        Preferências salvas neste dispositivo
+      </div>
+    </div>
+  )
+}
 
 const functions = getFunctions(getApp(), 'us-central1')
 
@@ -284,13 +389,15 @@ function YearSection({ year, months }: { year: string; months: Record<string, Pu
 export function ApartmentPublicView() {
   const { token } = useParams<{ token: string }>()
 
-  const [status,      setStatus]      = useState<Status>('loading')
-  const [data,        setData]        = useState<PublicData | null>(null)
-  const [condoName,   setCondoName]   = useState<string>('Condomínio')
-  const [password,    setPassword]    = useState('')
-  const [showPass,    setShowPass]    = useState(false)
-  const [passError,   setPassError]   = useState('')
-  const [authLoading, setAuthLoading] = useState(false)
+  const [status,        setStatus]        = useState<Status>('loading')
+  const [data,          setData]          = useState<PublicData | null>(null)
+  const [condoName,     setCondoName]     = useState<string>('Condomínio')
+  const [password,      setPassword]      = useState('')
+  const [showPass,      setShowPass]      = useState(false)
+  const [passError,     setPassError]     = useState('')
+  const [authLoading,   setAuthLoading]   = useState(false)
+  const [showSettings,  setShowSettings]  = useState(false)
+  const { darkMode, setDarkMode, fontSize, setFontSize } = useResidentPrefs()
 
   async function fetchData(tok: string, pwd: string) {
     const fn = httpsCallable<{ token: string; password: string }, PublicData>(
@@ -401,6 +508,26 @@ export function ApartmentPublicView() {
         <div>
           <div style={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1 }}>HidroGás</div>
           <div style={{ color: 'var(--sidebar-text)', fontSize: 11, marginTop: 2 }}>{condoName}</div>
+        </div>
+        {/* Gear button */}
+        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <button
+            onClick={() => setShowSettings(v => !v)}
+            title="Preferências"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 9,
+              background: showSettings ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              cursor: 'pointer', color: 'rgba(255,255,255,0.75)',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
+            onMouseLeave={e => (e.currentTarget.style.background = showSettings ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)')}
+          >
+            <Settings size={16} style={{ transition: 'transform 0.4s', transform: showSettings ? 'rotate(45deg)' : 'none' }} />
+          </button>
+          {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} darkMode={darkMode} setDarkMode={setDarkMode} fontSize={fontSize} setFontSize={setFontSize} />}
         </div>
       </div>
     </header>
