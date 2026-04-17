@@ -210,8 +210,53 @@ exports.hashApartmentPassword = onCall(
   }
 )
 
+// ── isRateLimitedReadOnly ─────────────────────────────────────────────────────
+// Verifica o rate limit SEM incrementar o contador.
+// Usado para checar antes de operações que não devem consumir tentativas.
+async function isRateLimitedReadOnly(key) {
+  const db      = getDatabase()
+  const safeKey = sanitizeKey(key)
+  const snap    = await db.ref(`_rateLimit/${safeKey}`).get()
+  if (!snap.exists()) return false
+  const { count, resetAt } = snap.val()
+  if (Date.now() > resetAt) return false
+  return count >= MAX_TRIES
+}
+
+// ── recordFailedAttempt ───────────────────────────────────────────────────────
+// Incrementa o contador SOMENTE em caso de falha de autenticação.
+async function recordFailedAttempt(key) {
+  const db      = getDatabase()
+  const safeKey = sanitizeKey(key)
+  const ref     = db.ref(`_rateLimit/${safeKey}`)
+  const now     = Date.now()
+  await ref.transaction((current) => {
+    if (!current || current.resetAt < now) {
+      return { count: 1, resetAt: now + WINDOW_MS }
+    }
+    return { count: current.count + 1, resetAt: current.resetAt }
+  })
+}
+
+// ── resetApartmentRateLimit ──────────────────────────────────────────────────
+// Permite ao síndico desbloquear um apartamento que atingiu o rate limit.
+// Requer autenticação como admin.
+exports.resetApartmentRateLimit = onCall(
+  { region: 'us-central1', secrets: ['DATABASE_URL'] },
+  async (request) => {
+    if (!request.auth || request.auth.uid !== ADMIN_UID) {
+      throw new HttpsError('unauthenticated', 'Acesso não autorizado.')
+    }
+    const { token } = request.data || {}
+    if (!token) throw new HttpsError('invalid-argument', 'Token obrigatório.')
+    await clearRateLimit(`apt:${token}`)
+    return { ok: true }
+  }
+)
+
 // ── getPublicApartment ────────────────────────────────────────────────────────
-// Rate limiting por token para evitar força bruta na senha do apartamento.
+// Rate limiting por token — SÓ incrementa em tentativas com senha errada,
+// nunca em chamadas de leitura legítimas sem senha ou com sessão válida.
 exports.getPublicApartment = onCall(
   { region: 'us-central1', secrets: ['DATABASE_URL'] },
   async (request) => {
@@ -221,9 +266,10 @@ exports.getPublicApartment = onCall(
       throw new HttpsError('invalid-argument', 'Token obrigatório.')
     }
 
-    // Rate limit por token — persistido no RTDB, funciona em múltiplas instâncias
     const rateLimitKey = `apt:${token}`
-    if (await isRateLimited(rateLimitKey)) {
+
+    // Verifica se está bloqueado (read-only, não consome tentativas)
+    if (await isRateLimitedReadOnly(rateLimitKey)) {
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
     }
 
@@ -239,6 +285,8 @@ exports.getPublicApartment = onCall(
     // Valida senha no servidor usando hash Argon2id — a senha nunca vai ao cliente
     if (data.accessPasswordHash) {
       if (!password) {
+        // Sem senha fornecida — apenas retorna "unauthenticated" sem consumir tentativa,
+        // pois não é uma tentativa de força bruta, é só a tela de login aparecendo.
         throw new HttpsError('unauthenticated', 'Senha obrigatória.')
       }
       let passwordOk = false
@@ -249,9 +297,11 @@ exports.getPublicApartment = onCall(
         throw new HttpsError('internal', 'Erro interno ao verificar senha.')
       }
       if (!passwordOk) {
+        // Só aqui incrementamos: tentativa com senha ERRADA
+        await recordFailedAttempt(rateLimitKey)
         throw new HttpsError('unauthenticated', 'Senha incorreta.')
       }
-      // Limpa tentativas após sucesso
+      // Sucesso: limpa tentativas anteriores
       await clearRateLimit(rateLimitKey)
     }
 
