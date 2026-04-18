@@ -43,13 +43,22 @@
       "waterRate":       { ".validate": "newData.isNumber() && newData.val() > 0" },
       "gasRate":         { ".validate": "newData.isNumber() && newData.val() > 0" },
       "condominiumName": { ".validate": "newData.isString() && newData.val().length <= 100" },
+      "managerName":     { ".validate": "newData.isString() && newData.val().length <= 100" },
+      "managerPhone":    { ".validate": "newData.isString() && newData.val().length <= 20" },
+      "address":         { ".validate": "newData.isString() && newData.val().length <= 200" },
       "updatedAt":       { ".validate": "newData.isNumber()" },
       "$other":          { ".validate": false }
     },
     "public": {
       "$token": {
         ".read":  "auth != null && auth.token.aptToken === $token",
-        ".write": "auth != null"
+        ".write": "auth != null",
+        "condoInfo": {
+          "name":         { ".validate": "newData.isString() || !newData.exists()" },
+          "managerName":  { ".validate": "newData.isString() || !newData.exists()" },
+          "managerPhone": { ".validate": "newData.isString() || !newData.exists()" },
+          "address":      { ".validate": "newData.isString() || !newData.exists()" }
+        }
       }
     },
     "_rateLimit": {
