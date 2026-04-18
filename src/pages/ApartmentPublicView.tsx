@@ -63,7 +63,8 @@ function useResidentPrefs() {
   }, [darkMode])
 
   useEffect(() => {
-    document.documentElement.style.fontSize = fontSize === 'large' ? '18px' : ''
+    // Aplica escala via CSS custom property no root — todos os rem/em escalam
+    document.documentElement.style.setProperty('--resident-scale', fontSize === 'large' ? '1.15' : '1')
     try { localStorage.setItem('hidrogas-resident-font', fontSize) } catch {}
   }, [fontSize])
 
@@ -171,7 +172,7 @@ function SettingsPanel({
 // ── SubView Shell ─────────────────────────────────────────────────────────────
 function SubViewShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 50, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 50, overflowY: 'auto', display: 'flex', flexDirection: 'column', fontSize: 'calc(1rem * var(--resident-scale, 1))' }}>
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
         background: 'var(--sidebar-bg)',
@@ -275,37 +276,65 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
 
       {/* Gráfico de barras */}
       {barData.length > 0 && (
-        <div className="card" style={{ padding: 16, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
-            Histórico mensal (últimos {barData.length} meses)
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120, overflowX: 'auto', paddingBottom: 4 }}>
-            {barData.map(d => {
-              const total   = d.water + d.gas
-              const pct     = total / maxVal
-              const wPct    = total > 0 ? d.water / total : 0
-              return (
-                <div key={d.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 36, flex: 1 }}>
-                  <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
-                    {fmt(total).replace('R$ ', '')}
-                  </div>
-                  <div style={{ width: '100%', height: Math.max(pct * 90, 4), borderRadius: '4px 4px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ flex: wPct, background: 'var(--water)', opacity: 0.85 }} />
-                    <div style={{ flex: 1 - wPct, background: 'var(--gas)', opacity: 0.85 }} />
-                  </div>
-                  <div style={{ fontSize: 9, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{d.label}</div>
+        <div className="card" style={{ padding: '16px 16px 12px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Histórico mensal
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[{ color: 'var(--water)', label: 'Água' }, { color: 'var(--gas)', label: 'Gás' }].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                  <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
-          {/* Legenda */}
-          <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
-            {[{ color: 'var(--water)', label: 'Água' }, { color: 'var(--gas)', label: 'Gás' }].map(({ color, label }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
-                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{label}</span>
-              </div>
+          {/* Grade de referência + barras */}
+          <div style={{ position: 'relative' }}>
+            {/* Linhas de grade horizontais */}
+            {[100, 66, 33].map(pct => (
+              <div key={pct} style={{
+                position: 'absolute', left: 0, right: 0,
+                top: `${100 - pct}%`,
+                borderTop: '1px dashed var(--border)',
+                pointerEvents: 'none',
+              }} />
             ))}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140, paddingBottom: 0 }}>
+              {barData.map((d, i) => {
+                const total  = d.water + d.gas
+                const pct    = total / maxVal
+                const wH     = Math.max(pct * 130 * (total > 0 ? d.water / total : 0), 0)
+                const gH     = Math.max(pct * 130 * (total > 0 ? d.gas   / total : 0), 0)
+                const isLast = i === barData.length - 1
+                return (
+                  <div key={d.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                    {/* Valor total */}
+                    <div style={{
+                      fontSize: 9, color: isLast ? 'var(--text)' : 'var(--text-3)',
+                      fontFamily: 'DM Mono, monospace', fontWeight: isLast ? 700 : 400,
+                      whiteSpace: 'nowrap', marginBottom: 2,
+                    }}>
+                      {total > 0 ? fmt(total).replace('R$ ', 'R$') : ''}
+                    </div>
+                    {/* Barra empilhada */}
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: 130, gap: 1 }}>
+                      {wH > 0 && <div style={{ height: wH, background: 'var(--water)', borderRadius: gH > 0 ? '0' : '4px 4px 0 0', opacity: isLast ? 1 : 0.6, transition: 'opacity 0.2s' }} />}
+                      {gH > 0 && <div style={{ height: gH, background: 'var(--gas)',   borderRadius: wH > 0 ? '4px 4px 0 0' : '4px 4px 0 0', opacity: isLast ? 1 : 0.6, transition: 'opacity 0.2s' }} />}
+                      {total === 0 && <div style={{ height: 3, background: 'var(--border)', borderRadius: 2 }} />}
+                    </div>
+                    {/* Label mês */}
+                    <div style={{
+                      fontSize: 9, color: isLast ? 'var(--text-2)' : 'var(--text-3)',
+                      fontWeight: isLast ? 700 : 400, whiteSpace: 'nowrap',
+                    }}>
+                      {d.label}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -376,12 +405,13 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
             position: 'relative',
             overflow: 'hidden',
           }}>
-            {/* Mapa estático via OpenStreetMap embed */}
+            {/* Google Maps embed — sem API key, sem limite para uso residencial */}
             <iframe
               title="Localização"
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.005},${lat-0.003},${lng+0.005},${lat+0.003}&layer=mapnik&marker=${lat},${lng}`}
+              src={`https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`}
               style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
               loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
             />
             {/* Overlay clicável */}
             <div style={{ position: 'absolute', inset: 0 }} />
@@ -670,7 +700,7 @@ export function ApartmentPublicView() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontSize: 'calc(1rem * var(--resident-scale, 1))' }}>
       <Header />
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 48px' }}>
 
