@@ -434,31 +434,12 @@ export function ApartmentPublicView() {
     // onAuthStateChanged dispara imediatamente com o estado atual do Firebase Auth.
     // Se o morador já autenticou antes, user != null e o SDK restaurou a sessão
     // automaticamente — sem nenhum dado persistido manualmente.
-    const unsub = onAuthStateChanged(residentAuth, async (user) => {
-      unsub() // ouve só uma vez na inicialização
-
-      if (user) {
-        // Sessão Firebase ativa (sobreviveu ao reload).
-        // Busca os dados direto do RTDB sem chamar a Cloud Function de novo.
-        try {
-          await fetchDataFromRTDB(token)
-        } catch {
-          // Sessão expirou ou token inválido — volta para login
-          setStatus('auth')
-        }
-        return
-      }
-
-      // Sem sessão — chama a Cloud Function sem senha.
-      // Se precisar de senha, ela retorna 'unauthenticated'.
-      // Se o token não existir, retorna 'not-found'.
-      try {
-        await fetchDataFromFunction(token, '')
-      } catch (err: any) {
-        const code = err?.code ?? ''
-        if (code === 'functions/unauthenticated') setStatus('auth')
-        else setStatus('invalid')
-      }
+    // Chama a Cloud Function diretamente — sem depender de sessão Firebase.
+    // Sem senha: retorna dados. Com senha: retorna 'unauthenticated'.
+    fetchDataFromFunction(token, '').catch((err: any) => {
+      const code = err?.code ?? ''
+      if (code === 'functions/unauthenticated') setStatus('auth')
+      else setStatus('invalid')
     })
   }, [token])
 
