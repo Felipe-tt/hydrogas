@@ -16,7 +16,7 @@ Sistema de gestão de leituras de água e gás para condomínios. Permite ao sí
 - **Frontend**: React 19 + TypeScript + Vite
 - **Backend**: Firebase Realtime Database + Cloud Functions (Node.js 22)
 - **Auth**: Firebase Auth com Custom Tokens
-- **Senhas**: Argon2id via Cloud Function — nenhuma senha plain text é armazenada
+- **Senhas**: Argon2id via Cloud Function
 - **Deploy**: Netlify (frontend) + Firebase (functions + database)
 
 ## Segurança
