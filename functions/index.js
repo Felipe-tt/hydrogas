@@ -772,8 +772,11 @@ exports.getPublicApartment = onCall(
     if (!token)
       throw new HttpsError('invalid-argument', 'Token obrigatório.')
 
+    if (!/^[0-9a-f-]{36}$/.test(token))
+      throw new HttpsError('invalid-argument', 'Token inválido.')
+
     const rateLimitKey = `apt:${token}`
-    if (await isRateLimitedReadOnly(rateLimitKey))
+    if (await isRateLimited(rateLimitKey))
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
 
     const db      = getDatabase()
@@ -910,6 +913,10 @@ exports.monthlyEmailReport = onSchedule(
     const toEmail = (config.managerEmail || '').trim()
     if (!toEmail) {
       logger.warn('monthlyEmailReport: managerEmail não configurado.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+      logger.warn(`monthlyEmailReport: managerEmail inválido: "${toEmail}"`)
       return
     }
 
