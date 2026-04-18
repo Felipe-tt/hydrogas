@@ -21,6 +21,7 @@
     "readings": {
       ".read":  "auth != null && auth.token.role === 'admin'",
       ".write": "auth != null && auth.token.role === 'admin'",
+      ".indexOn": ["year"],
       "$reading": {
         ".validate": "newData.hasChildren(['apartmentId', 'type', 'month', 'year'])",
         "id":          { ".validate": "newData.isString()" },
@@ -48,6 +49,8 @@
       "managerEmail":    { ".validate": "newData.isString() && newData.val().length <= 200" },
       "reportDay":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 28" },
       "address":         { ".validate": "newData.isString() && newData.val().length <= 200" },
+      "latitude":        { ".validate": "newData.isNumber() && newData.val() >= -90  && newData.val() <= 90" },
+      "longitude":       { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
       "updatedAt":       { ".validate": "newData.isNumber()" },
       "$other":          { ".validate": false }
     },
@@ -59,7 +62,9 @@
           "name":         { ".validate": "newData.isString() || !newData.exists()" },
           "managerName":  { ".validate": "newData.isString() || !newData.exists()" },
           "managerPhone": { ".validate": "newData.isString() || !newData.exists()" },
-          "address":      { ".validate": "newData.isString() || !newData.exists()" }
+          "address":      { ".validate": "newData.isString() || !newData.exists()" },
+          "latitude":     { ".validate": "newData.isNumber() && newData.val() >= -90  && newData.val() <= 90  || !newData.exists()" },
+          "longitude":    { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180 || !newData.exists()" }
         }
       }
     },
