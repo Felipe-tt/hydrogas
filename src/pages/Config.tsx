@@ -208,9 +208,6 @@ export function Config() {
                   />
                 </div>
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
-                A localização no mapa da área do morador é obtida automaticamente a partir do endereço ao salvar.
-              </p>
             </div>
           </Section>
 
