@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell } from 'lucide-react'
+import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin } from 'lucide-react'
 import { useAppStore, useUIStore } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
@@ -10,14 +10,17 @@ export function Config() {
   const { config, readings, apartments } = useAppStore()
   const { toast } = useToast()
   const { darkMode, setDarkMode } = useUIStore()
-  const [form, setForm] = useState({ waterRate: '0.033', gasRate: '0.033', condominiumName: '' })
+  const [form, setForm] = useState({ waterRate: '0.033', gasRate: '0.033', condominiumName: '', managerName: '', managerPhone: '', address: '' })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (config) setForm({
-      waterRate: config.waterRate.toString(),
-      gasRate: config.gasRate.toString(),
+      waterRate:    config.waterRate.toString(),
+      gasRate:      config.gasRate.toString(),
       condominiumName: config.condominiumName,
+      managerName:  config.managerName  ?? '',
+      managerPhone: config.managerPhone ?? '',
+      address:      config.address      ?? '',
     })
   }, [config])
 
@@ -31,7 +34,14 @@ export function Config() {
     if (!form.condominiumName.trim())        { toast('Nome do condomínio obrigatório', 'error'); return }
     setLoading(true)
     try {
-      await configRepo.update({ waterRate, gasRate, condominiumName: form.condominiumName.trim() })
+      await configRepo.update({
+        waterRate,
+        gasRate,
+        condominiumName: form.condominiumName.trim(),
+        ...(form.managerName.trim()  && { managerName:  form.managerName.trim() }),
+        ...(form.managerPhone.trim() && { managerPhone: form.managerPhone.trim() }),
+        ...(form.address.trim()      && { address:      form.address.trim() }),
+      })
       toast('Configurações salvas!')
     } catch (e: any) { toast(friendlyError(e), 'error') }
     setLoading(false)
@@ -74,14 +84,58 @@ export function Config() {
             title="Condomínio"
             description="Dados gerais do condomínio"
           >
-            <div>
-              <label className="label">Nome do condomínio</label>
-              <input
-                className="input"
-                value={form.condominiumName}
-                onChange={e => setForm(f => ({ ...f, condominiumName: e.target.value }))}
-                placeholder="Ex: Condomínio Residencial das Flores"
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label className="label">Nome do condomínio</label>
+                <input
+                  className="input"
+                  value={form.condominiumName}
+                  onChange={e => setForm(f => ({ ...f, condominiumName: e.target.value }))}
+                  placeholder="Ex: Condomínio Residencial das Flores"
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+                <div>
+                  <label className="label">Nome do síndico</label>
+                  <div style={{ position: 'relative' }}>
+                    <User size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                    <input
+                      className="input"
+                      value={form.managerName}
+                      onChange={e => setForm(f => ({ ...f, managerName: e.target.value }))}
+                      placeholder="João Silva"
+                      style={{ paddingLeft: 32 }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Telefone / WhatsApp</label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                    <input
+                      className="input"
+                      value={form.managerPhone}
+                      onChange={e => setForm(f => ({ ...f, managerPhone: e.target.value }))}
+                      placeholder="(47) 99999-9999"
+                      inputMode="tel"
+                      style={{ paddingLeft: 32 }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="label">Endereço</label>
+                <div style={{ position: 'relative' }}>
+                  <MapPin size={13} style={{ position: 'absolute', left: 11, top: 13, color: 'var(--text-3)', pointerEvents: 'none' }} />
+                  <input
+                    className="input"
+                    value={form.address}
+                    onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                    placeholder="R. Orestes Figueiredo, 110 — Balneário Piçarras, SC"
+                    style={{ paddingLeft: 32 }}
+                  />
+                </div>
+              </div>
             </div>
           </Section>
 
