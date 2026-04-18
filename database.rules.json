@@ -3,6 +3,7 @@
     "apartments": {
       ".read": "auth != null",
       ".write": "auth != null",
+      ".indexOn": ["publicToken"],
       "$apt": {
         ".validate": "newData.hasChildren(['number', 'publicToken'])",
         "id":          { ".validate": "newData.isString()" },
