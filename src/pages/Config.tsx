@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle } from 'lucide-react'
+import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar } from 'lucide-react'
 import { useAppStore, useUIStore } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
@@ -15,22 +15,32 @@ function maskPhone(value: string): string {
 }
 
 function maskRate(value: string): string {
-  // Allow digits and a single decimal separator (dot or comma)
   return value.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
 }
 
 interface FormErrors {
   condominiumName?: string
   managerPhone?: string
+  managerEmail?: string
   waterRate?: string
   gasRate?: string
+  reportDay?: string
 }
 
 export function Config() {
   const { config, readings, apartments } = useAppStore()
   const { toast } = useToast()
   const { darkMode, setDarkMode } = useUIStore()
-  const [form, setForm] = useState({ waterRate: '0.033', gasRate: '0.033', condominiumName: '', managerName: '', managerPhone: '', address: '' })
+  const [form, setForm] = useState({
+    waterRate: '0.033',
+    gasRate: '0.033',
+    condominiumName: '',
+    managerName: '',
+    managerPhone: '',
+    managerEmail: '',
+    address: '',
+    reportDay: '1',
+  })
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
 
@@ -41,7 +51,9 @@ export function Config() {
       condominiumName: config.condominiumName,
       managerName:  config.managerName  ?? '',
       managerPhone: config.managerPhone ?? '',
+      managerEmail: config.managerEmail ?? '',
       address:      config.address      ?? '',
+      reportDay:    String(config.reportDay ?? 1),
     })
   }, [config])
 
@@ -52,10 +64,14 @@ export function Config() {
     if (!form.condominiumName.trim()) errs.condominiumName = 'Nome do condomínio é obrigatório'
     const phone = form.managerPhone.replace(/\D/g, '')
     if (phone && phone.length < 10) errs.managerPhone = 'Telefone incompleto (mín. 10 dígitos)'
+    if (form.managerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.managerEmail))
+      errs.managerEmail = 'Email inválido'
     const wr = parseFloat(form.waterRate)
     if (!form.waterRate || isNaN(wr) || wr <= 0) errs.waterRate = 'Informe um valor maior que zero'
     const gr = parseFloat(form.gasRate)
     if (!form.gasRate || isNaN(gr) || gr <= 0) errs.gasRate = 'Informe um valor maior que zero'
+    const rd = parseInt(form.reportDay)
+    if (isNaN(rd) || rd < 1 || rd > 28) errs.reportDay = 'Informe um dia entre 1 e 28'
     return errs
   }
 
@@ -65,14 +81,17 @@ export function Config() {
     setErrors({})
     const waterRate = parseFloat(form.waterRate)
     const gasRate   = parseFloat(form.gasRate)
+    const reportDay = parseInt(form.reportDay)
     setLoading(true)
     try {
       await configRepo.update({
         waterRate,
         gasRate,
         condominiumName: form.condominiumName.trim(),
+        reportDay,
         ...(form.managerName.trim()  && { managerName:  form.managerName.trim() }),
         ...(form.managerPhone.trim() && { managerPhone: form.managerPhone.trim() }),
+        ...(form.managerEmail.trim() && { managerEmail: form.managerEmail.trim() }),
         ...(form.address.trim()      && { address:      form.address.trim() }),
       })
       toast('Configurações salvas!')
@@ -85,7 +104,6 @@ export function Config() {
   const waterRate     = parseFloat(form.waterRate || '0')
   const gasRate       = parseFloat(form.gasRate   || '0')
 
-  // Stats derived from real data
   const closedReadings   = readings.filter(r => r.closedAt)
   const totalWaterCost   = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.totalCost ?? 0), 0)
   const totalGasCost     = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.totalCost ?? 0), 0)
@@ -144,7 +162,7 @@ export function Config() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Telefone / WhatsApp</label>
+                  <label className="label">Telefone</label>
                   <div style={{ position: 'relative' }}>
                     <Phone size={13} style={{ position: 'absolute', left: 11, top: errors.managerPhone ? 13 : '50%', transform: errors.managerPhone ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
                     <input
@@ -170,6 +188,54 @@ export function Config() {
                     placeholder="R. Orestes Figueiredo, 110 — Balneário Piçarras, SC"
                     style={{ paddingLeft: 32 }}
                   />
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          <Divider />
+
+          {/* Relatório mensal */}
+          <Section
+            icon={<Mail size={16} color="#10b981" />}
+            iconBg="rgba(16,185,129,0.1)"
+            title="Relatório mensal"
+            description="Receba um resumo de consumo por e-mail todo mês"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label className="label">E-mail do síndico</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={13} style={{ position: 'absolute', left: 11, top: errors.managerEmail ? 13 : '50%', transform: errors.managerEmail ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                  <input
+                    className="input"
+                    type="email"
+                    inputMode="email"
+                    value={form.managerEmail}
+                    onChange={e => { setForm(f => ({ ...f, managerEmail: e.target.value })); setErrors(v => ({ ...v, managerEmail: undefined })) }}
+                    placeholder="sindico@email.com"
+                    style={{ paddingLeft: 32, ...(errors.managerEmail ? { borderColor: '#dc2626' } : {}) }}
+                  />
+                </div>
+                {errors.managerEmail && <FieldError msg={errors.managerEmail} />}
+              </div>
+              <div>
+                <label className="label">Dia do envio <span style={{ color: 'var(--text-3)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(1–28 de cada mês)</span></label>
+                <div style={{ position: 'relative' }}>
+                  <Calendar size={13} style={{ position: 'absolute', left: 11, top: errors.reportDay ? 13 : '50%', transform: errors.reportDay ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                  <input
+                    className="input"
+                    type="number"
+                    inputMode="numeric"
+                    min={1} max={28}
+                    value={form.reportDay}
+                    onChange={e => { setForm(f => ({ ...f, reportDay: e.target.value })); setErrors(v => ({ ...v, reportDay: undefined })) }}
+                    style={{ paddingLeft: 32, maxWidth: 120, ...(errors.reportDay ? { borderColor: '#dc2626' } : {}) }}
+                  />
+                </div>
+                {errors.reportDay && <FieldError msg={errors.reportDay} />}
+                <div style={{ marginTop: 9, padding: '8px 12px', background: 'rgba(16,185,129,0.08)', borderRadius: 8, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5, border: '1px solid rgba(16,185,129,0.15)' }}>
+                  O relatório do mês anterior será enviado todo dia <strong style={{ color: '#10b981' }}>{form.reportDay || '1'}</strong> às 08h00 (horário de Brasília).
                 </div>
               </div>
             </div>
