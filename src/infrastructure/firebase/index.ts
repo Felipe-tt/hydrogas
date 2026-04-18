@@ -57,12 +57,22 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
   // accessPasswordHash é armazenado aqui para ser validado pela Cloud Function com Argon2id.
   // A senha plain text NUNCA é armazenada nem exposta ao cliente.
   // hasPassword (booleano) informa ao frontend se deve exibir formulário de senha.
+  // condoInfo: apenas campos públicos da config (sem tarifas).
+  const configSnap = await get(ref(db, 'config'))
+  const configVal  = configSnap.exists() ? configSnap.val() : {}
+
   const publicData = {
     number:             apt.number,
     block:              apt.block              ?? null,
     responsible:        apt.responsible        ?? null,
     hasPassword:        !!apt.accessPasswordHash,
     accessPasswordHash: apt.accessPasswordHash ?? null,
+    condoInfo: {
+      name:         configVal.condominiumName ?? null,
+      managerName:  configVal.managerName     ?? null,
+      managerPhone: configVal.managerPhone    ?? null,
+      address:      configVal.address         ?? null,
+    },
     readings:    readings.map(r => ({
       id:          r.id,
       type:        r.type,
@@ -260,6 +270,14 @@ export class FirebaseConfigRepository implements IConfigRepository {
       ...data,
       updatedAt: Date.now(),
     })
+    // Re-sincroniza todos os nós públicos para atualizar condoInfo
+    const aptsSnap = await get(ref(db, 'apartments'))
+    if (aptsSnap.exists()) {
+      const apts = Object.entries(aptsSnap.val())
+        .map(([id, v]) => ({ ...(v as any), id }))
+        .filter((a: any) => a.publicToken)
+      await Promise.all(apts.map((a: any) => syncPublicNode(a)))
+    }
   }
 
   subscribe(cb: (config: Config) => void): () => void {
