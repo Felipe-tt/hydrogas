@@ -279,8 +279,8 @@ select.input { cursor: pointer; }
 @media (max-width: 768px) {
   .app-main { padding-bottom: var(--nav-h); }
   .page { padding: 16px; padding-bottom: calc(var(--nav-h) + 80px); }
-  .overlay { align-items: flex-end; padding: 0; padding-bottom: var(--nav-h); }
-  .modal { padding: 20px 16px 28px; border-radius: 20px 20px 0 0; max-width: 100%; margin: 0; max-height: calc(90vh - var(--nav-h)); overflow-y: auto; }
+  .overlay { align-items: flex-end; padding: 0; }
+  .modal { padding: 20px 16px calc(var(--nav-h) + 24px); border-radius: 20px 20px 0 0; max-width: 100%; margin: 0; max-height: 92vh; overflow-y: auto; }
 }
 
 /* Page header */
