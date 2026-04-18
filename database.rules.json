@@ -58,14 +58,35 @@
       "$token": {
         ".read":  "auth != null && auth.token.aptToken === $token",
         ".write": "auth != null && (auth.token.role === 'admin' || auth.uid === 'hydrogas-admin')",
+        "number":      { ".validate": "newData.isString() || !newData.exists()" },
+        "block":       { ".validate": "newData.isString() || !newData.exists()" },
+        "responsible": { ".validate": "newData.isString() || !newData.exists()" },
+        "hasPassword": { ".validate": "newData.isBoolean() || !newData.exists()" },
+        "updatedAt":   { ".validate": "newData.isNumber() || !newData.exists()" },
         "condoInfo": {
           "name":         { ".validate": "newData.isString() || !newData.exists()" },
           "managerName":  { ".validate": "newData.isString() || !newData.exists()" },
           "managerPhone": { ".validate": "newData.isString() || !newData.exists()" },
           "address":      { ".validate": "newData.isString() || !newData.exists()" },
           "latitude":     { ".validate": "newData.isNumber() && newData.val() >= -90  && newData.val() <= 90  || !newData.exists()" },
-          "longitude":    { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180 || !newData.exists()" }
-        }
+          "longitude":    { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180 || !newData.exists()" },
+          "$other":       { ".validate": false }
+        },
+        "readings": {
+          "$reading": {
+            "id":          { ".validate": "newData.isString()" },
+            "type":        { ".validate": "newData.isString() && (newData.val() === 'water' || newData.val() === 'gas')" },
+            "month":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12" },
+            "year":        { ".validate": "newData.isNumber() && newData.val() >= 2000 && newData.val() <= 2100" },
+            "startValue":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "endValue":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "consumption": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "totalCost":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "closedAt":    { ".validate": "newData.isNumber()" },
+            "$other":      { ".validate": false }
+          }
+        },
+        "$other": { ".validate": false }
       }
     },
     "_rateLimit": {
