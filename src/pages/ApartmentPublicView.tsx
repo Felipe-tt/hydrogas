@@ -198,7 +198,250 @@ function SubViewShell({ title, onClose, children }: { title: string; onClose: ()
 
 // ── View: Meu Consumo ─────────────────────────────────────────────────────────
 function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose: () => void }) {
+  const [tooltip, setTooltip] = useState<{ index: number; x: number; y: number } | null>(null)
+
   const sorted  = [...readings].sort((a, b) => a.year - b.year || a.month - b.month)
+  const last12  = sorted.slice(-12)
+
+  // Agrupa por mês/ano para o gráfico
+  const barData = last12.reduce<{ label: string; water: number; gas: number }[]>((acc, r) => {
+    const label = `${MONTHS[r.month - 1].slice(0, 3)}/${String(r.year).slice(2)}`
+    const item  = acc.find(x => x.label === label) ?? { label, water: 0, gas: 0 }
+    if (!acc.find(x => x.label === label)) acc.push(item)
+    if (r.type === 'water') item.water += r.totalCost
+    else item.gas += r.totalCost
+    return acc
+  }, [])
+
+  const maxVal  = Math.max(...barData.map(d => d.water + d.gas), 1)
+  const totalW  = readings.filter(r => r.type === 'water').reduce((a, r) => a + r.totalCost, 0)
+  const totalG  = readings.filter(r => r.type === 'gas').reduce((a, r) => a + r.totalCost, 0)
+  const totalC  = readings.filter(r => r.type === 'water').reduce((a, r) => a + r.consumption, 0)
+  const totalGC = readings.filter(r => r.type === 'gas').reduce((a, r) => a + r.consumption, 0)
+
+  // Comparativo com mês anterior
+  const lastWater = sorted.filter(r => r.type === 'water').slice(-2)
+  const lastGas   = sorted.filter(r => r.type === 'gas').slice(-2)
+  const waterDiff = lastWater.length === 2 ? ((lastWater[1].consumption - lastWater[0].consumption) / lastWater[0].consumption) * 100 : null
+  const gasDiff   = lastGas.length === 2   ? ((lastGas[1].consumption   - lastGas[0].consumption)   / lastGas[0].consumption)   * 100 : null
+
+  const BAR_H = 140
+  const yTicks = [0, 33, 66, 100]
+
+  return (
+    <SubViewShell title="Meu Consumo" onClose={onClose}>
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        {[
+          { label: 'Total Água', value: fmt(totalW), sub: fmtM3(totalC), color: 'var(--water)', bg: 'var(--water-light)', Icon: Droplets },
+          { label: 'Total Gás',  value: fmt(totalG), sub: fmtM3(totalGC), color: 'var(--gas)',   bg: 'var(--gas-light)',   Icon: Flame   },
+        ].map(({ label, value, sub, color, bg, Icon }) => (
+          <div key={label} className="card" style={{ padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon size={14} color={color} />
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'DM Mono, monospace' }}>{value}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 3 }}>{sub} consumidos</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Comparativo mês anterior */}
+      {(waterDiff !== null || gasDiff !== null) && (
+        <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+            Comparativo com mês anterior
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Água', diff: waterDiff, color: 'var(--water)' },
+              { label: 'Gás',  diff: gasDiff,   color: 'var(--gas)'   },
+            ].filter(x => x.diff !== null).map(({ label, diff, color }) => {
+              const up  = diff! > 0
+              const pct = Math.abs(diff!).toFixed(1)
+              return (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{label}</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700,
+                    color: up ? '#dc2626' : '#16a34a',
+                    background: up ? '#fef2f2' : '#f0fdf4',
+                    borderRadius: 6, padding: '3px 10px',
+                  }}>
+                    {up ? '▲' : '▼'} {pct}%
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Gráfico de barras */}
+      {barData.length > 0 && (
+        <div className="card" style={{ padding: '20px 16px 16px', marginBottom: 20 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Histórico mensal</span>
+            <div style={{ display: 'flex', gap: 14 }}>
+              {[{ color: 'var(--water)', label: 'Água' }, { color: 'var(--gas)', label: 'Gás' }].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
+                  <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 500 }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart area */}
+          <div style={{ display: 'flex', gap: 6, position: 'relative' }}>
+            {/* Y axis */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: BAR_H + 22, width: 40, flexShrink: 0, paddingBottom: 22 }}>
+              {[maxVal, maxVal * 0.66, maxVal * 0.33, 0].map((v, i) => (
+                <span key={i} style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', textAlign: 'right', lineHeight: 1 }}>
+                  {v > 0 ? `R$${v.toFixed(0)}` : '0'}
+                </span>
+              ))}
+            </div>
+
+            {/* Bars + grid */}
+            <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+              {/* Grid lines */}
+              {yTicks.map(pct => (
+                <div key={pct} style={{
+                  position: 'absolute', left: 0, right: 0,
+                  top: `${(100 - pct) / 100 * BAR_H}px`,
+                  borderTop: `1px ${pct === 0 ? 'solid' : 'dashed'} var(--border)`,
+                  pointerEvents: 'none',
+                }} />
+              ))}
+
+              {/* Bars */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: BAR_H + 22, paddingBottom: 22, position: 'relative' }}>
+                {barData.map((d, i) => {
+                  const total  = d.water + d.gas
+                  const pct    = total / maxVal
+                  const wH     = total > 0 ? Math.max(pct * BAR_H * (d.water / total), 2) : 0
+                  const gH     = total > 0 ? Math.max(pct * BAR_H * (d.gas   / total), 2) : 0
+                  const isLast = i === barData.length - 1
+                  const isHov  = tooltip?.index === i
+
+                  return (
+                    <div
+                      key={d.label}
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 0, cursor: 'pointer', position: 'relative' }}
+                      onMouseEnter={e => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        const parent = (e.currentTarget as HTMLElement).closest('.card')?.getBoundingClientRect()
+                        setTooltip({ index: i, x: rect.left - (parent?.left ?? 0) + rect.width / 2, y: rect.top - (parent?.top ?? 0) - 8 })
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                      onTouchStart={e => {
+                        e.preventDefault()
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        const parent = (e.currentTarget as HTMLElement).closest('.card')?.getBoundingClientRect()
+                        setTooltip(t => t?.index === i ? null : { index: i, x: rect.left - (parent?.left ?? 0) + rect.width / 2, y: rect.top - (parent?.top ?? 0) - 8 })
+                      }}
+                    >
+                      {/* Bar */}
+                      <div style={{
+                        width: '80%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                        height: BAR_H, borderRadius: '5px 5px 0 0', overflow: 'hidden',
+                        boxShadow: (isLast || isHov) ? '0 0 0 2px var(--water)' : 'none',
+                        transition: 'box-shadow 0.15s',
+                        opacity: isHov && tooltip !== null && tooltip.index !== i ? 0.5 : 1,
+                      }}>
+                        {wH > 0 && <div style={{ height: wH, background: 'var(--water)', opacity: isLast ? 1 : 0.6, transition: 'opacity 0.15s' }} />}
+                        {gH > 0 && <div style={{ height: gH, background: 'var(--gas)',   opacity: isLast ? 1 : 0.6, transition: 'opacity 0.15s' }} />}
+                        {total === 0 && <div style={{ height: 2, background: 'var(--border)' }} />}
+                      </div>
+                      {/* Label */}
+                      <div style={{ marginTop: 5, fontSize: 9, color: isLast ? 'var(--text)' : 'var(--text-3)', fontWeight: isLast ? 700 : 400, whiteSpace: 'nowrap', textAlign: 'center', overflow: 'hidden', maxWidth: '100%' }}>
+                        {d.label}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Tooltip */}
+              {tooltip !== null && (() => {
+                const d = barData[tooltip.index]
+                const total = d.water + d.gas
+                return (
+                  <div style={{
+                    position: 'absolute',
+                    left: Math.min(Math.max(tooltip.x - 72, 0), 9999),
+                    bottom: BAR_H + 22 - tooltip.y + 14,
+                    width: 144,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    boxShadow: '0 6px 24px rgba(0,0,0,0.18)',
+                    zIndex: 50,
+                    pointerEvents: 'none',
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.label}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {d.water > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--water)', flexShrink: 0 }} />
+                            <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Água</span>
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>{fmt(d.water)}</span>
+                        </div>
+                      )}
+                      {d.gas > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gas)', flexShrink: 0 }} />
+                            <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Gás</span>
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>{fmt(d.gas)}</span>
+                        </div>
+                      )}
+                      {total > 0 && (
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 5, marginTop: 2, display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Total</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{fmt(total)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+
+          {/* Resumo do mês atual */}
+          {barData.length > 0 && (() => {
+            const last = barData[barData.length - 1]
+            return (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Mês atual ({last.label})</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
+                  {fmt(last.water + last.gas)}
+                </span>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
+      {readings.length === 0 && (
+        <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+          <BarChart2 size={34} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.2, color: 'var(--text-3)' }} />
+          <div style={{ color: 'var(--text-2)', fontSize: 14 }}>Nenhum dado ainda</div>
+        </div>
+      )}
+    </SubViewShell>
+  )
+}
   const last12  = sorted.slice(-12)
 
   // Agrupa por mês/ano para o gráfico
