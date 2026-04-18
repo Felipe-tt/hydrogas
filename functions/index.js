@@ -129,33 +129,30 @@ function getIp(req) {
 }
 
 // ── adminLogin ────────────────────────────────────────────────────────────────
-exports.adminLogin = onRequest(
+exports.adminLogin = onCall(
   {
-    secrets:        ['ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH', 'DATABASE_URL'],
-    timeoutSeconds: 30,
-    memory:         '512MiB',
-    region:         'us-central1',
+    secrets:         ['ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH', 'DATABASE_URL'],
+    timeoutSeconds:  30,
+    memory:          '512MiB',
+    region:          'us-central1',
+    enforceAppCheck: true,
   },
-  async (req, res) => {
-    setCorsHeaders(req, res)
-    if (req.method === 'OPTIONS') return res.status(204).send('')
-    if (req.method !== 'POST')
-      return res.status(405).json({ error: 'Método não permitido.' })
-
-    const ipKey = getIp(req)
+  async (request) => {
+    // Rate limiting por IP
+    const ipKey = getIp(request.rawRequest)
     if (await isRateLimited(ipKey))
-      return res.status(429).json({ error: 'Muitas tentativas. Aguarde 15 minutos.' })
+      throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
 
-    const { username, password } = req.body || {}
+    const { username, password } = request.data || {}
     if (!username || !password)
-      return res.status(400).json({ error: 'Dados inválidos.' })
+      throw new HttpsError('invalid-argument', 'Dados inválidos.')
 
     const expectedUsername = process.env.ADMIN_USERNAME      || 'admin'
     const passwordHash     = process.env.ADMIN_PASSWORD_HASH
 
     if (!passwordHash) {
       logger.error('ADMIN_PASSWORD_HASH secret não configurado!')
-      return res.status(500).json({ error: 'Servidor mal configurado. Contate o administrador.' })
+      throw new HttpsError('internal', 'Servidor mal configurado. Contate o administrador.')
     }
 
     const usernameOk = username === expectedUsername
@@ -164,22 +161,20 @@ exports.adminLogin = onRequest(
       passwordOk = await argon2.verify(passwordHash, password, { type: argon2.argon2id })
     } catch (err) {
       logger.error('Erro ao verificar senha:', err)
-      return res.status(500).json({ error: 'Erro interno ao verificar senha.' })
+      throw new HttpsError('internal', 'Erro interno ao verificar senha.')
     }
 
     if (!usernameOk || !passwordOk)
-      return res.status(401).json({ error: 'Usuário ou senha incorretos.' })
+      throw new HttpsError('unauthenticated', 'Usuário ou senha incorretos.')
 
     await clearRateLimit(ipKey)
 
     try {
       const token = await getAuth().createCustomToken(ADMIN_UID, { role: 'admin' })
-      return res.status(200).json({ token })
+      return { token }
     } catch (err) {
       logger.error('Erro ao criar custom token:', err)
-      return res.status(500).json({
-        error: err?.message || err?.toString?.() || 'unknown error',
-      })
+      throw new HttpsError('internal', err?.message || 'Erro ao criar sessão.')
     }
   }
 )
