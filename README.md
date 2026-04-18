@@ -25,7 +25,7 @@ Sistema de gestão de leituras de água e gás para condomínios. Permite ao sí
 - Acesso ao banco de dados bloqueado sem autenticação válida
 - Firebase App Check com reCAPTCHA v3 ativo
 - Tokens públicos por apartamento com 122 bits de entropia
-- Todas as credenciais via variáveis de ambiente e Firebase Secret Manager — nada hardcoded
+- Todas as credenciais via variáveis de ambiente e Firebase Secret Manager
 
 ## Setup
 
