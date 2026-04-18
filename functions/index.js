@@ -273,43 +273,45 @@ exports.getPublicApartment = onCall(
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
     }
 
-    const db   = getDatabase()
-    const snap = await db.ref(`public/${token}`).get()
+    const db = getDatabase()
 
-    if (!snap.exists()) {
+    // Busca o apartamento pelo publicToken em /apartments via Admin SDK.
+    // O hash fica em /apartments e nunca é exposto ao cliente.
+    const aptSnap = await db.ref('apartments')
+      .orderByChild('publicToken')
+      .equalTo(token)
+      .limitToFirst(1)
+      .get()
+
+    if (!aptSnap.exists()) {
       throw new HttpsError('not-found', 'Link inválido.')
     }
 
-    const data = snap.val()
+    const aptData = Object.values(aptSnap.val())[0]
 
-    // Valida senha no servidor usando hash Argon2id — a senha nunca vai ao cliente
-    if (data.accessPasswordHash) {
+    // Valida senha usando hash de /apartments — hash nunca sai do servidor
+    if (aptData.accessPasswordHash) {
       if (!password) {
-        // Sem senha fornecida — apenas retorna "unauthenticated" sem consumir tentativa,
-        // pois não é uma tentativa de força bruta, é só a tela de login aparecendo.
+        // Sem senha fornecida — apenas retorna "unauthenticated" sem consumir tentativa
         throw new HttpsError('unauthenticated', 'Senha obrigatória.')
       }
       let passwordOk = false
       try {
-        passwordOk = await argon2.verify(data.accessPasswordHash, password.trim(), { type: argon2.argon2id })
+        passwordOk = await argon2.verify(aptData.accessPasswordHash, password.trim(), { type: argon2.argon2id })
       } catch (err) {
         logger.error('Erro ao verificar senha do apartamento:', err)
         throw new HttpsError('internal', 'Erro interno ao verificar senha.')
       }
       if (!passwordOk) {
-        // Só aqui incrementamos: tentativa com senha ERRADA
         await recordFailedAttempt(rateLimitKey)
         throw new HttpsError('unauthenticated', 'Senha incorreta.')
       }
-      // Sucesso: limpa tentativas anteriores
       await clearRateLimit(rateLimitKey)
     }
 
-    // Gera um Custom Token de curta duração para o morador
-    // Isso permite que o Firebase SDK restaure a sessão automaticamente no reload,
-    // sem precisar guardar nada sensível no browser.
-    // O token tem claim { role: 'resident', token } para que as regras do RTDB
-    // possam ser usadas futuramente se necessário.
+    // Gera Custom Token para o morador — permite sessão persistente no reload.
+    // Usa instância Firebase separada no frontend (residentAuth), então não
+    // interfere com a sessão do síndico.
     let residentFirebaseToken = null
     try {
       const uid = `resident-${sanitizeKey(token)}`
@@ -319,11 +321,14 @@ exports.getPublicApartment = onCall(
       })
     } catch (err) {
       logger.warn('Não foi possível gerar custom token para morador:', err)
-      // Não bloqueia — retorna os dados mesmo sem o token
     }
 
+    // Busca dados do nó público (leituras, número, responsável — nada sensível)
+    const publicSnap = await db.ref(`public/${token}`).get()
+    const publicData = publicSnap.exists() ? publicSnap.val() : {}
+
     // Remove campos sensíveis antes de retornar
-    const { accessPasswordHash, hasPassword, ...safeData } = data
+    const { accessPasswordHash: _h, hasPassword: _hp, ...safeData } = publicData
     return { ...safeData, _firebaseToken: residentFirebaseToken }
   }
 )
