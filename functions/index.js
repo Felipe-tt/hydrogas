@@ -121,91 +121,98 @@ async function clearRateLimit(key) {
 // ─── Email template ───────────────────────────────────────────────────────────
 
 /**
- * Renders a single apartment row in the detail table.
- * Alternating stripes, inline spark-bar for visual proportion.
+ * Renders a single apartment row.
+ * GMAIL-SAFE: no font-family on td/th (causes vertical text), no white-space:nowrap on td.
+ * Each cell uses a nested <span> for color/font so Gmail doesn't inherit weirdly.
  */
 function buildApartmentRow(apt, index, maxTotal) {
-  const isEven  = index % 2 === 0
-  const bg      = isEven ? '#ffffff' : '#f8fafc'
-  const barW    = maxTotal > 0 ? Math.max(2, Math.round((apt.total / maxTotal) * 60)) : 0
-  const wPct    = apt.total > 0 ? Math.round((apt.wCost / apt.total) * 100) : 50
-  const gPct    = 100 - wPct
-  const tdBase  = `padding:11px 14px;border-bottom:1px solid #eef2f7;font-size:12.5px;color:#1e293b;vertical-align:middle;`
-  const isTop   = index === 0
-  const badge   = isTop
-    ? `<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:9px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:1px 6px;border-radius:20px;margin-left:5px;vertical-align:middle;">MAIOR</span>`
+  const bg     = index % 2 === 0 ? '#ffffff' : '#f8fafc'
+  const isTop  = index === 0
+  const dot    = isTop ? '#f59e0b' : '#94a3b8'
+  const badge  = isTop
+    ? ` <span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-left:4px;">MAIOR</span>`
     : ''
+
+  // spark bar widths (capped at 56px)
+  const barW = maxTotal > 0 ? Math.max(4, Math.round((apt.total / maxTotal) * 56)) : 4
+  const wPct = apt.total > 0 ? Math.round((apt.wCost / apt.total) * 100) : 50
+  const gPct = 100 - wPct
+
+  const td = `padding:10px 12px;border-bottom:1px solid #eef2f7;vertical-align:middle;`
 
   return `
   <tr style="background:${bg};">
-    <td style="${tdBase}font-weight:700;color:#0f172a;white-space:nowrap;">
-      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${isTop ? '#f59e0b' : '#cbd5e1'};margin-right:7px;vertical-align:middle;"></span>
-      Ap.&nbsp;${apt.num}${badge}
+    <td style="${td}">
+      <table cellpadding="0" cellspacing="0"><tr>
+        <td style="padding-right:6px;vertical-align:middle;">
+          <div style="width:7px;height:7px;border-radius:50%;background:${dot};"></div>
+        </td>
+        <td style="vertical-align:middle;">
+          <span style="font-size:13px;font-weight:700;color:#0f172a;">Ap.&nbsp;${apt.num}</span>${badge}
+        </td>
+      </tr></table>
     </td>
-    <td style="${tdBase}font-family:'Courier New',Courier,monospace;color:#1d4ed8;">${formatM3(apt.wM3)}</td>
-    <td style="${tdBase}font-family:'Courier New',Courier,monospace;color:#b45309;">${formatM3(apt.gM3)}</td>
-    <td style="${tdBase}font-family:'Courier New',Courier,monospace;color:#1d4ed8;">${formatBRL(apt.wCost)}</td>
-    <td style="${tdBase}font-family:'Courier New',Courier,monospace;color:#b45309;">${formatBRL(apt.gCost)}</td>
-    <td style="${tdBase}font-weight:800;color:#0f172a;font-family:'Courier New',Courier,monospace;">
-      ${formatBRL(apt.total)}
-      <div style="margin-top:4px;height:4px;border-radius:2px;background:#e2e8f0;width:${barW}px;max-width:64px;overflow:hidden;">
-        <div style="width:${wPct}%;height:100%;background:#3b82f6;display:inline-block;"></div><div style="width:${gPct}%;height:100%;background:#f97316;display:inline-block;"></div>
-      </div>
+    <td style="${td}"><span style="font-size:12px;color:#1d4ed8;">${formatM3(apt.wM3)}</span></td>
+    <td style="${td}"><span style="font-size:12px;color:#b45309;">${formatM3(apt.gM3)}</span></td>
+    <td style="${td}"><span style="font-size:12px;color:#1d4ed8;">${formatBRL(apt.wCost)}</span></td>
+    <td style="${td}"><span style="font-size:12px;color:#b45309;">${formatBRL(apt.gCost)}</span></td>
+    <td style="${td}">
+      <span style="font-size:13px;font-weight:800;color:#0f172a;">${formatBRL(apt.total)}</span>
+      <table cellpadding="0" cellspacing="0" style="margin-top:5px;">
+        <tr>
+          <td style="background:#3b82f6;height:4px;width:${Math.round(wPct * barW / 100)}px;border-radius:2px 0 0 2px;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:#f97316;height:4px;width:${Math.round(gPct * barW / 100)}px;border-radius:0 2px 2px 0;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:#e2e8f0;height:4px;width:${56 - barW}px;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+      </table>
     </td>
   </tr>`
 }
 
 /**
- * Builds the bar chart for per-apartment consumption (table-based, email-safe).
- * Each bar is a proportional stack of two coloured cells.
+ * Builds the bar chart. Uses nested tables (not divs) for Outlook/Gmail compat.
+ * Bars are rendered as stacked <td> cells with explicit heights.
  */
 function buildBarChart(aptRows) {
   if (!aptRows.length) return ''
 
-  const maxTotal = Math.max(...aptRows.map(r => r.total))
-  const BAR_HEIGHT = 64 // px total bar height for the tallest apt
+  const maxTotal   = Math.max(...aptRows.map(r => r.total))
+  const BAR_HEIGHT = 56
 
   const bars = aptRows.map((apt) => {
     const totalH = maxTotal > 0 ? Math.max(4, Math.round((apt.total / maxTotal) * BAR_HEIGHT)) : 4
-    const wH     = apt.total > 0 ? Math.round((apt.wCost / apt.total) * totalH) : Math.floor(totalH / 2)
-    const gH     = totalH - wH
-    const label  = String(apt.num).length > 3 ? String(apt.num).slice(0, 3) : apt.num
+    const wH     = apt.total > 0 ? Math.max(2, Math.round((apt.wCost / apt.total) * totalH)) : Math.floor(totalH / 2)
+    const gH     = Math.max(0, totalH - wH)
+    const spacer = BAR_HEIGHT - totalH
+    const label  = String(apt.num).slice(0, 4)
 
     return `
-      <td align="center" valign="bottom" style="padding:0 3px;vertical-align:bottom;">
+      <td align="center" valign="bottom" style="padding:0 4px;vertical-align:bottom;">
         <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
-          <tr>
-            <td style="padding:0;">
-              <div style="width:18px;background:#3b82f6;height:${wH}px;border-radius:2px 2px 0 0;"></div>
-              <div style="width:18px;background:#f97316;height:${gH}px;"></div>
-            </td>
-          </tr>
+          <tr><td style="height:${spacer}px;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr><td style="background:#3b82f6;width:16px;height:${wH}px;border-radius:2px 2px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr><td style="background:#f97316;width:16px;height:${gH}px;font-size:0;line-height:0;">&nbsp;</td></tr>
         </table>
-        <div style="font-size:9px;color:#94a3b8;margin-top:3px;font-weight:600;">${label}</div>
+        <div style="font-size:9px;color:#94a3b8;margin-top:4px;font-weight:600;text-align:center;">${label}</div>
       </td>`
   }).join('')
 
   return `
-  <!-- Bar Chart -->
   <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px;">
-    <tr>
-      <td style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.1em;text-transform:uppercase;padding-bottom:12px;">
-        Consumo por apartamento
-      </td>
-    </tr>
+    <tr><td style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.1em;text-transform:uppercase;padding-bottom:14px;">Consumo por apartamento</td></tr>
     <tr>
       <td>
-        <table cellpadding="0" cellspacing="0">
-          <tr valign="bottom">${bars}</tr>
-        </table>
+        <table cellpadding="0" cellspacing="0"><tr valign="bottom">${bars}</tr></table>
       </td>
     </tr>
     <tr>
-      <td style="padding-top:10px;">
-        <span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
-        <span style="font-size:11px;color:#64748b;vertical-align:middle;margin-right:12px;">Água</span>
-        <span style="display:inline-block;width:10px;height:10px;background:#f97316;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>
-        <span style="font-size:11px;color:#64748b;vertical-align:middle;">Gás</span>
+      <td style="padding-top:12px;">
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="padding-right:4px;"><div style="width:10px;height:10px;background:#3b82f6;border-radius:2px;"></div></td>
+          <td style="font-size:11px;color:#64748b;padding-right:16px;">Água</td>
+          <td style="padding-right:4px;"><div style="width:10px;height:10px;background:#f97316;border-radius:2px;"></div></td>
+          <td style="font-size:11px;color:#64748b;">Gás</td>
+        </tr></table>
       </td>
     </tr>
   </table>`
@@ -547,12 +554,12 @@ function buildEmailHtml({
                   <!-- Header -->
                   <thead>
                     <tr style="background:#f8fafc;">
-                      <th style="padding:10px 14px;text-align:left;font-size:9.5px;font-weight:800;color:#64748b;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Apartamento</th>
-                      <th style="padding:10px 14px;text-align:left;font-size:9.5px;font-weight:800;color:#1d4ed8;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Água m³</th>
-                      <th style="padding:10px 14px;text-align:left;font-size:9.5px;font-weight:800;color:#b45309;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Gás m³</th>
-                      <th style="padding:10px 14px;text-align:left;font-size:9.5px;font-weight:800;color:#1d4ed8;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Custo água</th>
-                      <th style="padding:10px 14px;text-align:left;font-size:9.5px;font-weight:800;color:#b45309;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Custo gás</th>
-                      <th style="padding:10px 14px;text-align:left;font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Total</th>
+                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Apto</th>
+                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#1d4ed8;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Água m³</th>
+                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Gás m³</th>
+                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#1d4ed8;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">R$ Água</th>
+                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">R$ Gás</th>
+                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#0f172a;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Total</th>
                     </tr>
                   </thead>
                   <!-- Body rows -->
@@ -560,12 +567,12 @@ function buildEmailHtml({
                     ${aptRowsHtml}
                     <!-- TOTALS ROW -->
                     <tr style="background:#0f172a;">
-                      <td style="padding:12px 14px;font-size:11px;font-weight:800;color:#f1f5f9;letter-spacing:0.05em;text-transform:uppercase;border-top:2px solid #1e293b;">Total Geral</td>
-                      <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#93c5fd;font-family:'Courier New',Courier,monospace;border-top:2px solid #1e293b;">${formatM3(m3Agua)}</td>
-                      <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#fdba74;font-family:'Courier New',Courier,monospace;border-top:2px solid #1e293b;">${formatM3(m3Gas)}</td>
-                      <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#93c5fd;font-family:'Courier New',Courier,monospace;border-top:2px solid #1e293b;">${formatBRL(agua)}</td>
-                      <td style="padding:12px 14px;font-size:12px;font-weight:700;color:#fdba74;font-family:'Courier New',Courier,monospace;border-top:2px solid #1e293b;">${formatBRL(gas)}</td>
-                      <td style="padding:12px 14px;font-size:14px;font-weight:900;color:#f1f5f9;font-family:'Courier New',Courier,monospace;border-top:2px solid #1e293b;">${formatBRL(geral)}</td>
+                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:11px;font-weight:800;color:#f1f5f9;letter-spacing:0.05em;text-transform:uppercase;">Total</span></td>
+                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#93c5fd;">${formatM3(m3Agua)}</span></td>
+                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#fdba74;">${formatM3(m3Gas)}</span></td>
+                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#93c5fd;">${formatBRL(agua)}</span></td>
+                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#fdba74;">${formatBRL(gas)}</span></td>
+                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:14px;font-weight:900;color:#f1f5f9;">${formatBRL(geral)}</span></td>
                     </tr>
                   </tbody>
                 </table>
@@ -602,7 +609,7 @@ function buildEmailHtml({
                           <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;">
                             <div style="font-size:9px;font-weight:800;color:#92400e;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Maior consumidor</div>
                             <div style="font-size:13px;font-weight:800;color:#78350f;">Ap.&nbsp;${maxApt.num}</div>
-                            <div style="font-size:11px;color:#b45309;font-family:'Courier New',Courier,monospace;margin-top:2px;">${formatBRL(maxApt.total)}</div>
+                            <div style="font-size:11px;color:#b45309;margin-top:2px;">${formatBRL(maxApt.total)}</div>
                           </div>
                         </td>
                         <!-- Menor consumidor -->
@@ -610,7 +617,7 @@ function buildEmailHtml({
                           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;">
                             <div style="font-size:9px;font-weight:800;color:#14532d;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Menor consumidor</div>
                             <div style="font-size:13px;font-weight:800;color:#15803d;">Ap.&nbsp;${minApt.num}</div>
-                            <div style="font-size:11px;color:#16a34a;font-family:'Courier New',Courier,monospace;margin-top:2px;">${formatBRL(minApt.total)}</div>
+                            <div style="font-size:11px;color:#16a34a;margin-top:2px;">${formatBRL(minApt.total)}</div>
                           </div>
                         </td>
                         <!-- Média por unidade -->
