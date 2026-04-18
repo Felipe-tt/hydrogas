@@ -62,6 +62,7 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
     block:              apt.block              ?? null,
     responsible:        apt.responsible        ?? null,
     hasPassword:        !!apt.accessPasswordHash,
+    accessPasswordHash: apt.accessPasswordHash ?? null,
     readings:    readings.map(r => ({
       id:          r.id,
       type:        r.type,
