@@ -468,10 +468,10 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
 // ── View: Sobre o Condomínio ──────────────────────────────────────────────────
 function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condoInfo?: CondoInfo; onClose: () => void }) {
   const info     = condoInfo
-  const lat      = -26.763457
-  const lng      = -48.674538
-  const addr     = info?.address || 'R. Orestes Figueiredo, 110, Balneário Piçarras - SC'
-  const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`
+  // Coordenadas e endereço devem vir do /config via condoInfo.address
+  // Não hardcodamos localização no bundle público
+  const addr     = info?.address || null
+  const mapsLink = addr ? `https://www.google.com/maps/search/${encodeURIComponent(addr)}` : null
 
   return (
     <SubViewShell title="Sobre o Condomínio" onClose={onClose}>
@@ -497,12 +497,13 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
         </div>
       </div>
 
+      {addr && mapsLink && (
       <div className="card" style={{ overflow: 'hidden', marginBottom: 14 }}>
         <a href={mapsLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
           <div style={{ height: 180, background: 'var(--surface-2)', position: 'relative', overflow: 'hidden' }}>
             <iframe
               title="Localização"
-              src={`https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`}
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=17&output=embed`}
               style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
               loading="lazy" referrerPolicy="no-referrer-when-downgrade"
             />
@@ -517,6 +518,7 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
           </div>
         </a>
       </div>
+      )}
     </SubViewShell>
   )
 }
