@@ -120,26 +120,26 @@ function TopConsumers({ closed, apartments, darkMode }: any) {
   )
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <table className="top-consumers-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
             {['Ap.', 'Água m³', 'Gás m³', 'Custo Água', 'Custo Gás', 'Total'].map(h => (
-              <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+              <th key={h} className="tc-th">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.number} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
-              <td style={{ padding: '9px 10px', fontWeight: 700, color: 'var(--text)' }}>
+              <td className="tc-td tc-apt">
                 <span style={{ fontFamily: 'DM Mono, monospace' }}>{r.number}</span>
               </td>
-              <td style={{ padding: '9px 10px', color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>{r.water > 0 ? `${r.water.toFixed(1)}` : '—'}</td>
-              <td style={{ padding: '9px 10px', color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>{r.gas > 0 ? `${r.gas.toFixed(1)}` : '—'}</td>
-              <td style={{ padding: '9px 10px', color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>{r.waterCost > 0 ? fmt(r.waterCost) : '—'}</td>
-              <td style={{ padding: '9px 10px', color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>{r.gasCost > 0 ? fmt(r.gasCost) : '—'}</td>
-              <td style={{ padding: '9px 10px', fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{fmt(r.waterCost + r.gasCost)}</td>
+              <td className="tc-td tc-water">{r.water > 0 ? `${r.water.toFixed(1)}` : '—'}</td>
+              <td className="tc-td tc-gas">{r.gas > 0 ? `${r.gas.toFixed(1)}` : '—'}</td>
+              <td className="tc-td tc-water">{r.waterCost > 0 ? fmt(r.waterCost) : '—'}</td>
+              <td className="tc-td tc-gas">{r.gasCost > 0 ? fmt(r.gasCost) : '—'}</td>
+              <td className="tc-td tc-total">{fmt(r.waterCost + r.gasCost)}</td>
             </tr>
           ))}
         </tbody>
@@ -413,7 +413,7 @@ export function Dashboard() {
         </div>
 
         {/* Mini stats panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="mini-stats-panel">
           <MiniStat
             label="Ticket médio / leitura"
             value={closed.length > 0 ? fmtK(avgCost) : '—'}
