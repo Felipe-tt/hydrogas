@@ -72,6 +72,8 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
       managerName:  configVal.managerName     ?? null,
       managerPhone: configVal.managerPhone    ?? null,
       address:      configVal.address         ?? null,
+      latitude:     configVal.latitude        ?? null,
+      longitude:    configVal.longitude       ?? null,
     },
     readings:    readings.map(r => ({
       id:          r.id,
