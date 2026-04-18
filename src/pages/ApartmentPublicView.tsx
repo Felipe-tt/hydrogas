@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef }  from 'react'
 import { useParams }                    from 'react-router-dom'
 import { Droplets, Flame, Building2, AlertCircle, TrendingUp, KeyRound, Eye, EyeOff, ArrowRight, ChevronDown, Settings, Moon, Sun, Type } from 'lucide-react'
-import { getFunctions, httpsCallable }  from 'firebase/functions'
-import { getApp }                       from 'firebase/app'
+import { httpsCallable }                from 'firebase/functions'
 import { get, ref }                     from 'firebase/database'
 import { signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'
-import { db, auth }                     from '../infrastructure/firebase'
+import { db }                           from '../infrastructure/firebase'
+import { residentAuth, residentFunctions, residentDb } from '../infrastructure/firebase/residentApp'
 
-const functions = getFunctions(getApp(), 'us-central1')
+const functions = residentFunctions
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 const fmt    = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -403,7 +403,7 @@ export function ApartmentPublicView() {
     // O SDK do Firebase persiste a sessão internamente (seguro, sem dado sensível).
     // Isso permite que onAuthStateChanged detecte o usuário no próximo reload.
     if (_firebaseToken) {
-      try { await signInWithCustomToken(auth, _firebaseToken) } catch (e) {
+      try { await signInWithCustomToken(residentAuth, _firebaseToken) } catch (e) {
         // Falha no sign-in não bloqueia — dados já foram obtidos
         console.warn('signInWithCustomToken falhou:', e)
       }
@@ -416,7 +416,7 @@ export function ApartmentPublicView() {
   // Busca dados direto do RTDB — usado no reload quando sessão Firebase já existe.
   // O nó public/${token} não contém dados sensíveis (hash nunca é escrito lá).
   async function fetchDataFromRTDB(tok: string) {
-    const snap = await get(ref(db, `public/${tok}`))
+    const snap = await get(ref(residentDb, `public/${tok}`))
     if (!snap.exists()) { setStatus('invalid'); return }
     const { accessPasswordHash: _h, hasPassword: _hp, _firebaseToken: _ft, ...safeData } = snap.val()
     setData(safeData as PublicData)
@@ -427,14 +427,14 @@ export function ApartmentPublicView() {
     if (!token) { setStatus('invalid'); return }
 
     // Carrega nome do condomínio em paralelo (leitura pública)
-    get(ref(db, 'config'))
+    get(ref(residentDb, 'config'))
       .then(s => { if (s.exists()) setCondoName(s.val().condominiumName ?? 'Condomínio') })
       .catch(() => {})
 
     // onAuthStateChanged dispara imediatamente com o estado atual do Firebase Auth.
     // Se o morador já autenticou antes, user != null e o SDK restaurou a sessão
     // automaticamente — sem nenhum dado persistido manualmente.
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(residentAuth, async (user) => {
       unsub() // ouve só uma vez na inicialização
 
       if (user) {
@@ -449,15 +449,11 @@ export function ApartmentPublicView() {
         return
       }
 
-      // Sem sessão — verifica se o apartamento tem senha
+      // Sem sessão — chama a Cloud Function sem senha.
+      // Se precisar de senha, ela retorna 'unauthenticated'.
+      // Se o token não existir, retorna 'not-found'.
       try {
-        const hasPassSnap = await get(ref(db, `public/${token}/hasPassword`))
-        const needsPassword = hasPassSnap.exists() && hasPassSnap.val() === true
-        if (!needsPassword) {
-          await fetchDataFromFunction(token, '')
-        } else {
-          setStatus('auth')
-        }
+        await fetchDataFromFunction(token, '')
       } catch (err: any) {
         const code = err?.code ?? ''
         if (code === 'functions/unauthenticated') setStatus('auth')
