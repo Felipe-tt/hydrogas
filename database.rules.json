@@ -5,6 +5,7 @@
       ".write": "auth != null",
       "$apt": {
         ".validate": "newData.hasChildren(['number', 'publicToken'])",
+        "id":          { ".validate": "newData.isString()" },
         "number":      { ".validate": "newData.isString() && newData.val().length <= 20" },
         "publicToken": { ".validate": "newData.isString() && newData.val().length === 36" },
         "block":       { ".validate": "newData.isString() && newData.val().length <= 20" },
@@ -21,6 +22,7 @@
       ".write": "auth != null",
       "$reading": {
         ".validate": "newData.hasChildren(['apartmentId', 'type', 'month', 'year'])",
+        "id":          { ".validate": "newData.isString()" },
         "apartmentId": { ".validate": "newData.isString()" },
         "type":        { ".validate": "newData.isString() && (newData.val() === 'water' || newData.val() === 'gas')" },
         "month":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12" },
