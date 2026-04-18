@@ -924,13 +924,16 @@ exports.monthlyEmailReport = onSchedule(
     const refYear  = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear()
     const refMonth = today.getMonth() === 0 ? 12 : today.getMonth() // 1–12
 
-    // Lê leituras fechadas do mês de referência
-    const readingsSnap = await db.ref('readings').get()
+    // Lê leituras fechadas do mês de referência — filtra por year no índice RTDB
+    // para evitar carregar todo o histórico em memória (prevenção de timeout/OOM).
+    // O filtro de mês é feito em memória após a query indexada.
+    const readingsSnap = await db.ref('readings')
+      .orderByChild('year').equalTo(refYear).get()
     const byApt        = {}
 
     if (readingsSnap.exists()) {
       for (const r of Object.values(readingsSnap.val())) {
-        if (r.month !== refMonth || r.year !== refYear) continue
+        if (r.month !== refMonth) continue
         if (!r.closedAt && r.status !== 'closed') continue
 
         if (!byApt[r.apartmentId]) byApt[r.apartmentId] = { wCost: 0, gCost: 0, wM3: 0, gM3: 0 }
