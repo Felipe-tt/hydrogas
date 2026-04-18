@@ -54,19 +54,17 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
         .filter((r: any) => r.closedAt)
     : []
 
-  // accessPasswordHash é armazenado aqui para ser validado pela Cloud Function com Argon2id.
-  // A senha plain text NUNCA é armazenada nem exposta ao cliente.
-  // hasPassword (booleano) informa ao frontend se deve exibir formulário de senha.
-  // condoInfo: apenas campos públicos da config (sem tarifas).
+  // accessPasswordHash é validado pela Cloud Function diretamente de /apartments (admin-only).
+  // NUNCA é gravado em /public. hasPassword é derivado e injetado pela Cloud Function na resposta.
   const configSnap = await get(ref(db, 'config'))
   const configVal  = configSnap.exists() ? configSnap.val() : {}
 
   const publicData = {
-    number:             apt.number,
-    block:              apt.block              ?? null,
-    responsible:        apt.responsible        ?? null,
-    hasPassword:        !!apt.accessPasswordHash,
-    accessPasswordHash: apt.accessPasswordHash ?? null,
+    number:      apt.number,
+    block:       apt.block       ?? null,
+    responsible: apt.responsible ?? null,
+    // accessPasswordHash NUNCA vai para /public — fica só em /apartments (admin-only)
+    // hasPassword é derivado pela Cloud Function diretamente de /apartments
     condoInfo: {
       name:         configVal.condominiumName ?? null,
       managerName:  configVal.managerName     ?? null,
