@@ -6,14 +6,15 @@
  *   na instância principal (app/auth), ele sobrescreve a sessão do síndico.
  *   Com uma instância separada, as duas sessões coexistem sem interferência.
  *
- * App Check NÃO é inicializado aqui — o token de App Check é por appId,
- * não por instância. A instância principal já registra o token que vale
- * para ambas. Inicializar duas vezes causa conflito.
+ * App Check: cada instância Firebase nomeada precisa do seu próprio
+ * initializeAppCheck — o token NÃO é compartilhado entre instâncias.
+ * Usamos a mesma chave reCAPTCHA da instância principal.
  */
-import { initializeApp, getApps } from 'firebase/app'
-import { getAuth }                 from 'firebase/auth'
-import { getFunctions }            from 'firebase/functions'
-import { getDatabase }             from 'firebase/database'
+import { initializeApp, getApps }                  from 'firebase/app'
+import { getAuth }                                 from 'firebase/auth'
+import { getFunctions }                            from 'firebase/functions'
+import { getDatabase }                             from 'firebase/database'
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -28,8 +29,16 @@ const firebaseConfig = {
 
 const RESIDENT_APP_NAME = 'resident'
 
-export const residentApp = getApps().find(a => a.name === RESIDENT_APP_NAME)
-                         ?? initializeApp(firebaseConfig, RESIDENT_APP_NAME)
+const existingApp = getApps().find(a => a.name === RESIDENT_APP_NAME)
+export const residentApp = existingApp ?? initializeApp(firebaseConfig, RESIDENT_APP_NAME)
+
+// Inicializa App Check apenas na primeira vez (evita erro de dupla inicialização)
+if (!existingApp) {
+  initializeAppCheck(residentApp, {
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
+    isTokenAutoRefreshEnabled: true,
+  })
+}
 
 export const residentAuth      = getAuth(residentApp)
 export const residentFunctions = getFunctions(residentApp, 'us-central1')
