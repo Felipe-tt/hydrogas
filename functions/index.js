@@ -62,7 +62,7 @@ function formatBRLPlain(value) {
 }
 
 function formatM3(value) {
-  return `${value.toFixed(1).replace('.', ',')}&nbsp;m³`
+  return `${value.toFixed(1).replace('.', ',')}&nbsp;m&#179;`
 }
 
 function formatM3Plain(value) {
@@ -122,19 +122,18 @@ async function clearRateLimit(key) {
 
 /**
  * Renders a single apartment row.
- * GMAIL-SAFE: no font-family on td/th (causes vertical text), no white-space:nowrap on td.
- * Each cell uses a nested <span> for color/font so Gmail doesn't inherit weirdly.
+ * Gmail-safe: sem font-family em td/th, sem white-space:nowrap em td.
+ * Ícone de gota SVG inline substituindo emoji (evita rendering inconsistente entre OS).
  */
 function buildApartmentRow(apt, index, maxTotal) {
-  const bg     = index % 2 === 0 ? '#ffffff' : '#f8fafc'
-  const isTop  = index === 0
-  const dot    = isTop ? '#f59e0b' : '#94a3b8'
-  const badge  = isTop
-    ? ` <span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-left:4px;">MAIOR</span>`
+  const bg    = index % 2 === 0 ? '#ffffff' : '#f8fafc'
+  const isTop = index === 0
+  const dot   = isTop ? '#f59e0b' : '#94a3b8'
+  const badge = isTop
+    ? ` <span style="background:#fef3c7;color:#92400e;font-size:9px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-left:5px;">maior</span>`
     : ''
 
-  // spark bar widths (capped at 56px)
-  const barW = maxTotal > 0 ? Math.max(4, Math.round((apt.total / maxTotal) * 56)) : 4
+  const barW = maxTotal > 0 ? Math.max(4, Math.round((apt.total / maxTotal) * 52)) : 4
   const wPct = apt.total > 0 ? Math.round((apt.wCost / apt.total) * 100) : 50
   const gPct = 100 - wPct
 
@@ -144,11 +143,11 @@ function buildApartmentRow(apt, index, maxTotal) {
   <tr style="background:${bg};">
     <td style="${td}">
       <table cellpadding="0" cellspacing="0"><tr>
-        <td style="padding-right:6px;vertical-align:middle;">
+        <td style="padding-right:7px;vertical-align:middle;">
           <div style="width:7px;height:7px;border-radius:50%;background:${dot};"></div>
         </td>
         <td style="vertical-align:middle;">
-          <span style="font-size:13px;font-weight:700;color:#0f172a;">Ap.&nbsp;${apt.num}</span>${badge}
+          <span style="font-size:13px;font-weight:500;color:#0f172a;">Ap.&nbsp;${apt.num}</span>${badge}
         </td>
       </tr></table>
     </td>
@@ -157,12 +156,12 @@ function buildApartmentRow(apt, index, maxTotal) {
     <td style="${td}"><span style="font-size:12px;color:#1d4ed8;">${formatBRL(apt.wCost)}</span></td>
     <td style="${td}"><span style="font-size:12px;color:#b45309;">${formatBRL(apt.gCost)}</span></td>
     <td style="${td}">
-      <span style="font-size:13px;font-weight:800;color:#0f172a;">${formatBRL(apt.total)}</span>
+      <span style="font-size:13px;font-weight:500;color:#0f172a;">${formatBRL(apt.total)}</span>
       <table cellpadding="0" cellspacing="0" style="margin-top:5px;">
         <tr>
-          <td style="background:#3b82f6;height:4px;width:${Math.round(wPct * barW / 100)}px;border-radius:2px 0 0 2px;font-size:0;line-height:0;">&nbsp;</td>
-          <td style="background:#f97316;height:4px;width:${Math.round(gPct * barW / 100)}px;border-radius:0 2px 2px 0;font-size:0;line-height:0;">&nbsp;</td>
-          <td style="background:#e2e8f0;height:4px;width:${56 - barW}px;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:#3b82f6;height:3px;width:${Math.round(wPct * barW / 100)}px;border-radius:2px 0 0 2px;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:#f97316;height:3px;width:${Math.round(gPct * barW / 100)}px;border-radius:0 2px 2px 0;font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:#e2e8f0;height:3px;width:${52 - barW}px;font-size:0;line-height:0;">&nbsp;</td>
         </tr>
       </table>
     </td>
@@ -170,8 +169,8 @@ function buildApartmentRow(apt, index, maxTotal) {
 }
 
 /**
- * Builds the bar chart. Uses nested tables (not divs) for Outlook/Gmail compat.
- * Bars are rendered as stacked <td> cells with explicit heights.
+ * Gráfico de barras table-based (compatível com Outlook/Gmail).
+ * Barras empilhadas: azul (água) em cima, laranja (gás) embaixo.
  */
 function buildBarChart(aptRows) {
   if (!aptRows.length) return ''
@@ -184,34 +183,34 @@ function buildBarChart(aptRows) {
     const wH     = apt.total > 0 ? Math.max(2, Math.round((apt.wCost / apt.total) * totalH)) : Math.floor(totalH / 2)
     const gH     = Math.max(0, totalH - wH)
     const spacer = BAR_HEIGHT - totalH
-    const label  = String(apt.num).slice(0, 4)
+    const label  = String(apt.num).slice(0, 5)
 
     return `
-      <td align="center" valign="bottom" style="padding:0 4px;vertical-align:bottom;">
+      <td align="center" valign="bottom" style="padding:0 5px;vertical-align:bottom;">
         <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
           <tr><td style="height:${spacer}px;font-size:0;line-height:0;">&nbsp;</td></tr>
-          <tr><td style="background:#3b82f6;width:16px;height:${wH}px;border-radius:2px 2px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-          <tr><td style="background:#f97316;width:16px;height:${gH}px;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr><td style="background:#3b82f6;width:14px;height:${wH}px;border-radius:2px 2px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr><td style="background:#f97316;width:14px;height:${gH}px;font-size:0;line-height:0;">&nbsp;</td></tr>
         </table>
-        <div style="font-size:9px;color:#94a3b8;margin-top:4px;font-weight:600;text-align:center;">${label}</div>
+        <div style="font-size:9px;color:#94a3b8;margin-top:4px;font-weight:500;text-align:center;">${label}</div>
       </td>`
   }).join('')
 
   return `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px;">
-    <tr><td style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.1em;text-transform:uppercase;padding-bottom:14px;">Consumo por apartamento</td></tr>
+    <tr><td style="font-size:9px;font-weight:500;color:#94a3b8;letter-spacing:0.1em;text-transform:uppercase;padding-bottom:14px;">Consumo por apartamento</td></tr>
     <tr>
       <td>
         <table cellpadding="0" cellspacing="0"><tr valign="bottom">${bars}</tr></table>
       </td>
     </tr>
     <tr>
-      <td style="padding-top:12px;">
+      <td style="padding-top:14px;">
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="padding-right:4px;"><div style="width:10px;height:10px;background:#3b82f6;border-radius:2px;"></div></td>
-          <td style="font-size:11px;color:#64748b;padding-right:16px;">Água</td>
-          <td style="padding-right:4px;"><div style="width:10px;height:10px;background:#f97316;border-radius:2px;"></div></td>
-          <td style="font-size:11px;color:#64748b;">Gás</td>
+          <td style="padding-right:5px;"><div style="width:9px;height:9px;background:#3b82f6;border-radius:2px;"></div></td>
+          <td style="font-size:11px;color:#64748b;padding-right:18px;">&#193;gua</td>
+          <td style="padding-right:5px;"><div style="width:9px;height:9px;background:#f97316;border-radius:2px;"></div></td>
+          <td style="font-size:11px;color:#64748b;">G&#225;s</td>
         </tr></table>
       </td>
     </tr>
@@ -219,19 +218,24 @@ function buildBarChart(aptRows) {
 }
 
 /**
- * Builds the full HTML email.
- * Designed to render correctly in Gmail, Outlook 2016+, Apple Mail, and mobile clients.
+ * Gera o HTML completo do e-mail mensal.
  *
- * Sections:
- *  1. Preheader (hidden preview text)
- *  2. Hero header  — dark brand band with logo wordmark + period badge
- *  3. Meta strip   — síndico · período · unidades · gerado em
- *  4. Intro text
- *  5. KPI cards    — Água / Gás / Total  (3-column)
- *  6. Bar chart    — per-apartment consumption (table-based)
- *  7. Detail table — full breakdown with mini spark bars
- *  8. Totals row
- *  9. Insight strip — maior / menor / média
+ * Design Gmail-safe:
+ *  - Sem font-family em td/th (causa texto vertical no Gmail)
+ *  - Sem emojis — ícones SVG inline ou símbolos HTML entity
+ *  - Todas as cores com fallback explícito
+ *  - Layout 100% table-based para Outlook 2016+
+ *
+ * Seções:
+ *  1. Preheader oculto
+ *  2. Hero header — dark, wordmark + badge de período
+ *  3. Meta strip — síndico · período · unidades · gerado em
+ *  4. Intro
+ *  5. KPI cards — Água / Gás / Total
+ *  6. Barra de divisão água/gás
+ *  7. Gráfico de barras por apartamento
+ *  8. Tabela de detalhamento
+ *  9. Destaques — maior / menor / média
  * 10. Footer
  */
 function buildEmailHtml({
@@ -245,34 +249,47 @@ function buildEmailHtml({
 }) {
   const { agua, gas, geral, m3Agua, m3Gas, numApts } = totals
 
-  // ── Derived stats ──────────────────────────────────────────────────────────
-  const avgPerApt    = numApts > 0 ? geral / numApts : 0
-  const maxApt       = aptRows.length > 0 ? aptRows[0] : null
-  const minApt       = aptRows.length > 0 ? aptRows[aptRows.length - 1] : null
-  const aguaPct      = geral > 0 ? Math.round((agua / geral) * 100) : 0
-  const gasPct       = 100 - aguaPct
-
-  // ── Apartment rows ─────────────────────────────────────────────────────────
-  const maxTotal     = aptRows.length > 0 ? aptRows[0].total : 0
-  const aptRowsHtml  = aptRows.length > 0
+  const avgPerApt   = numApts > 0 ? geral / numApts : 0
+  const maxApt      = aptRows.length > 0 ? aptRows[0] : null
+  const minApt      = aptRows.length > 0 ? aptRows[aptRows.length - 1] : null
+  const aguaPct     = geral > 0 ? Math.round((agua / geral) * 100) : 0
+  const gasPct      = 100 - aguaPct
+  const maxTotal    = aptRows.length > 0 ? aptRows[0].total : 0
+  const aptRowsHtml = aptRows.length > 0
     ? aptRows.map((apt, i) => buildApartmentRow(apt, i, maxTotal)).join('')
     : null
+  const barChart    = buildBarChart(aptRows)
 
-  // ── Bar chart ──────────────────────────────────────────────────────────────
-  const barChart = buildBarChart(aptRows)
+  // ── ícone SVG gota (inline, sem emoji) ───────────────────────────────────
+  const iconDrop = (size, color) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">` +
+    `<path d="M10 2C10 2 4 8 4 12a6 6 0 0 0 12 0c0-4-6-10-6-10z" fill="${color}"/>` +
+    `</svg>`
 
-  // ── Progress bar for água/gás split ───────────────────────────────────────
+  const iconFire = (size, color) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">` +
+    `<path d="M10 2c0 0-4 4.5-3 8 .5 1.7 1.5 2.8 3 3.5 1.5-.7 2.5-1.8 3-3.5 1-3.5-3-8-3-8z" fill="${color}"/>` +
+    `<path d="M10 9c0 0-2 2-1.5 4 .3 1 1 1.8 1.5 2 .5-.2 1.2-1 1.5-2 .5-2-1.5-4-1.5-4z" fill="#fed7aa"/>` +
+    `</svg>`
+
+  const iconBag = (size, color) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">` +
+    `<rect x="3" y="8" width="14" height="10" rx="2" fill="${color}"/>` +
+    `<path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="${color}" stroke-width="1.5" fill="none"/>` +
+    `</svg>`
+
+  // ── barra split água/gás ──────────────────────────────────────────────────
   const splitBar = `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:6px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:5px;">
       <tr>
-        <td style="height:6px;background:#3b82f6;width:${aguaPct}%;border-radius:3px 0 0 3px;"></td>
-        <td style="height:6px;background:#f97316;width:${gasPct}%;border-radius:0 3px 3px 0;"></td>
+        <td style="height:5px;background:#3b82f6;width:${aguaPct}%;border-radius:3px 0 0 3px;font-size:0;line-height:0;">&nbsp;</td>
+        <td style="height:5px;background:#f97316;width:${gasPct}%;border-radius:0 3px 3px 0;font-size:0;line-height:0;">&nbsp;</td>
       </tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td style="font-size:10px;color:#3b82f6;font-weight:700;">${aguaPct}% água</td>
-        <td align="right" style="font-size:10px;color:#f97316;font-weight:700;">${gasPct}% gás</td>
+        <td style="font-size:10px;color:#3b82f6;font-weight:500;">${aguaPct}%&nbsp;&#225;gua</td>
+        <td align="right" style="font-size:10px;color:#f97316;font-weight:500;">${gasPct}%&nbsp;g&#225;s</td>
       </tr>
     </table>`
 
@@ -283,51 +300,32 @@ function buildEmailHtml({
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
-  <!--[if !mso]><!-->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!--<![endif]-->
-  <title>Relatório ${monthName}/${year} — ${condName}</title>
+  <title>Relat&#243;rio ${monthName}/${year} &#8212; ${condName}</title>
   <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:AllowPNG/>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
+  <noscript><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
   <![endif]-->
   <style type="text/css">
-    /* Reset */
-    body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
-    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
-    img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
-    body { margin:0!important; padding:0!important; width:100%!important; }
-
-    /* Responsive */
-    @media screen and (max-width:620px) {
-      .email-container { width:100%!important; }
-      .fluid { width:100%!important; max-width:100%!important; height:auto!important; }
-      .kpi-td { display:block!important; width:100%!important; padding:6px 0!important; }
-      .stack-column, .stack-column-center { display:block!important; width:100%!important; max-width:100%!important; direction:ltr!important; }
-      .hero-pad { padding:28px 20px!important; }
-      .body-pad { padding:24px 20px!important; }
-      .meta-pad { padding:14px 20px!important; }
-      .footer-pad { padding:16px 20px!important; }
-      .hide-mobile { display:none!important; }
+    body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+    table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
+    img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none;}
+    body{margin:0!important;padding:0!important;width:100%!important;background-color:#eef2f7;}
+    @media screen and (max-width:620px){
+      .email-container{width:100%!important;}
+      .kpi-td{display:block!important;width:100%!important;padding:0 0 8px!important;}
+      .hero-pad{padding:24px 20px!important;}
+      .body-pad{padding:24px 20px!important;}
+      .meta-pad{padding:0 20px!important;}
+      .footer-pad{padding:20px 20px!important;}
+      .insight-td{display:block!important;width:100%!important;padding:0 0 8px!important;}
     }
   </style>
 </head>
 <body style="margin:0;padding:0;background-color:#eef2f7;word-break:break-word;">
 
-  <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
-
-  <!-- ════════════════════════════════════════════════════════════════════
-       PREHEADER — hidden preview text (up to ~140 chars)
-       ════════════════════════════════════════════════════════════════════ -->
-  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;font-family:sans-serif;">
-    ${condName} · Relatório de consumo ${monthName}/${year} · Total ${formatBRLPlain(geral)} · ${numApts} apartamentos · Água ${formatBRLPlain(agua)} · Gás ${formatBRLPlain(gas)}
-    &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+  <!-- PREHEADER -->
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+    ${condName} &middot; Relat&#243;rio ${monthName}/${year} &middot; Total ${formatBRLPlain(geral)} &middot; ${numApts} apartamentos &middot; &#193;gua ${formatBRLPlain(agua)} &middot; G&#225;s ${formatBRLPlain(gas)}
+    &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
   </div>
 
   <!-- OUTER WRAPPER -->
@@ -335,96 +333,87 @@ function buildEmailHtml({
     <tr>
       <td align="center" style="padding:32px 12px 40px;">
 
-        <!-- EMAIL CONTAINER (600px) -->
+        <!-- EMAIL CONTAINER -->
         <table role="presentation" class="email-container" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;margin:0 auto;">
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 1 · HERO HEADER
-               Dark background, wordmark left, month badge right, accent bar bottom
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               1. HERO HEADER
+               ═══════════════════════════════════════════ -->
           <tr>
-            <td class="hero-pad" style="background:#0b1120;border-radius:16px 16px 0 0;padding:36px 44px 30px;">
+            <td class="hero-pad" style="background:#0b1120;border-radius:16px 16px 0 0;padding:32px 40px 26px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <!-- Logo + wordmark -->
+                  <!-- Logo -->
                   <td valign="middle">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                       <tr>
-                        <!-- Icon box -->
-                        <td valign="middle" style="padding-right:14px;">
-                          <div style="width:42px;height:42px;background:linear-gradient(135deg,#1e40af 0%,#0ea5e9 100%);border-radius:10px;text-align:center;line-height:42px;font-size:20px;">
-                            💧
+                        <td valign="middle" style="padding-right:12px;">
+                          <div style="width:40px;height:40px;background:#1e3a8a;border-radius:10px;text-align:center;line-height:40px;">
+                            ${iconDrop(20, '#38bdf8')}
                           </div>
                         </td>
-                        <!-- Text -->
                         <td valign="middle">
-                          <div style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">HidroGás</div>
-                          <div style="font-size:10px;color:#475569;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">Gestão de Consumo</div>
+                          <div style="font-size:18px;font-weight:500;color:#ffffff;letter-spacing:-0.02em;line-height:1;">Hidrog&#225;s</div>
+                          <div style="font-size:9px;color:#475569;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">Gest&#227;o de Consumo</div>
                         </td>
                       </tr>
                     </table>
                   </td>
-
-                  <!-- Month / Year badge -->
+                  <!-- Período badge -->
                   <td align="right" valign="middle">
-                    <div style="display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 16px;text-align:center;">
-                      <div style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Referência</div>
-                      <div style="font-size:15px;color:#e2e8f0;font-weight:800;margin-top:2px;letter-spacing:-0.02em;">${monthName}&nbsp;${year}</div>
+                    <div style="display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 14px;text-align:center;">
+                      <div style="font-size:9px;color:#64748b;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;">Refer&#234;ncia</div>
+                      <div style="font-size:14px;color:#e2e8f0;font-weight:500;margin-top:2px;">${monthName}&nbsp;${year}</div>
                     </div>
                   </td>
                 </tr>
               </table>
 
-              <!-- Big title row -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:28px;">
+              <!-- Título principal -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:26px;">
                 <tr>
                   <td>
-                    <div style="font-size:11px;font-weight:700;color:#475569;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;">Relatório Mensal de Consumo</div>
-                    <div style="font-size:38px;font-weight:900;color:#f1f5f9;letter-spacing:-0.04em;line-height:1.05;">
+                    <div style="font-size:10px;font-weight:500;color:#475569;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:7px;">Relat&#243;rio Mensal de Consumo</div>
+                    <div style="font-size:34px;font-weight:500;color:#f1f5f9;letter-spacing:-0.03em;line-height:1.05;">
                       ${monthName}&nbsp;<span style="color:#38bdf8;">${year}</span>
                     </div>
-                    <div style="font-size:14px;color:#64748b;margin-top:8px;font-weight:500;">${condName}</div>
+                    <div style="font-size:13px;color:#64748b;margin-top:8px;">${condName}</div>
                   </td>
                 </tr>
               </table>
 
-              <!-- Accent rule -->
-              <div style="height:1px;background:linear-gradient(90deg,#1e40af 0%,#38bdf8 40%,#f97316 70%,transparent 100%);margin-top:28px;border-radius:1px;"></div>
+              <!-- Linha de acento -->
+              <div style="height:1px;background:linear-gradient(90deg,#1e40af 0%,#38bdf8 40%,#f97316 70%,transparent 100%);margin-top:26px;border-radius:1px;"></div>
             </td>
           </tr>
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 2 · META STRIP
-               Síndico · Período · Apartamentos · Gerado em
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               2. META STRIP
+               ═══════════════════════════════════════════ -->
           <tr>
-            <td class="meta-pad" style="background:#0f172a;padding:0 44px;">
+            <td class="meta-pad" style="background:#0f172a;padding:0 40px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td style="padding:14px 0;border-top:1px solid #1e293b;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
-                        <!-- Síndico -->
                         <td style="padding-right:16px;">
-                          <div style="font-size:9px;font-weight:700;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Síndico</div>
-                          <div style="font-size:12px;color:#cbd5e1;font-weight:600;">${managerName}</div>
+                          <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">S&#237;ndico</div>
+                          <div style="font-size:12px;color:#cbd5e1;font-weight:500;">${managerName}</div>
                         </td>
-                        <!-- Período -->
                         <td style="padding-right:16px;">
-                          <div style="font-size:9px;font-weight:700;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Período</div>
-                          <div style="font-size:12px;color:#cbd5e1;font-weight:600;">01–último/${monthName}</div>
+                          <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Per&#237;odo</div>
+                          <div style="font-size:12px;color:#cbd5e1;font-weight:500;">01&#8211;&#250;ltimo/${monthName}</div>
                         </td>
-                        <!-- Aptos -->
                         <td style="padding-right:16px;">
-                          <div style="font-size:9px;font-weight:700;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Apartamentos</div>
-                          <div style="font-size:12px;color:#cbd5e1;font-weight:600;">${numApts}&nbsp;unidade${numApts !== 1 ? 's' : ''}</div>
+                          <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Apartamentos</div>
+                          <div style="font-size:12px;color:#cbd5e1;font-weight:500;">${numApts}&nbsp;unidade${numApts !== 1 ? 's' : ''}</div>
                         </td>
-                        <!-- Gerado -->
                         <td align="right">
-                          <div style="font-size:9px;font-weight:700;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Gerado em</div>
-                          <div style="font-size:12px;color:#cbd5e1;font-weight:600;">${generatedAt}</div>
+                          <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;">Gerado em</div>
+                          <div style="font-size:12px;color:#cbd5e1;font-weight:500;">${generatedAt}</div>
                         </td>
                       </tr>
                     </table>
@@ -435,77 +424,75 @@ function buildEmailHtml({
           </tr>
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 3 · INTRO TEXT
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               3. INTRO
+               ═══════════════════════════════════════════ -->
           <tr>
-            <td class="body-pad" style="background:#ffffff;padding:36px 44px 0;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
-              <p style="margin:0 0 0;font-size:15px;color:#334155;line-height:1.75;">
-                Olá, <strong style="color:#0f172a;">${managerName}</strong>. Segue o relatório de consumo de água e gás referente a
-                <strong style="color:#0f172a;">${monthName}&nbsp;de&nbsp;${year}</strong>.
+            <td class="body-pad" style="background:#ffffff;padding:32px 40px 0;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:14px;color:#334155;line-height:1.8;">
+                Ol&#225;, <strong style="color:#0f172a;font-weight:500;">${managerName}</strong>. Segue o relat&#243;rio de consumo de &#225;gua e g&#225;s referente a
+                <strong style="color:#0f172a;font-weight:500;">${monthName}&nbsp;de&nbsp;${year}</strong>.
                 Todas as leituras abaixo foram encerradas e validadas pelo sistema.
-                Em caso de dúvidas, consulte diretamente o painel administrativo.
+                Em caso de d&#250;vidas, consulte diretamente o painel administrativo.
               </p>
             </td>
           </tr>
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 4 · KPI CARDS  (Água · Gás · Total)
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               4. KPI CARDS
+               ═══════════════════════════════════════════ -->
           <tr>
-            <td class="body-pad" style="background:#ffffff;padding:28px 44px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+            <td class="body-pad" style="background:#ffffff;padding:24px 40px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
 
-              <!-- Section heading -->
-              <div style="font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px;">
-                Resumo do período
-              </div>
+              <div style="font-size:9px;font-weight:500;color:#94a3b8;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;">Resumo do per&#237;odo</div>
 
-              <!-- KPI 3-column -->
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
 
-                  <!-- KPI: ÁGUA -->
+                  <!-- Água -->
                   <td class="kpi-td" valign="top" width="33%" style="padding-right:8px;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
-                        <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:18px 16px 16px;text-align:center;">
-                          <!-- Icon row -->
-                          <div style="width:36px;height:36px;background:#dbeafe;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:36px;font-size:16px;">💧</div>
-                          <div style="font-size:9px;font-weight:800;color:#1e40af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Água</div>
-                          <div style="font-size:22px;font-weight:900;color:#1e40af;letter-spacing:-0.04em;line-height:1;font-family:'Courier New',Courier,monospace;">${formatBRL(agua)}</div>
-                          <div style="font-size:11px;color:#60a5fa;margin-top:6px;font-family:'Courier New',Courier,monospace;">${formatM3(m3Agua)}&nbsp;consumidos</div>
-                          <div style="font-size:10px;color:#93c5fd;margin-top:3px;">Tarifa R$&nbsp;0,00/m³</div>
+                        <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 14px;text-align:center;">
+                          <div style="width:34px;height:34px;background:#dbeafe;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
+                            ${iconDrop(16, '#1d4ed8')}
+                          </div>
+                          <div style="font-size:9px;font-weight:500;color:#1e40af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">&#193;gua</div>
+                          <div style="font-size:20px;font-weight:500;color:#1e40af;letter-spacing:-0.03em;line-height:1;">${formatBRL(agua)}</div>
+                          <div style="font-size:11px;color:#60a5fa;margin-top:5px;">${formatM3(m3Agua)}&nbsp;consumidos</div>
                         </td>
                       </tr>
                     </table>
                   </td>
 
-                  <!-- KPI: GÁS -->
+                  <!-- Gás -->
                   <td class="kpi-td" valign="top" width="33%" style="padding-right:8px;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
-                        <td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:18px 16px 16px;text-align:center;">
-                          <div style="width:36px;height:36px;background:#ffedd5;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:36px;font-size:16px;">🔥</div>
-                          <div style="font-size:9px;font-weight:800;color:#c2410c;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Gás</div>
-                          <div style="font-size:22px;font-weight:900;color:#c2410c;letter-spacing:-0.04em;line-height:1;font-family:'Courier New',Courier,monospace;">${formatBRL(gas)}</div>
-                          <div style="font-size:11px;color:#fb923c;margin-top:6px;font-family:'Courier New',Courier,monospace;">${formatM3(m3Gas)}&nbsp;consumidos</div>
-                          <div style="font-size:10px;color:#fdba74;margin-top:3px;">Tarifa R$&nbsp;0,00/m³</div>
+                        <td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 14px;text-align:center;">
+                          <div style="width:34px;height:34px;background:#ffedd5;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
+                            ${iconFire(16, '#c2410c')}
+                          </div>
+                          <div style="font-size:9px;font-weight:500;color:#c2410c;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">G&#225;s</div>
+                          <div style="font-size:20px;font-weight:500;color:#c2410c;letter-spacing:-0.03em;line-height:1;">${formatBRL(gas)}</div>
+                          <div style="font-size:11px;color:#fb923c;margin-top:5px;">${formatM3(m3Gas)}&nbsp;consumidos</div>
                         </td>
                       </tr>
                     </table>
                   </td>
 
-                  <!-- KPI: TOTAL -->
+                  <!-- Total -->
                   <td class="kpi-td" valign="top" width="33%">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
-                        <td style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:18px 16px 16px;text-align:center;">
-                          <div style="width:36px;height:36px;background:#1e293b;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:36px;font-size:16px;">💰</div>
-                          <div style="font-size:9px;font-weight:800;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Total</div>
-                          <div style="font-size:22px;font-weight:900;color:#f1f5f9;letter-spacing:-0.04em;line-height:1;font-family:'Courier New',Courier,monospace;">${formatBRL(geral)}</div>
-                          <div style="font-size:11px;color:#64748b;margin-top:6px;">${numApts}&nbsp;apto${numApts !== 1 ? 's' : ''}&nbsp;em&nbsp;total</div>
-                          <div style="font-size:10px;color:#475569;margin-top:3px;">Média por unidade&nbsp;${formatBRL(avgPerApt)}</div>
+                        <td style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:16px 14px;text-align:center;">
+                          <div style="width:34px;height:34px;background:#1e293b;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
+                            ${iconBag(16, '#94a3b8')}
+                          </div>
+                          <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">Total</div>
+                          <div style="font-size:20px;font-weight:500;color:#f1f5f9;letter-spacing:-0.03em;line-height:1;">${formatBRL(geral)}</div>
+                          <div style="font-size:11px;color:#64748b;margin-top:5px;">${numApts}&nbsp;apto${numApts !== 1 ? 's' : ''}&nbsp;&middot;&nbsp;m&#233;dia&nbsp;${formatBRL(avgPerApt)}</div>
                         </td>
                       </tr>
                     </table>
@@ -514,76 +501,65 @@ function buildEmailHtml({
                 </tr>
               </table>
 
-              <!-- Split progress bar -->
-              <div style="margin-top:20px;">
-                ${splitBar}
-              </div>
+              <!-- Barra água/gás -->
+              <div style="margin-top:18px;">${splitBar}</div>
 
             </td>
           </tr>
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 5 · BAR CHART  (per-apartment visual)
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               5. GRÁFICO DE BARRAS
+               ═══════════════════════════════════════════ -->
           ${aptRows.length > 0 ? `
           <tr>
-            <td class="body-pad" style="background:#ffffff;padding:0 44px 28px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
-              <!-- Divider -->
-              <div style="height:1px;background:#f1f5f9;margin-bottom:24px;"></div>
+            <td class="body-pad" style="background:#ffffff;padding:0 40px 26px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+              <div style="height:1px;background:#f1f5f9;margin-bottom:22px;"></div>
               ${barChart}
             </td>
           </tr>` : ''}
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 6 · DETAIL TABLE
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               6. TABELA DE DETALHAMENTO
+               ═══════════════════════════════════════════ -->
           <tr>
-            <td class="body-pad" style="background:#ffffff;padding:0 44px 36px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+            <td class="body-pad" style="background:#ffffff;padding:0 40px 32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
 
-              <!-- Section heading -->
-              <div style="font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;">
-                Detalhamento por apartamento
-              </div>
+              <div style="font-size:9px;font-weight:500;color:#94a3b8;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">Detalhamento por apartamento</div>
 
               ${aptRowsHtml ? `
-              <!-- Table border wrapper -->
               <div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
-                  <!-- Header -->
                   <thead>
                     <tr style="background:#f8fafc;">
-                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Apto</th>
-                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#1d4ed8;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Água m³</th>
-                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Gás m³</th>
-                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#1d4ed8;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">R$ Água</th>
-                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">R$ Gás</th>
-                      <th style="padding:10px 12px;text-align:left;font-size:9px;font-weight:800;color:#0f172a;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Total</th>
+                      <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:500;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Apto</th>
+                      <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:500;color:#1d4ed8;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">&#193;gua m&#179;</th>
+                      <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:500;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">G&#225;s m&#179;</th>
+                      <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:500;color:#1d4ed8;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">R$ &#193;gua</th>
+                      <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:500;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">R$ G&#225;s</th>
+                      <th style="padding:9px 12px;text-align:left;font-size:9px;font-weight:500;color:#0f172a;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Total</th>
                     </tr>
                   </thead>
-                  <!-- Body rows -->
                   <tbody>
                     ${aptRowsHtml}
-                    <!-- TOTALS ROW -->
+                    <!-- Linha de totais -->
                     <tr style="background:#0f172a;">
-                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:11px;font-weight:800;color:#f1f5f9;letter-spacing:0.05em;text-transform:uppercase;">Total</span></td>
-                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#93c5fd;">${formatM3(m3Agua)}</span></td>
-                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#fdba74;">${formatM3(m3Gas)}</span></td>
-                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#93c5fd;">${formatBRL(agua)}</span></td>
-                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:700;color:#fdba74;">${formatBRL(gas)}</span></td>
-                      <td style="padding:12px 12px;border-top:2px solid #1e293b;"><span style="font-size:14px;font-weight:900;color:#f1f5f9;">${formatBRL(geral)}</span></td>
+                      <td style="padding:11px 12px;border-top:2px solid #1e293b;"><span style="font-size:11px;font-weight:500;color:#f1f5f9;letter-spacing:0.05em;text-transform:uppercase;">Total</span></td>
+                      <td style="padding:11px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:500;color:#93c5fd;">${formatM3(m3Agua)}</span></td>
+                      <td style="padding:11px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:500;color:#fdba74;">${formatM3(m3Gas)}</span></td>
+                      <td style="padding:11px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:500;color:#93c5fd;">${formatBRL(agua)}</span></td>
+                      <td style="padding:11px 12px;border-top:2px solid #1e293b;"><span style="font-size:12px;font-weight:500;color:#fdba74;">${formatBRL(gas)}</span></td>
+                      <td style="padding:11px 12px;border-top:2px solid #1e293b;"><span style="font-size:14px;font-weight:500;color:#f1f5f9;">${formatBRL(geral)}</span></td>
                     </tr>
                   </tbody>
                 </table>
               </div>` : `
-              <!-- Empty state -->
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td style="text-align:center;padding:48px 24px;background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;">
-                    <div style="font-size:36px;margin-bottom:12px;">📭</div>
+                  <td style="text-align:center;padding:44px 24px;background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;">
                     <div style="font-size:14px;color:#94a3b8;font-weight:500;">Nenhuma leitura fechada em ${monthName}/${year}.</div>
-                    <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">As leituras aparecerão aqui quando forem encerradas.</div>
+                    <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">As leituras aparecer&#227;o aqui quando forem encerradas.</div>
                   </td>
                 </tr>
               </table>`}
@@ -592,39 +568,39 @@ function buildEmailHtml({
           </tr>
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 7 · INSIGHT STRIP  (maior · menor · média)
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               7. DESTAQUES
+               ═══════════════════════════════════════════ -->
           ${(maxApt && minApt) ? `
           <tr>
-            <td style="background:#f8fafc;padding:0 44px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+            <td style="background:#f8fafc;padding:0 40px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
               <div style="height:1px;background:#e2e8f0;"></div>
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding:20px 0;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding:18px 0;">
                 <tr>
-                  <td style="padding:0;">
+                  <td>
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
                         <!-- Maior consumidor -->
-                        <td width="33%" style="padding-right:8px;">
-                          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;">
-                            <div style="font-size:9px;font-weight:800;color:#92400e;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Maior consumidor</div>
-                            <div style="font-size:13px;font-weight:800;color:#78350f;">Ap.&nbsp;${maxApt.num}</div>
+                        <td class="insight-td" width="33%" style="padding-right:8px;">
+                          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:11px 13px;">
+                            <div style="font-size:9px;font-weight:500;color:#92400e;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Maior consumidor</div>
+                            <div style="font-size:13px;font-weight:500;color:#78350f;">Ap.&nbsp;${maxApt.num}</div>
                             <div style="font-size:11px;color:#b45309;margin-top:2px;">${formatBRL(maxApt.total)}</div>
                           </div>
                         </td>
                         <!-- Menor consumidor -->
-                        <td width="33%" style="padding-right:8px;">
-                          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;">
-                            <div style="font-size:9px;font-weight:800;color:#14532d;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Menor consumidor</div>
-                            <div style="font-size:13px;font-weight:800;color:#15803d;">Ap.&nbsp;${minApt.num}</div>
+                        <td class="insight-td" width="33%" style="padding-right:8px;">
+                          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:11px 13px;">
+                            <div style="font-size:9px;font-weight:500;color:#14532d;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Menor consumidor</div>
+                            <div style="font-size:13px;font-weight:500;color:#15803d;">Ap.&nbsp;${minApt.num}</div>
                             <div style="font-size:11px;color:#16a34a;margin-top:2px;">${formatBRL(minApt.total)}</div>
                           </div>
                         </td>
-                        <!-- Média por unidade -->
-                        <td width="33%">
-                          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;">
-                            <div style="font-size:9px;font-weight:800;color:#0c4a6e;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Média por unidade</div>
-                            <div style="font-size:13px;font-weight:800;color:#0369a1;">${formatBRL(avgPerApt)}</div>
+                        <!-- Média -->
+                        <td class="insight-td" width="33%">
+                          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:11px 13px;">
+                            <div style="font-size:9px;font-weight:500;color:#0c4a6e;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">M&#233;dia por unidade</div>
+                            <div style="font-size:13px;font-weight:500;color:#0369a1;">${formatBRL(avgPerApt)}</div>
                             <div style="font-size:10px;color:#7dd3fc;margin-top:2px;">${numApts}&nbsp;aptos&nbsp;no&nbsp;total</div>
                           </div>
                         </td>
@@ -637,61 +613,56 @@ function buildEmailHtml({
           </tr>` : ''}
 
 
-          <!-- ══════════════════════════════════════════════════════════════
-               SECTION 8 · FOOTER
-               ══════════════════════════════════════════════════════════════ -->
+          <!-- ═══════════════════════════════════════════
+               8. FOOTER
+               ═══════════════════════════════════════════ -->
           <tr>
-            <td class="footer-pad" style="background:#0b1120;border-radius:0 0 16px 16px;padding:24px 44px;">
+            <td class="footer-pad" style="background:#0b1120;border-radius:0 0 16px 16px;padding:22px 40px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <!-- Left: system info -->
                   <td valign="middle">
-                    <!-- Logo small -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
                       <tr>
                         <td style="padding-right:8px;">
-                          <div style="width:28px;height:28px;background:linear-gradient(135deg,#1e40af 0%,#0ea5e9 100%);border-radius:6px;text-align:center;line-height:28px;font-size:13px;">💧</div>
+                          <div style="width:26px;height:26px;background:#1e3a8a;border-radius:6px;text-align:center;line-height:26px;">
+                            ${iconDrop(13, '#38bdf8')}
+                          </div>
                         </td>
                         <td valign="middle">
-                          <div style="font-size:13px;font-weight:800;color:#e2e8f0;letter-spacing:-0.02em;">HidroGás</div>
+                          <div style="font-size:13px;font-weight:500;color:#e2e8f0;">Hidrog&#225;s</div>
                         </td>
                       </tr>
                     </table>
                     <p style="margin:0;font-size:11px;color:#475569;line-height:1.7;">
-                      Gerado automaticamente em <strong style="color:#64748b;">${generatedAt}</strong>.<br>
-                      Este é um e-mail automático — não responda.<br>
-                      Painel admin · Suporte
+                      Gerado automaticamente em <strong style="color:#64748b;font-weight:500;">${generatedAt}</strong>.<br>
+                      Este &#233; um e-mail autom&#225;tico &#8212; n&#227;o responda.<br>
+                      Painel admin &middot; Suporte
                     </p>
                   </td>
-
-                  <!-- Right: badge -->
                   <td align="right" valign="bottom">
-                    <div style="display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 16px;text-align:center;">
-                      <div style="font-size:9px;font-weight:700;color:#475569;letter-spacing:0.12em;text-transform:uppercase;">Sistema</div>
-                      <div style="font-size:13px;font-weight:900;color:#e2e8f0;letter-spacing:0.05em;margin-top:2px;">HIDROGÁS</div>
+                    <div style="display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;text-align:center;">
+                      <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;">Sistema</div>
+                      <div style="font-size:13px;font-weight:500;color:#e2e8f0;letter-spacing:0.04em;margin-top:2px;">HIDROG&#193;S</div>
                     </div>
                   </td>
                 </tr>
               </table>
-
-              <!-- Bottom rule -->
-              <div style="height:1px;background:linear-gradient(90deg,#1e40af 0%,#0ea5e9 50%,transparent 100%);margin-top:20px;border-radius:1px;"></div>
-              <p style="margin:12px 0 0;font-size:10px;color:#334155;text-align:center;">
-                © ${year} HidroGás · Todos os direitos reservados
+              <div style="height:1px;background:linear-gradient(90deg,#1e40af 0%,#0ea5e9 50%,transparent 100%);margin-top:18px;border-radius:1px;"></div>
+              <p style="margin:10px 0 0;font-size:10px;color:#334155;text-align:center;">
+                &#169; ${year} HidroG&#225;s &middot; Todos os direitos reservados
               </p>
             </td>
           </tr>
 
 
         </table>
-        <!-- / EMAIL CONTAINER -->
+        <!-- /EMAIL CONTAINER -->
 
       </td>
     </tr>
   </table>
-  <!-- / OUTER WRAPPER -->
+  <!-- /OUTER WRAPPER -->
 
-  <!--[if mso | IE]></td></tr></table><![endif]-->
 </body>
 </html>`
 }
