@@ -188,7 +188,7 @@ exports.adminLogin = onRequest(
 // Chamada autenticada: recebe a senha plain text, retorna o hash Argon2id.
 // O frontend armazena APENAS o hash no Firebase — a senha plain text nunca persiste.
 exports.hashApartmentPassword = onCall(
-  { region: 'us-central1', secrets: ['DATABASE_URL'] },
+  { region: 'us-central1', secrets: ['DATABASE_URL'], enforceAppCheck: true },
   async (request) => {
     // Só admins autenticados podem chamar
     if (!request.auth || request.auth.uid !== ADMIN_UID) {
@@ -242,7 +242,7 @@ async function recordFailedAttempt(key) {
 // Permite ao síndico desbloquear um apartamento que atingiu o rate limit.
 // Requer autenticação como admin.
 exports.resetApartmentRateLimit = onCall(
-  { region: 'us-central1', secrets: ['DATABASE_URL'] },
+  { region: 'us-central1', secrets: ['DATABASE_URL'], enforceAppCheck: true },
   async (request) => {
     if (!request.auth || request.auth.uid !== ADMIN_UID) {
       throw new HttpsError('unauthenticated', 'Acesso não autorizado.')
@@ -258,7 +258,7 @@ exports.resetApartmentRateLimit = onCall(
 // Rate limiting por token — SÓ incrementa em tentativas com senha errada,
 // nunca em chamadas de leitura legítimas sem senha ou com sessão válida.
 exports.getPublicApartment = onCall(
-  { region: 'us-central1', secrets: ['DATABASE_URL'] },
+  { region: 'us-central1', secrets: ['DATABASE_URL'], enforceAppCheck: true },
   async (request) => {
     const { token, password } = request.data || {}
 
