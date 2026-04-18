@@ -18,10 +18,6 @@ const { getDatabase }   = require('firebase-admin/database')
 const { getStorage }    = require('firebase-admin/storage')
 const twilio            = require('twilio')
 
-// O Firebase Admin SDK detecta projectId e serviceAccountId automaticamente
-// a partir do ambiente do Cloud Functions (GOOGLE_APPLICATION_CREDENTIALS).
-// A databaseURL é lida de variável de ambiente para não ficar hardcoded.
-// Configure: firebase functions:secrets:set DATABASE_URL
 initializeApp({
   databaseURL: process.env.DATABASE_URL,
 })
@@ -35,7 +31,6 @@ const ARGON2_OPTIONS = {
   parallelism: 1,
 }
 
-// Origens permitidas — ajuste conforme seu domínio de produção
 const ALLOWED_ORIGINS = [
   'https://hydrogas-77f04.web.app',
   'https://hydrogas-77f04.firebaseapp.com',
@@ -52,9 +47,9 @@ function setCorsHeaders(req, res) {
   res.set('Vary', 'Origin')
 }
 
-// ── Rate limiting persistente no Firebase RTDB ────────────────────────────────
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 const MAX_TRIES = 5
-const WINDOW_MS = 15 * 60 * 1000   // 15 minutos
+const WINDOW_MS = 15 * 60 * 1000
 
 function sanitizeKey(raw) {
   return raw.replace(/[./#$[\]]/g, '_').slice(0, 100)
@@ -65,20 +60,12 @@ async function isRateLimited(key) {
   const safeKey = sanitizeKey(key)
   const ref     = db.ref(`_rateLimit/${safeKey}`)
   const now     = Date.now()
-
-  let blocked = false
+  let blocked   = false
 
   await ref.transaction((current) => {
-    if (!current) {
-      return { count: 1, resetAt: now + WINDOW_MS }
-    }
-    if (current.resetAt < now) {
-      return { count: 1, resetAt: now + WINDOW_MS }
-    }
-    if (current.count >= MAX_TRIES) {
-      blocked = true
-      return current
-    }
+    if (!current)                   return { count: 1, resetAt: now + WINDOW_MS }
+    if (current.resetAt < now)      return { count: 1, resetAt: now + WINDOW_MS }
+    if (current.count >= MAX_TRIES) { blocked = true; return current }
     return { count: current.count + 1, resetAt: current.resetAt }
   })
 
@@ -86,9 +73,24 @@ async function isRateLimited(key) {
 }
 
 async function clearRateLimit(key) {
-  const db      = getDatabase()
-  const safeKey = sanitizeKey(key)
-  await getDatabase().ref(`_rateLimit/${safeKey}`).remove()
+  await getDatabase().ref(`_rateLimit/${sanitizeKey(key)}`).remove()
+}
+
+async function isRateLimitedReadOnly(key) {
+  const snap = await getDatabase().ref(`_rateLimit/${sanitizeKey(key)}`).get()
+  if (!snap.exists()) return false
+  const { count, resetAt } = snap.val()
+  if (Date.now() > resetAt) return false
+  return count >= MAX_TRIES
+}
+
+async function recordFailedAttempt(key) {
+  const ref = getDatabase().ref(`_rateLimit/${sanitizeKey(key)}`)
+  const now = Date.now()
+  await ref.transaction((current) => {
+    if (!current || current.resetAt < now) return { count: 1, resetAt: now + WINDOW_MS }
+    return { count: current.count + 1, resetAt: current.resetAt }
+  })
 }
 
 function getIp(req) {
@@ -115,7 +117,7 @@ exports.adminLogin = onCall(
     if (!username || !password)
       throw new HttpsError('invalid-argument', 'Dados inválidos.')
 
-    const expectedUsername = process.env.ADMIN_USERNAME      || 'admin'
+    const expectedUsername = process.env.ADMIN_USERNAME
     const passwordHash     = process.env.ADMIN_PASSWORD_HASH
 
     if (!passwordHash) {
@@ -151,14 +153,12 @@ exports.adminLogin = onCall(
 exports.hashApartmentPassword = onCall(
   { region: 'us-central1', secrets: ['DATABASE_URL'], enforceAppCheck: true },
   async (request) => {
-    if (!request.auth || request.auth.uid !== ADMIN_UID) {
+    if (!request.auth || request.auth.uid !== ADMIN_UID)
       throw new HttpsError('unauthenticated', 'Acesso não autorizado.')
-    }
 
     const { password } = request.data || {}
-    if (!password || typeof password !== 'string' || password.length < 4) {
+    if (!password || typeof password !== 'string' || password.length < 4)
       throw new HttpsError('invalid-argument', 'Senha inválida.')
-    }
 
     try {
       const hash = await argon2.hash(password, ARGON2_OPTIONS)
@@ -170,38 +170,13 @@ exports.hashApartmentPassword = onCall(
   }
 )
 
-// ── isRateLimitedReadOnly ─────────────────────────────────────────────────────
-async function isRateLimitedReadOnly(key) {
-  const db      = getDatabase()
-  const safeKey = sanitizeKey(key)
-  const snap    = await db.ref(`_rateLimit/${safeKey}`).get()
-  if (!snap.exists()) return false
-  const { count, resetAt } = snap.val()
-  if (Date.now() > resetAt) return false
-  return count >= MAX_TRIES
-}
-
-// ── recordFailedAttempt ───────────────────────────────────────────────────────
-async function recordFailedAttempt(key) {
-  const db      = getDatabase()
-  const safeKey = sanitizeKey(key)
-  const ref     = db.ref(`_rateLimit/${safeKey}`)
-  const now     = Date.now()
-  await ref.transaction((current) => {
-    if (!current || current.resetAt < now) {
-      return { count: 1, resetAt: now + WINDOW_MS }
-    }
-    return { count: current.count + 1, resetAt: current.resetAt }
-  })
-}
-
-// ── resetApartmentRateLimit ──────────────────────────────────────────────────
+// ── resetApartmentRateLimit ───────────────────────────────────────────────────
 exports.resetApartmentRateLimit = onCall(
   { region: 'us-central1', secrets: ['DATABASE_URL'], enforceAppCheck: true },
   async (request) => {
-    if (!request.auth || request.auth.uid !== ADMIN_UID) {
+    if (!request.auth || request.auth.uid !== ADMIN_UID)
       throw new HttpsError('unauthenticated', 'Acesso não autorizado.')
-    }
+
     const { token } = request.data || {}
     if (!token) throw new HttpsError('invalid-argument', 'Token obrigatório.')
     await clearRateLimit(`apt:${token}`)
@@ -214,35 +189,22 @@ exports.getPublicApartment = onCall(
   { region: 'us-central1', secrets: ['DATABASE_URL'], enforceAppCheck: true },
   async (request) => {
     const { token, password } = request.data || {}
-
-    if (!token) {
-      throw new HttpsError('invalid-argument', 'Token obrigatório.')
-    }
+    if (!token) throw new HttpsError('invalid-argument', 'Token obrigatório.')
 
     const rateLimitKey = `apt:${token}`
-
-    if (await isRateLimitedReadOnly(rateLimitKey)) {
+    if (await isRateLimitedReadOnly(rateLimitKey))
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
-    }
 
-    const db = getDatabase()
-
+    const db      = getDatabase()
     const aptSnap = await db.ref('apartments')
-      .orderByChild('publicToken')
-      .equalTo(token)
-      .limitToFirst(1)
-      .get()
+      .orderByChild('publicToken').equalTo(token).limitToFirst(1).get()
 
-    if (!aptSnap.exists()) {
-      throw new HttpsError('not-found', 'Link inválido.')
-    }
+    if (!aptSnap.exists()) throw new HttpsError('not-found', 'Link inválido.')
 
     const aptData = Object.values(aptSnap.val())[0]
 
     if (aptData.accessPasswordHash) {
-      if (!password) {
-        throw new HttpsError('unauthenticated', 'Senha obrigatória.')
-      }
+      if (!password) throw new HttpsError('unauthenticated', 'Senha obrigatória.')
       let passwordOk = false
       try {
         passwordOk = await argon2.verify(aptData.accessPasswordHash, password.trim(), { type: argon2.argon2id })
@@ -260,17 +222,13 @@ exports.getPublicApartment = onCall(
     let residentFirebaseToken = null
     try {
       const uid = `resident-${sanitizeKey(token)}`
-      residentFirebaseToken = await getAuth().createCustomToken(uid, {
-        role: 'resident',
-        aptToken: token,
-      })
+      residentFirebaseToken = await getAuth().createCustomToken(uid, { role: 'resident', aptToken: token })
     } catch (err) {
       logger.warn('Não foi possível gerar custom token para morador:', err)
     }
 
     const publicSnap = await db.ref(`public/${token}`).get()
     const publicData = publicSnap.exists() ? publicSnap.val() : {}
-
     const { accessPasswordHash: _h, hasPassword: _hp, ...safeData } = publicData
     return { ...safeData, _firebaseToken: residentFirebaseToken }
   }
@@ -278,172 +236,166 @@ exports.getPublicApartment = onCall(
 
 // ═══════════════════════════════════════════════════════════
 // BACKUP MENSAL
-// Roda todo dia 1 às 03:00 (horário de Brasília)
-// Exporta todo o RTDB como JSON pro Firebase Storage.
+// Roda todo dia 1 às 03:00 (horário de Brasília).
+// Exporta snapshot completo do RTDB como JSON pro Firebase Storage.
+// Os arquivos ficam em: gs://<bucket>/backups/rtdb-YYYY-MM.json
 //
-// Secrets necessários:
-//   DATABASE_URL   — já existente
-//   STORAGE_BUCKET — ex: hydrogas-77f04.appspot.com
-//
-// Configurar:
+// Configurar secrets (uma vez só):
 //   firebase functions:secrets:set STORAGE_BUCKET
+//   → valor: hydrogas-77f04.appspot.com
 // ═══════════════════════════════════════════════════════════
 exports.monthlyBackup = onSchedule(
   {
-    schedule:        'every day 03:00',   // ajuste para "0 3 1 * *" se quiser só dia 1
-    timeZone:        'America/Sao_Paulo',
-    secrets:         ['DATABASE_URL', 'STORAGE_BUCKET'],
-    timeoutSeconds:  120,
-    memory:          '512MiB',
-    region:          'us-central1',
+    schedule:       '0 3 1 * *',
+    timeZone:       'America/Sao_Paulo',
+    secrets:        ['DATABASE_URL', 'STORAGE_BUCKET'],
+    timeoutSeconds: 120,
+    memory:         '512MiB',
+    region:         'us-central1',
   },
   async () => {
     const db     = getDatabase()
     const bucket = getStorage().bucket(process.env.STORAGE_BUCKET)
 
-    // Lê todo o banco
     const snap = await db.ref('/').get()
     if (!snap.exists()) {
       logger.warn('monthlyBackup: banco vazio, backup ignorado.')
       return
     }
 
-    const data    = snap.val()
-    const now     = new Date()
-    const label   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    const path    = `backups/rtdb-${label}.json`
-    const file    = bucket.file(path)
-    const content = JSON.stringify(data, null, 2)
+    const now   = new Date()
+    const label = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const path  = `backups/rtdb-${label}.json`
 
-    await file.save(content, {
+    await bucket.file(path).save(JSON.stringify(snap.val(), null, 2), {
       contentType: 'application/json',
-      metadata: {
-        cacheControl: 'no-cache',
-        metadata: { createdAt: now.toISOString(), source: 'monthlyBackup' },
-      },
+      metadata: { metadata: { createdAt: now.toISOString() } },
     })
 
-    logger.info(`monthlyBackup: backup salvo em gs://${process.env.STORAGE_BUCKET}/${path}`)
+    logger.info(`monthlyBackup: salvo em gs://${process.env.STORAGE_BUCKET}/${path}`)
   }
 )
 
 // ═══════════════════════════════════════════════════════════
 // RELATÓRIO MENSAL VIA WHATSAPP (TWILIO)
-// Roda todo dia 1 às 08:00 (horário de Brasília)
-// Lê as leituras do mês anterior e manda resumo pro síndico.
+// Roda todo dia 1 às 08:00 (horário de Brasília).
 //
-// Secrets necessários:
-//   DATABASE_URL        — já existente
-//   TWILIO_ACCOUNT_SID  — no Twilio Console
-//   TWILIO_AUTH_TOKEN   — no Twilio Console
-//   TWILIO_FROM         — número Twilio, ex: whatsapp:+14155238886
-//   SINDICO_WHATSAPP    — número do síndico, ex: whatsapp:+5548999990000
+// O número de destino é lido de /config/managerPhone no RTDB —
+// o mesmo campo que o síndico preenche em Configurações > Telefone/WhatsApp.
+// Se mudar o número lá, a próxima execução já usa o novo automaticamente.
 //
-// Configurar:
+// Formato aceito em managerPhone: só dígitos ou máscara BR
+//   ex: "48999990000" ou "(48) 99999-0000"
+//
+// Configurar secrets (uma vez só):
 //   firebase functions:secrets:set TWILIO_ACCOUNT_SID
+//   → valor: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  (Twilio Console > Account Info)
+//
 //   firebase functions:secrets:set TWILIO_AUTH_TOKEN
+//   → valor: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   (ao lado do SID)
+//
 //   firebase functions:secrets:set TWILIO_FROM
-//   firebase functions:secrets:set SINDICO_WHATSAPP
+//   → Sandbox:  whatsapp:+14155238886
+//   → Produção: whatsapp:+55...  (número aprovado no Twilio)
 // ═══════════════════════════════════════════════════════════
 exports.monthlyWhatsAppReport = onSchedule(
   {
-    schedule:        '0 8 1 * *',   // todo dia 1 às 08:00
-    timeZone:        'America/Sao_Paulo',
-    secrets:         ['DATABASE_URL', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM', 'SINDICO_WHATSAPP'],
-    timeoutSeconds:  60,
-    memory:          '256MiB',
-    region:          'us-central1',
+    schedule:       '0 8 1 * *',
+    timeZone:       'America/Sao_Paulo',
+    secrets:        ['DATABASE_URL', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM'],
+    timeoutSeconds: 60,
+    memory:         '256MiB',
+    region:         'us-central1',
   },
   async () => {
     const db = getDatabase()
 
-    // Mês anterior
+    // ── Lê config do app ──────────────────────────────────────────────────────
+    const configSnap = await db.ref('config').get()
+    if (!configSnap.exists()) {
+      logger.warn('monthlyWhatsAppReport: /config não encontrado, abortando.')
+      return
+    }
+    const config = configSnap.val()
+
+    // ── Formata número do síndico para E.164 ──────────────────────────────────
+    // Remove tudo que não for dígito e adiciona DDI +55 se necessário
+    const rawPhone = (config.managerPhone || '').replace(/\D/g, '')
+    if (!rawPhone || rawPhone.length < 10) {
+      logger.warn('monthlyWhatsAppReport: managerPhone não configurado ou inválido — acesse Configurações e preencha o campo Telefone/WhatsApp.')
+      return
+    }
+    const e164    = rawPhone.startsWith('55') ? `+${rawPhone}` : `+55${rawPhone}`
+    const toPhone = `whatsapp:${e164}`
+
+    // ── Determina mês anterior ────────────────────────────────────────────────
     const now      = new Date()
     const year     = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
-    const month    = now.getMonth() === 0 ? 12 : now.getMonth()   // 1–12
-    const monthPad = String(month).padStart(2, '0')
-    const prefix   = `${year}-${monthPad}`
-
+    const month    = now.getMonth() === 0 ? 12 : now.getMonth()  // 1–12
     const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                        'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
     const monthName = MONTHS_PT[month - 1]
 
-    // Busca leituras fechadas do mês anterior
+    // ── Lê leituras fechadas do mês anterior ──────────────────────────────────
     const readingsSnap = await db.ref('readings').get()
-    const apartments   = {}
+    const byApt = {}
 
     if (readingsSnap.exists()) {
-      const all = readingsSnap.val()
-      for (const id of Object.keys(all)) {
-        const r = all[id]
-        // Filtra: fechadas e do mês/ano alvo
-        if (r.status !== 'closed') continue
-        const readingDate = r.readingDate || r.closedAt || ''
-        if (!readingDate.startsWith(prefix)) continue
+      for (const r of Object.values(readingsSnap.val())) {
+        if (r.month !== month || r.year !== year) continue
+        if (!r.closedAt && r.status !== 'closed') continue
 
-        if (!apartments[r.apartmentId]) {
-          apartments[r.apartmentId] = { waterCost: 0, gasCost: 0, waterM3: 0, gasM3: 0 }
-        }
-        if (r.type === 'water') {
-          apartments[r.apartmentId].waterCost += r.totalCost    || 0
-          apartments[r.apartmentId].waterM3   += r.consumption  || 0
-        } else {
-          apartments[r.apartmentId].gasCost += r.totalCost   || 0
-          apartments[r.apartmentId].gasM3   += r.consumption || 0
-        }
+        if (!byApt[r.apartmentId]) byApt[r.apartmentId] = { wCost: 0, gCost: 0 }
+        if (r.type === 'water') byApt[r.apartmentId].wCost += r.totalCost || 0
+        else                    byApt[r.apartmentId].gCost += r.totalCost || 0
       }
     }
 
-    // Busca números dos apartamentos para exibir no relatório
-    const aptsSnap = await db.ref('apartments').get()
+    // ── Números dos apartamentos ──────────────────────────────────────────────
+    const aptsSnap   = await db.ref('apartments').get()
     const aptNumbers = {}
     if (aptsSnap.exists()) {
-      const all = aptsSnap.val()
-      for (const [id, apt] of Object.entries(all)) {
+      for (const [id, apt] of Object.entries(aptsSnap.val())) {
         aptNumbers[id] = apt.number || id
       }
     }
 
-    const totalApts  = Object.keys(apartments).length
-    const totalAgua  = Object.values(apartments).reduce((s, a) => s + a.waterCost, 0)
-    const totalGas   = Object.values(apartments).reduce((s, a) => s + a.gasCost,   0)
+    // ── Totais e top 3 ────────────────────────────────────────────────────────
+    const entries    = Object.entries(byApt)
+    const totalApts  = entries.length
+    const totalAgua  = entries.reduce((s, [, v]) => s + v.wCost, 0)
+    const totalGas   = entries.reduce((s, [, v]) => s + v.gCost, 0)
     const totalGeral = totalAgua + totalGas
 
     const fmt = (v) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
-    // Top 3 consumidores por custo total
-    const top3 = Object.entries(apartments)
-      .map(([id, v]) => ({ num: aptNumbers[id] || id, total: v.waterCost + v.gasCost }))
+    const top3Lines = entries
+      .map(([id, v]) => ({ num: aptNumbers[id] || id, total: v.wCost + v.gCost }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 3)
+      .map((a, i) => `  ${i + 1}. Ap. ${a.num} — ${fmt(a.total)}`)
+      .join('\n') || '  Sem dados'
 
-    const top3Lines = top3.length > 0
-      ? top3.map((a, i) => `  ${i + 1}. Ap. ${a.num} — ${fmt(a.total)}`).join('\n')
-      : '  Sem dados'
-
+    // ── Mensagem ──────────────────────────────────────────────────────────────
     const message = [
-      `📊 *Relatório HidroGás — ${monthName} ${year}*`,
+      `📊 *Relatório ${config.condominiumName || 'HidroGás'}*`,
+      `_${monthName} ${year}_`,
       ``,
-      `🏢 Apartamentos com leitura: *${totalApts}*`,
-      ``,
-      `💧 Total Água:  *${fmt(totalAgua)}*`,
-      `🔥 Total Gás:   *${fmt(totalGas)}*`,
-      `💰 Total Geral: *${fmt(totalGeral)}*`,
+      `🏢 Apartamentos: *${totalApts}*`,
+      `💧 Água:  *${fmt(totalAgua)}*`,
+      `🔥 Gás:   *${fmt(totalGas)}*`,
+      `💰 Total: *${fmt(totalGeral)}*`,
       ``,
       `🏆 Maiores consumos:`,
       top3Lines,
       ``,
-      `_Gerado automaticamente pelo HidroGás_`,
+      `_Gerado automaticamente_`,
     ].join('\n')
 
+    // ── Envia ─────────────────────────────────────────────────────────────────
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    await client.messages.create({ from: process.env.TWILIO_FROM, to: toPhone, body: message })
 
-    await client.messages.create({
-      from: process.env.TWILIO_FROM,
-      to:   process.env.SINDICO_WHATSAPP,
-      body: message,
-    })
-
-    logger.info(`monthlyWhatsAppReport: relatório de ${monthName}/${year} enviado para ${process.env.SINDICO_WHATSAPP}`)
+    logger.info(`monthlyWhatsAppReport: enviado para ${toPhone} — ${monthName}/${year}`)
   }
 )
