@@ -1,8 +1,33 @@
 # HidroGás
 
-Sistema de gestão de leituras de água e gás para condomínios.
+Sistema de gestão de leituras de água e gás para condomínios. Permite ao síndico registrar leituras mensais e gerar links individuais para que cada morador acompanhe seu próprio consumo.
 
-## Setup inicial (primeira vez)
+## Funcionalidades
+
+- **Painel administrativo** com dashboard, gráficos e KPIs de consumo
+- **Gestão de apartamentos** com tokens de acesso individuais e senha opcional
+- **Leituras mensais** de água e gás com cálculo automático de consumo e custo
+- **Histórico** de leituras por período
+- **Vista pública por apartamento** — link único para o morador ver seu histórico sem precisar de cadastro
+- **Dark mode** e suporte a preferências de acessibilidade
+
+## Stack
+
+- **Frontend**: React 19 + TypeScript + Vite
+- **Backend**: Firebase Realtime Database + Cloud Functions (Node.js 22)
+- **Auth**: Firebase Auth com Custom Tokens
+- **Senhas**: Argon2id via Cloud Function — nenhuma senha plain text é armazenada
+- **Deploy**: Netlify (frontend) + Firebase (functions + database)
+
+## Segurança
+
+- Login do síndico validado server-side com Argon2id e rate limiting
+- Acesso ao banco de dados bloqueado sem autenticação válida
+- Firebase App Check com reCAPTCHA v3 ativo
+- Tokens públicos por apartamento com 122 bits de entropia
+- Todas as credenciais via variáveis de ambiente e Firebase Secret Manager — nada hardcoded
+
+## Setup
 
 ### 1. Instalar dependências
 
@@ -11,58 +36,33 @@ npm install
 cd functions && npm install && cd ..
 ```
 
-### 2. Configurar secrets da Cloud Function
+### 2. Configurar variáveis de ambiente
 
 ```bash
-# Instalar Firebase CLI (se não tiver)
-npm install -g firebase-tools
-firebase login
-
-# Gerar hash da senha e obter os comandos de setup
-node functions/setup-secrets.js
-
-# Seguir as instruções exibidas pelo script acima
+cp .env.example .env.local
+# Preencher com os valores do seu projeto Firebase
 ```
 
-### 3. Deploy da Cloud Function
+### 3. Configurar secrets da Cloud Function
+
+```bash
+# Gera o hash Argon2id da senha e exibe os comandos de setup
+node functions/setup-secrets.js
+```
+
+### 4. Deploy
 
 ```bash
 firebase deploy --only functions
+firebase deploy --only database
 ```
 
-### 4. Rodar localmente
+### 5. Rodar localmente
 
 ```bash
 npm run dev
 ```
 
----
+## Variáveis de ambiente
 
-## Como o login funciona
-
-1. Frontend envia `{ username, password }` para a Cloud Function `adminLogin`
-2. A função verifica as credenciais contra os secrets do Firebase Secret Manager
-3. Se correto, retorna um Firebase Custom Token
-4. Frontend chama `signInWithCustomToken(auth, token)` — sessão 100% gerenciada pelo Firebase Auth
-5. `onAuthStateChanged` no `AdminGate` detecta o login e libera o painel
-
-## Variáveis de ambiente (.env.local para desenvolvimento)
-
-Copie `.env.example` para `.env.local` e preencha os valores:
-
-```bash
-cp .env.example .env.local
-```
-
-## Secrets da Cloud Function (Firebase Secret Manager)
-
-| Secret | Descrição |
-|--------|-----------|
-| `ADMIN_USERNAME` | Nome de usuário do admin |
-| `ADMIN_PASSWORD_HASH` | Hash bcrypt (salt 12) da senha |
-
-Para alterar a senha:
-```bash
-node functions/setup-secrets.js
-firebase deploy --only functions
-```
+Veja `.env.example` para a lista completa. Os secrets sensíveis (`ADMIN_PASSWORD_HASH`, `DATABASE_URL`) ficam no Firebase Secret Manager e nunca vão para o repositório.
