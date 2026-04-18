@@ -1,16 +1,37 @@
 import { useState, useEffect } from 'react'
-import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin } from 'lucide-react'
+import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle } from 'lucide-react'
 import { useAppStore, useUIStore } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
 import { friendlyError } from '../lib/friendlyError'
 import { ConfigSkeleton, Spinner } from '../components/ui/Skeleton'
 
+function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 2)  return digits.length ? `(${digits}` : ''
+  if (digits.length <= 6)  return `(${digits.slice(0,2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`
+  return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`
+}
+
+function maskRate(value: string): string {
+  // Allow digits and a single decimal separator (dot or comma)
+  return value.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+}
+
+interface FormErrors {
+  condominiumName?: string
+  managerPhone?: string
+  waterRate?: string
+  gasRate?: string
+}
+
 export function Config() {
   const { config, readings, apartments } = useAppStore()
   const { toast } = useToast()
   const { darkMode, setDarkMode } = useUIStore()
   const [form, setForm] = useState({ waterRate: '0.033', gasRate: '0.033', condominiumName: '', managerName: '', managerPhone: '', address: '' })
+  const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -26,12 +47,24 @@ export function Config() {
 
   if (!config) return <ConfigSkeleton />
 
+  function validate(): FormErrors {
+    const errs: FormErrors = {}
+    if (!form.condominiumName.trim()) errs.condominiumName = 'Nome do condomínio é obrigatório'
+    const phone = form.managerPhone.replace(/\D/g, '')
+    if (phone && phone.length < 10) errs.managerPhone = 'Telefone incompleto (mín. 10 dígitos)'
+    const wr = parseFloat(form.waterRate)
+    if (!form.waterRate || isNaN(wr) || wr <= 0) errs.waterRate = 'Informe um valor maior que zero'
+    const gr = parseFloat(form.gasRate)
+    if (!form.gasRate || isNaN(gr) || gr <= 0) errs.gasRate = 'Informe um valor maior que zero'
+    return errs
+  }
+
   const save = async () => {
+    const errs = validate()
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setErrors({})
     const waterRate = parseFloat(form.waterRate)
     const gasRate   = parseFloat(form.gasRate)
-    if (isNaN(waterRate) || waterRate <= 0) { toast('Tarifa de água inválida', 'error'); return }
-    if (isNaN(gasRate)   || gasRate   <= 0) { toast('Tarifa de gás inválida', 'error');  return }
-    if (!form.condominiumName.trim())        { toast('Nome do condomínio obrigatório', 'error'); return }
     setLoading(true)
     try {
       await configRepo.update({
@@ -86,13 +119,15 @@ export function Config() {
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label className="label">Nome do condomínio</label>
+                <label className="label">Nome do condomínio <span style={{ color: '#dc2626' }}>*</span></label>
                 <input
                   className="input"
                   value={form.condominiumName}
-                  onChange={e => setForm(f => ({ ...f, condominiumName: e.target.value }))}
+                  onChange={e => { setForm(f => ({ ...f, condominiumName: e.target.value })); setErrors(v => ({ ...v, condominiumName: undefined })) }}
                   placeholder="Ex: Condomínio Residencial das Flores"
+                  style={errors.condominiumName ? { borderColor: '#dc2626' } : {}}
                 />
+                {errors.condominiumName && <FieldError msg={errors.condominiumName} />}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
                 <div>
@@ -103,7 +138,7 @@ export function Config() {
                       className="input"
                       value={form.managerName}
                       onChange={e => setForm(f => ({ ...f, managerName: e.target.value }))}
-                      placeholder="João Silva"
+                      placeholder="Nome completo"
                       style={{ paddingLeft: 32 }}
                     />
                   </div>
@@ -111,16 +146,17 @@ export function Config() {
                 <div>
                   <label className="label">Telefone / WhatsApp</label>
                   <div style={{ position: 'relative' }}>
-                    <Phone size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                    <Phone size={13} style={{ position: 'absolute', left: 11, top: errors.managerPhone ? 13 : '50%', transform: errors.managerPhone ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
                     <input
                       className="input"
                       value={form.managerPhone}
-                      onChange={e => setForm(f => ({ ...f, managerPhone: e.target.value }))}
+                      onChange={e => { setForm(f => ({ ...f, managerPhone: maskPhone(e.target.value) })); setErrors(v => ({ ...v, managerPhone: undefined })) }}
                       placeholder="(47) 99999-9999"
                       inputMode="tel"
-                      style={{ paddingLeft: 32 }}
+                      style={{ paddingLeft: 32, ...(errors.managerPhone ? { borderColor: '#dc2626' } : {}) }}
                     />
                   </div>
+                  {errors.managerPhone && <FieldError msg={errors.managerPhone} />}
                 </div>
               </div>
               <div>
@@ -162,10 +198,12 @@ export function Config() {
                   <label className="label">Valor por m³ (R$)</label>
                   <input
                     className="input"
-                    type="number" inputMode="decimal" step="0.0001" min="0"
+                    type="text" inputMode="decimal"
                     value={form.waterRate}
-                    onChange={e => setForm(f => ({ ...f, waterRate: e.target.value }))}
+                    onChange={e => { setForm(f => ({ ...f, waterRate: maskRate(e.target.value) })); setErrors(v => ({ ...v, waterRate: undefined })) }}
+                    style={errors.waterRate ? { borderColor: '#dc2626' } : {}}
                   />
+                  {errors.waterRate && <FieldError msg={errors.waterRate} />}
                   <PreviewBadge color="var(--water)" bg="var(--water-light)" preview={waterPreview} rate={form.waterRate} />
                 </div>
 
@@ -180,10 +218,12 @@ export function Config() {
                   <label className="label">Valor por m³ (R$)</label>
                   <input
                     className="input"
-                    type="number" inputMode="decimal" step="0.0001" min="0"
+                    type="text" inputMode="decimal"
                     value={form.gasRate}
-                    onChange={e => setForm(f => ({ ...f, gasRate: e.target.value }))}
+                    onChange={e => { setForm(f => ({ ...f, gasRate: maskRate(e.target.value) })); setErrors(v => ({ ...v, gasRate: undefined })) }}
+                    style={errors.gasRate ? { borderColor: '#dc2626' } : {}}
                   />
+                  {errors.gasRate && <FieldError msg={errors.gasRate} />}
                   <PreviewBadge color="var(--gas)" bg="var(--gas-light)" preview={gasPreview} rate={form.gasRate} />
                 </div>
               </div>
@@ -353,6 +393,15 @@ export function Config() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function FieldError({ msg }: { msg: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, fontSize: 12, color: '#dc2626' }}>
+      <AlertCircle size={11} />
+      <span>{msg}</span>
+    </div>
+  )
+}
 
 function Section({
   icon, iconBg, title, description, children,
