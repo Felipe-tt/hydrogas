@@ -1,4 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend,
+} from 'recharts'
 import { useParams } from 'react-router-dom'
 import {
   Droplets, Flame, Building2, AlertCircle, TrendingUp, KeyRound,
@@ -218,263 +222,57 @@ function SubViewShell({ title, onClose, children }: { title: string; onClose: ()
   )
 }
 
-// ── View: Meu Consumo ─────────────────────────────────────────────────────────
-// ── SVG Chart ─────────────────────────────────────────────────────────────────
-// Usa viewBox com espaço de coordenadas virtual fixo (600×220).
-// O SVG escala via CSS width:100% — nenhum ResizeObserver, nenhum pixel calculado em JS.
-// Tooltip é posicionado em % via estilo inline relativo ao container.
-function ConsumoChart({
-  barData, maxVal, activeBar, setActiveBar, isMobile,
-}: {
-  barData: { label: string; shortLabel: string; water: number; gas: number }[]
-  maxVal: number
-  activeBar: number | null
-  setActiveBar: (i: number | null) => void
-  isMobile: boolean
-}) {
-  const n = barData.length
-  if (n === 0) return null
-
-  // Coordenadas virtuais — o SVG escala para preencher o container
-  const VW = 600, VH = 220
-  const PL = 46, PR = 8, PT = 14, PB = 28
-  const CW = VW - PL - PR   // 546
-  const CH = VH - PT - PB   // 178
-
-  const gap  = CW / n
-  const barW = Math.max(8, Math.min(40, gap * 0.5))
-
-  const xOf = (i: number) => PL + gap * i + gap / 2
-  const yOf = (v: number) => PT + CH * (1 - Math.min(v / maxVal, 1))
-  const yBase = PT + CH
-
-  const activeIdx = activeBar !== null ? activeBar : n - 1
-  const activeD   = barData[activeIdx]
-
-  // Linha de tendência — catmull-rom convertida para bezier cúbica
-  const pts = barData.map((d, i) => ({ x: xOf(i), y: yOf(d.water + d.gas) }))
-  const linePath = pts.reduce((acc, p, i) => {
-    if (i === 0) return `M${p.x.toFixed(1)},${p.y.toFixed(1)}`
-    // Catmull-rom → cubic bezier usando pontos vizinhos
-    const p0 = pts[Math.max(i - 2, 0)]
-    const p1 = pts[i - 1]
-    const p2 = p
-    const p3 = pts[Math.min(i + 1, n - 1)]
-    const cp1x = p1.x + (p2.x - p0.x) / 6
-    const cp1y = p1.y + (p2.y - p0.y) / 6
-    const cp2x = p2.x - (p3.x - p1.x) / 6
-    const cp2y = p2.y - (p3.y - p1.y) / 6
-    return `${acc} C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`
-  }, '')
-  const areaPath = `${linePath} L${pts[n-1].x.toFixed(1)},${yBase} L${pts[0].x.toFixed(1)},${yBase} Z`
-
-  // Posição do tooltip em % para não depender de px reais
-  const tooltipLeftPct  = Math.min(Math.max((xOf(activeIdx) - PL) / CW * 100, 5), 65)
-  const tooltipBelowBar = activeD.water + activeD.gas < maxVal * 0.6
-
-  const yTicks = [0, 0.25, 0.5, 0.75, 1]
-
+// ── CustomTooltip (igual ao Dashboard) ───────────────────────────────────────
+function ConsumoTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
-      <svg
-        viewBox={`0 0 ${VW} ${VH}`}
-        width="100%"
-        style={{ display: 'block', overflow: 'visible' }}
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="cg-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-          </linearGradient>
-          <clipPath id="cg-clip">
-            <rect x={PL} y={PT} width={CW} height={CH + 1} />
-          </clipPath>
-        </defs>
-
-        {/* Grid + Y-axis labels */}
-        {yTicks.map((t, i) => {
-          const y   = PT + CH * (1 - t)
-          const val = maxVal * t
-          const lbl = val === 0 ? '0' : val >= 1000
-            ? `${(val / 1000).toFixed(1)}k`
-            : val >= 100 ? String(Math.round(val))
-            : val.toFixed(0)
-          return (
-            <g key={i}>
-              <line
-                x1={PL} y1={y} x2={PL + CW} y2={y}
-                stroke="#334155"
-                strokeWidth={t === 0 ? 1 : 0.5}
-                strokeDasharray={t === 0 ? undefined : '4 6'}
-                opacity={t === 0 ? 1 : 0.6}
-              />
-              <text x={PL - 5} y={y + 3} textAnchor="end" fontSize={10} fill="#64748b" fontFamily="monospace">
-                {lbl}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* Área sob a linha */}
-        <path d={areaPath} fill="url(#cg-area)" clipPath="url(#cg-clip)" />
-
-        {/* Barras empilhadas */}
-        {barData.map((d, i) => {
-          const total    = d.water + d.gas
-          const isActive = i === activeIdx
-          const dimmed   = activeBar !== null && !isActive
-          const x        = xOf(i) - barW / 2
-          const fullH    = total > 0 ? (total / maxVal) * CH : 0
-          // Gás embaixo, água em cima — stacked de baixo para cima
-          const gH = total > 0 ? (d.gas   / total) * fullH : 0
-          const wH = total > 0 ? (d.water / total) * fullH : 0
-          const yG = yBase - gH          // topo do segmento gás
-          const yW = yBase - gH - wH     // topo do segmento água
-
-          return (
-            <g
-              key={d.label}
-              opacity={dimmed ? 0.2 : 1}
-              style={{ cursor: 'pointer', transition: 'opacity 0.15s' }}
-              onClick={() => setActiveBar(activeBar === i ? null : i)}
-              onMouseEnter={() => { if (!isMobile) setActiveBar(i) }}
-              onMouseLeave={() => { if (!isMobile) setActiveBar(null) }}
-            >
-              {/* Segmento gás (bottom) */}
-              {gH > 0.5 && (
-                <rect
-                  x={x} y={yG} width={barW} height={gH}
-                  fill="#f97316"
-                  opacity={isActive ? 0.95 : 0.7}
-                  rx={gH > 4 && wH < 0.5 ? 3 : 0}
-                  style={{ transition: 'opacity 0.15s' }}
-                />
-              )}
-              {/* Segmento água (top) */}
-              {wH > 0.5 && (
-                <rect
-                  x={x} y={yW} width={barW} height={wH}
-                  fill="#3b82f6"
-                  opacity={isActive ? 0.95 : 0.7}
-                  rx={wH > 4 ? 3 : 0}
-                  style={{ transition: 'opacity 0.15s' }}
-                />
-              )}
-              {total === 0 && (
-                <rect x={x} y={yBase - 2} width={barW} height={2} fill="#334155" rx={1} />
-              )}
-              {/* Contorno ativo */}
-              {isActive && total > 0 && (
-                <rect
-                  x={x - 1.5} y={yBase - fullH - 1.5}
-                  width={barW + 3} height={fullH + 3}
-                  fill="none" stroke="#3b82f6" strokeWidth={1.5} rx={4} opacity={0.5}
-                />
-              )}
-              {/* Label X */}
-              <text
-                x={xOf(i)} y={yBase + 16}
-                textAnchor="middle"
-                fontSize={n > 8 ? 8 : 9}
-                fill={isActive ? '#e2e8f0' : '#64748b'}
-                fontWeight={isActive ? 600 : 400}
-                fontFamily="monospace"
-                style={{ transition: 'fill 0.15s' }}
-              >
-                {isMobile ? d.shortLabel : d.label}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* Linha de tendência */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth={1.5}
-          strokeOpacity={0.35}
-          strokeLinecap="round"
-          clipPath="url(#cg-clip)"
-        />
-
-        {/* Crosshair vertical no ponto ativo */}
-        <line
-          x1={xOf(activeIdx)} y1={PT}
-          x2={xOf(activeIdx)} y2={yBase}
-          stroke="#3b82f6" strokeWidth={1}
-          strokeDasharray="3 5" strokeOpacity={0.3}
-        />
-
-        {/* Ponto ativo na linha */}
-        <circle cx={xOf(activeIdx)} cy={pts[activeIdx].y} r={4} fill="#3b82f6" />
-        <circle cx={xOf(activeIdx)} cy={pts[activeIdx].y} r={2} fill="white" opacity={0.9} />
-      </svg>
-
-      {/* Tooltip — posicionado em % para ser independente de px */}
-      <div style={{
-        position: 'absolute',
-        left: `${tooltipLeftPct}%`,
-        top: tooltipBelowBar ? '8px' : undefined,
-        bottom: tooltipBelowBar ? undefined : '32px',
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        padding: '10px 13px',
-        pointerEvents: 'none',
-        minWidth: 140,
-        boxShadow: '0 8px 28px rgba(0,0,0,0.4)',
-        zIndex: 10,
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-          {activeD.label}
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      padding: '10px 14px',
+      fontSize: 12,
+      color: 'var(--text)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+    }}>
+      <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text-3)' }}>{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: p.fill, flexShrink: 0 }} />
+          <span style={{ color: 'var(--text-2)' }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, fontFamily: 'DM Mono, monospace', color: p.fill }}>{fmt(p.value)}</span>
         </div>
-        {activeD.water > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 5 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 7, height: 7, borderRadius: 2, background: '#3b82f6', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Água</span>
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', fontFamily: 'DM Mono, monospace' }}>{fmt(activeD.water)}</span>
-          </div>
-        )}
-        {activeD.gas > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 5 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 7, height: 7, borderRadius: 2, background: '#f97316', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Gás</span>
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#f97316', fontFamily: 'DM Mono, monospace' }}>{fmt(activeD.gas)}</span>
-          </div>
-        )}
-        <div style={{ borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Total</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{fmt(activeD.water + activeD.gas)}</span>
+      ))}
+      {payload.length > 1 && (
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: 'var(--text-3)' }}>Total</span>
+          <span style={{ fontWeight: 800, fontFamily: 'DM Mono, monospace' }}>
+            {fmt(payload.reduce((s: number, p: any) => s + (p.value ?? 0), 0))}
+          </span>
         </div>
-      </div>
+      )}
     </div>
   )
 }
+
+// ── View: Meu Consumo ─────────────────────────────────────────────────────────
 
 // ── ConsumoView ───────────────────────────────────────────────────────────────
 function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose: () => void }) {
   const w        = useWindowWidth()
   const isMobile = w < 480
-  const [activeBar, setActiveBar] = useState<number | null>(null)
 
   const sorted = [...readings].sort((a, b) => a.year - b.year || a.month - b.month)
   const last12 = sorted.slice(-12)
 
-  const barData = last12.reduce<{ label: string; shortLabel: string; water: number; gas: number }[]>((acc, r) => {
-    const label      = `${MONTHS[r.month - 1].slice(0, 3)}/${String(r.year).slice(2)}`
-    const shortLabel = `${String(r.month).padStart(2, '0')}/${String(r.year).slice(2)}`
-    const item = acc.find(x => x.label === label) ?? (() => { const o = { label, shortLabel, water: 0, gas: 0 }; acc.push(o); return o })()
-    if (r.type === 'water') item.water += r.totalCost; else item.gas += r.totalCost
+  const barData = last12.reduce<{ label: string; agua: number; gas: number }[]>((acc, r) => {
+    const label = `${MONTHS[r.month - 1].slice(0, 3)}/${String(r.year).slice(2)}`
+    const item = acc.find(x => x.label === label) ?? (() => { const o = { label, agua: 0, gas: 0 }; acc.push(o); return o })()
+    if (r.type === 'water') item.agua = +(item.agua + r.totalCost).toFixed(2)
+    else item.gas = +(item.gas + r.totalCost).toFixed(2)
     return acc
   }, [])
 
-  const maxVal  = Math.max(...barData.map(d => d.water + d.gas), 1)
   const totalW  = readings.filter(r => r.type === 'water').reduce((a, r) => a + r.totalCost, 0)
   const totalG  = readings.filter(r => r.type === 'gas').reduce((a, r) => a + r.totalCost, 0)
   const totalC  = readings.filter(r => r.type === 'water').reduce((a, r) => a + r.consumption, 0)
@@ -554,20 +352,40 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
             </div>
           </div>
 
-          <ConsumoChart
-            barData={barData}
-            maxVal={maxVal}
-            activeBar={activeBar}
-            setActiveBar={setActiveBar}
-            isMobile={isMobile}
-          />
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={barData} barSize={14} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-3, #1e293b)" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                axisLine={false} tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                axisLine={false} tickLine={false}
+                width={44}
+                tickFormatter={(v: number) => v >= 1000 ? `R$${(v / 1000).toFixed(1)}k` : `R$${v}`}
+              />
+              <Tooltip
+                content={<ConsumoTooltip />}
+                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+              />
+              <Legend
+                iconType="square"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 12, color: '#64748b', paddingTop: 8 }}
+              />
+              <Bar dataKey="agua" name="Água" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="gas"  name="Gás"  stackId="a" fill="#f97316" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
 
           {/* Resumo mês atual */}
           {lastMonth && (
             <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Mês atual ({lastMonth.label})</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
-                {fmt(lastMonth.water + lastMonth.gas)}
+                {fmt(lastMonth.agua + lastMonth.gas)}
               </span>
             </div>
           )}
