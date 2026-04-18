@@ -1,8 +1,8 @@
 {
   "rules": {
     "apartments": {
-      ".read": "auth != null",
-      ".write": "auth != null",
+      ".read":  "auth != null && auth.token.role === 'admin'",
+      ".write": "auth != null && auth.token.role === 'admin'",
       ".indexOn": ["publicToken"],
       "$apt": {
         ".validate": "newData.hasChildren(['number', 'publicToken'])",
@@ -19,8 +19,8 @@
       }
     },
     "readings": {
-      ".read": "auth != null",
-      ".write": "auth != null",
+      ".read":  "auth != null && auth.token.role === 'admin'",
+      ".write": "auth != null && auth.token.role === 'admin'",
       "$reading": {
         ".validate": "newData.hasChildren(['apartmentId', 'type', 'month', 'year'])",
         "id":          { ".validate": "newData.isString()" },
@@ -38,8 +38,8 @@
       }
     },
     "config": {
-      ".read": "auth != null",
-      ".write": "auth != null",
+      ".read":  "auth != null && auth.token.role === 'admin'",
+      ".write": "auth != null && auth.token.role === 'admin'",
       "waterRate":       { ".validate": "newData.isNumber() && newData.val() > 0" },
       "gasRate":         { ".validate": "newData.isNumber() && newData.val() > 0" },
       "condominiumName": { ".validate": "newData.isString() && newData.val().length <= 100" },
@@ -54,7 +54,7 @@
     "public": {
       "$token": {
         ".read":  "auth != null && auth.token.aptToken === $token",
-        ".write": "auth != null",
+        ".write": "auth != null && (auth.token.role === 'admin' || auth.uid === 'hydrogas-admin')",
         "condoInfo": {
           "name":         { ".validate": "newData.isString() || !newData.exists()" },
           "managerName":  { ".validate": "newData.isString() || !newData.exists()" },
