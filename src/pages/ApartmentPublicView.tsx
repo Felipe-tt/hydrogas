@@ -219,10 +219,264 @@ function SubViewShell({ title, onClose, children }: { title: string; onClose: ()
 }
 
 // ── View: Meu Consumo ─────────────────────────────────────────────────────────
+// ── SVG Chart ─────────────────────────────────────────────────────────────────
+function ConsumoChart({
+  barData, maxVal, activeBar, setActiveBar, isMobile,
+}: {
+  barData: { label: string; shortLabel: string; water: number; gas: number }[]
+  maxVal: number
+  activeBar: number | null
+  setActiveBar: (i: number | null) => void
+  isMobile: boolean
+}) {
+  const svgRef  = useRef<SVGSVGElement>(null)
+  const [dims, setDims] = useState({ w: 300, h: 180 })
+
+  useEffect(() => {
+    if (!svgRef.current) return
+    const ro = new ResizeObserver(entries => {
+      const { width } = entries[0].contentRect
+      setDims({ w: width, h: isMobile ? 180 : 210 })
+    })
+    ro.observe(svgRef.current.parentElement!)
+    return () => ro.disconnect()
+  }, [isMobile])
+
+  const PAD_L = 44, PAD_R = 12, PAD_T = 16, PAD_B = 32
+  const chartW = dims.w - PAD_L - PAD_R
+  const chartH = dims.h - PAD_T - PAD_B
+  const n      = barData.length
+  if (n === 0) return null
+
+  const barW   = Math.max(6, Math.min(36, (chartW / n) * 0.55))
+  const gap    = chartW / n
+
+  // Y-axis ticks
+  const yTicks = [0, 0.25, 0.5, 0.75, 1.0]
+
+  const xOf = (i: number) => PAD_L + gap * i + gap / 2
+  const yOf = (v: number) => PAD_T + chartH * (1 - v / maxVal)
+
+  // Line path for total cost (smooth cubic bezier)
+  const totalPoints = barData.map((d, i) => ({ x: xOf(i), y: yOf(d.water + d.gas) }))
+  const linePath = totalPoints.reduce((acc, p, i) => {
+    if (i === 0) return `M ${p.x} ${p.y}`
+    const prev = totalPoints[i - 1]
+    const cpX  = (prev.x + p.x) / 2
+    return `${acc} C ${cpX} ${prev.y} ${cpX} ${p.y} ${p.x} ${p.y}`
+  }, '')
+  const areaPath = linePath + ` L ${totalPoints[n-1].x} ${PAD_T + chartH} L ${totalPoints[0].x} ${PAD_T + chartH} Z`
+
+  const activeD   = activeBar !== null ? barData[activeBar] : barData[n - 1]
+  const activeIdx = activeBar !== null ? activeBar : n - 1
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <svg
+        ref={svgRef}
+        width="100%"
+        height={dims.h}
+        style={{ overflow: 'visible', display: 'block' }}
+      >
+        <defs>
+          <linearGradient id="gradWater" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--water)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--water)" stopOpacity="0.02" />
+          </linearGradient>
+          <linearGradient id="gradGas" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--gas)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--gas)" stopOpacity="0.02" />
+          </linearGradient>
+          <filter id="glowW" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <filter id="glowG" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <clipPath id="chartClip">
+            <rect x={PAD_L} y={PAD_T} width={chartW} height={chartH} />
+          </clipPath>
+        </defs>
+
+        {/* Grid lines + Y labels */}
+        {yTicks.map((t, i) => {
+          const y   = PAD_T + chartH * (1 - t)
+          const val = maxVal * t
+          return (
+            <g key={i}>
+              <line
+                x1={PAD_L} y1={y} x2={PAD_L + chartW} y2={y}
+                stroke="var(--border)" strokeWidth={t === 0 ? 1.5 : 0.75}
+                strokeDasharray={t === 0 ? undefined : '3 5'}
+                opacity={t === 0 ? 0.8 : 0.45}
+              />
+              <text
+                x={PAD_L - 6} y={y + 3.5}
+                textAnchor="end"
+                fill="var(--text-3)"
+                fontSize={9}
+                fontFamily="'DM Mono', monospace"
+              >
+                {val === 0 ? '0' : val >= 100 ? `${Math.round(val)}` : val.toFixed(0)}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Área de gradiente — total */}
+        <path d={areaPath} fill="url(#gradWater)" clipPath="url(#chartClip)" />
+
+        {/* Barras empilhadas */}
+        {barData.map((d, i) => {
+          const total   = d.water + d.gas
+          const isActive = i === activeIdx
+          const dimmed   = activeBar !== null && !isActive
+          const x        = xOf(i) - barW / 2
+          const fullH    = total > 0 ? (total / maxVal) * chartH : 0
+          const wH       = total > 0 ? (d.water / total) * fullH : 0
+          const gH       = fullH - wH
+          const yBase    = PAD_T + chartH
+
+          return (
+            <g
+              key={d.label}
+              style={{ cursor: 'pointer' }}
+              opacity={dimmed ? 0.25 : 1}
+              onClick={() => setActiveBar(activeBar === i ? null : i)}
+              onMouseEnter={() => { if (!isMobile) setActiveBar(i) }}
+              onMouseLeave={() => { if (!isMobile) setActiveBar(null) }}
+            >
+              {/* Gás (bottom) */}
+              {gH > 0 && (
+                <rect
+                  x={x} y={yBase - fullH} width={barW} height={gH}
+                  fill="var(--gas)"
+                  opacity={isActive ? 1 : 0.65}
+                  rx={2}
+                  style={{ transition: 'opacity 0.2s' }}
+                />
+              )}
+              {/* Água (top) */}
+              {wH > 0 && (
+                <rect
+                  x={x} y={yBase - fullH + gH} width={barW} height={wH}
+                  fill="var(--water)"
+                  opacity={isActive ? 1 : 0.65}
+                  rx={2}
+                  style={{ transition: 'opacity 0.2s' }}
+                />
+              )}
+              {total === 0 && (
+                <rect x={x} y={yBase - 2} width={barW} height={2} fill="var(--border)" rx={1} />
+              )}
+              {/* Active glow ring */}
+              {isActive && total > 0 && (
+                <rect
+                  x={x - 2} y={yBase - fullH - 2} width={barW + 4} height={fullH + 4}
+                  fill="none"
+                  stroke="var(--water)"
+                  strokeWidth={1.5}
+                  rx={4}
+                  opacity={0.6}
+                />
+              )}
+              {/* X label */}
+              <text
+                x={xOf(i)} y={PAD_T + chartH + 18}
+                textAnchor="middle"
+                fill={isActive ? 'var(--text)' : 'var(--text-3)'}
+                fontSize={isMobile ? 8 : 9}
+                fontWeight={isActive ? 700 : 400}
+                fontFamily="'DM Mono', monospace"
+                style={{ transition: 'fill 0.15s' }}
+              >
+                {isMobile ? d.shortLabel : d.label}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Linha de tendência suave */}
+        <path d={linePath} fill="none" stroke="var(--water)" strokeWidth={1.5} strokeOpacity={0.4} clipPath="url(#chartClip)" strokeLinecap="round" />
+
+        {/* Ponto ativo */}
+        {totalPoints[activeIdx] && (
+          <>
+            <circle
+              cx={totalPoints[activeIdx].x}
+              cy={totalPoints[activeIdx].y}
+              r={5} fill="var(--water)" filter="url(#glowW)"
+            />
+            <circle
+              cx={totalPoints[activeIdx].x}
+              cy={totalPoints[activeIdx].y}
+              r={3} fill="white" opacity={0.9}
+            />
+            {/* Vertical crosshair */}
+            <line
+              x1={totalPoints[activeIdx].x} y1={PAD_T}
+              x2={totalPoints[activeIdx].x} y2={PAD_T + chartH}
+              stroke="var(--water)" strokeWidth={1} strokeDasharray="3 4" strokeOpacity={0.35}
+            />
+          </>
+        )}
+      </svg>
+
+      {/* Tooltip flutuante */}
+      {activeD && (
+        <div style={{
+          position: 'absolute',
+          left: Math.min(
+            Math.max(xOf(activeIdx) - PAD_L - 60, 0),
+            dims.w - PAD_L - PAD_R - 130,
+          ),
+          top: Math.max(yOf(activeD.water + activeD.gas) - PAD_T - 70, 0),
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 10,
+          padding: '9px 13px',
+          pointerEvents: 'none',
+          minWidth: 130,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          zIndex: 10,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>
+            {activeD.label}
+          </div>
+          {activeD.water > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 7, height: 7, borderRadius: 2, background: 'var(--water)', flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Água</span>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>{fmt(activeD.water)}</span>
+            </div>
+          )}
+          {activeD.gas > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 7, height: 7, borderRadius: 2, background: 'var(--gas)', flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Gás</span>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>{fmt(activeD.gas)}</span>
+            </div>
+          )}
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: 5, paddingTop: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Total</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{fmt(activeD.water + activeD.gas)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── ConsumoView ───────────────────────────────────────────────────────────────
 function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose: () => void }) {
   const w        = useWindowWidth()
   const isMobile = w < 480
-  const isSmall  = w < 360
   const [activeBar, setActiveBar] = useState<number | null>(null)
 
   const sorted = [...readings].sort((a, b) => a.year - b.year || a.month - b.month)
@@ -247,10 +501,7 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
   const waterDiff = lastWater.length === 2 ? ((lastWater[1].consumption - lastWater[0].consumption) / lastWater[0].consumption) * 100 : null
   const gasDiff   = lastGas.length   === 2 ? ((lastGas[1].consumption   - lastGas[0].consumption)   / lastGas[0].consumption)   * 100 : null
 
-  const BAR_H    = isMobile ? 116 : 148
-  const LABEL_H  = 20
-  const Y_AXIS_W = isSmall ? 32 : 40
-  const activeData = activeBar !== null ? barData[activeBar] : null
+  const lastMonth = barData[barData.length - 1]
 
   return (
     <SubViewShell title="Meu Consumo" onClose={onClose}>
@@ -306,153 +557,36 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
 
       {/* Gráfico */}
       {barData.length > 0 && (
-        <div className="card" style={{ padding: isMobile ? '14px 10px 14px 12px' : '18px 16px 16px', marginBottom: 14 }}>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="card" style={{ padding: isMobile ? '14px 10px 10px' : '18px 16px 12px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Histórico mensal</span>
             <div style={{ display: 'flex', gap: 12 }}>
               {[{ color: 'var(--water)', label: 'Água' }, { color: 'var(--gas)', label: 'Gás' }].map(({ color, label }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 9, height: 9, borderRadius: 2, background: color }} />
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
                   <span style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 500 }}>{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {isMobile && (
-            <p style={{ fontSize: 11, color: 'var(--text-3)', margin: '0 0 10px', textAlign: 'center' }}>
-              Toque em uma barra para ver detalhes
-            </p>
-          )}
+          <ConsumoChart
+            barData={barData}
+            maxVal={maxVal}
+            activeBar={activeBar}
+            setActiveBar={setActiveBar}
+            isMobile={isMobile}
+          />
 
-          {/* Chart */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            {/* Y axis */}
-            <div style={{
-              width: Y_AXIS_W, flexShrink: 0,
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-              height: BAR_H + LABEL_H, paddingBottom: LABEL_H,
-            }}>
-              {[maxVal, maxVal * 0.5, 0].map((v, i) => (
-                <span key={i} style={{ fontSize: 8, color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', textAlign: 'right', lineHeight: 1, display: 'block' }}>
-                  {v > 0 ? `R$${v.toFixed(0)}` : '0'}
-                </span>
-              ))}
-            </div>
-
-            {/* Bars + grid */}
-            <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
-              {/* Grid lines */}
-              {[0, 50, 100].map(pct => (
-                <div key={pct} style={{
-                  position: 'absolute', left: 0, right: 0,
-                  top: `${(1 - pct / 100) * BAR_H}px`,
-                  borderTop: `1px ${pct === 0 ? 'solid' : 'dashed'} var(--border)`,
-                  pointerEvents: 'none', zIndex: 0,
-                }} />
-              ))}
-
-              <div style={{ display: 'flex', alignItems: 'flex-end', height: BAR_H + LABEL_H, paddingBottom: LABEL_H, gap: 3, position: 'relative', zIndex: 1 }}>
-                {barData.map((d, i) => {
-                  const total    = d.water + d.gas
-                  const pct      = total / maxVal
-                  const wH       = total > 0 ? Math.max(pct * BAR_H * (d.water / total), 2) : 0
-                  const gH       = total > 0 ? Math.max(pct * BAR_H * (d.gas   / total), 2) : 0
-                  const isLast   = i === barData.length - 1
-                  const isActive = activeBar === i
-                  const dimmed   = activeBar !== null && !isActive
-
-                  return (
-                    <div
-                      key={d.label}
-                      onClick={() => setActiveBar(prev => prev === i ? null : i)}
-                      onMouseEnter={() => { if (!isMobile) setActiveBar(i) }}
-                      onMouseLeave={() => { if (!isMobile) setActiveBar(null) }}
-                      style={{
-                        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        minWidth: 0, cursor: 'pointer', position: 'relative',
-                        WebkitTapHighlightColor: 'transparent',
-                      }}
-                    >
-                      <div style={{
-                        width: '78%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                        height: BAR_H, borderRadius: '4px 4px 0 0', overflow: 'hidden',
-                        outline: (isLast || isActive) ? '2px solid var(--water)' : '2px solid transparent',
-                        outlineOffset: 1,
-                        opacity: dimmed ? 0.38 : 1,
-                        transition: 'opacity 0.15s, outline-color 0.15s',
-                      }}>
-                        {wH > 0 && <div style={{ height: wH, background: 'var(--water)', opacity: isLast ? 1 : 0.7 }} />}
-                        {gH > 0 && <div style={{ height: gH, background: 'var(--gas)',   opacity: isLast ? 1 : 0.7 }} />}
-                        {total === 0 && <div style={{ height: 2, background: 'var(--border)' }} />}
-                      </div>
-                      <div style={{
-                        fontSize: isSmall ? 7 : 8,
-                        color: (isLast || isActive) ? 'var(--text)' : 'var(--text-3)',
-                        fontWeight: (isLast || isActive) ? 700 : 400,
-                        whiteSpace: 'nowrap', textAlign: 'center', overflow: 'hidden',
-                        maxWidth: '100%', lineHeight: `${LABEL_H}px`, marginTop: 2,
-                      }}>
-                        {isMobile ? d.shortLabel : d.label}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Info panel — shown under chart when a bar is active */}
-          {activeData !== null && (
-            <div style={{
-              marginTop: 10,
-              padding: '11px 13px',
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {activeData.label}
+          {/* Resumo mês atual */}
+          {lastMonth && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Mês atual ({lastMonth.label})</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
+                {fmt(lastMonth.water + lastMonth.gas)}
               </span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                {activeData.water > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--water)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Água</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>{fmt(activeData.water)}</span>
-                  </div>
-                )}
-                {activeData.gas > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gas)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Gás</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>{fmt(activeData.gas)}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Total</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
-                    {fmt(activeData.water + activeData.gas)}
-                  </span>
-                </div>
-              </div>
             </div>
           )}
-
-          {/* Mês atual resumo */}
-          {(() => {
-            const last = barData[barData.length - 1]
-            return (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Mês atual ({last.label})</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
-                  {fmt(last.water + last.gas)}
-                </span>
-              </div>
-            )
-          })()}
         </div>
       )}
 
