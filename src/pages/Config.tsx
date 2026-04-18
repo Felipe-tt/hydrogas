@@ -39,6 +39,8 @@ export function Config() {
     managerPhone: '',
     managerEmail: '',
     address: '',
+    latitude: '',
+    longitude: '',
     reportDay: '1',
   })
   const [errors, setErrors] = useState<FormErrors>({})
@@ -53,6 +55,8 @@ export function Config() {
       managerPhone: config.managerPhone ?? '',
       managerEmail: config.managerEmail ?? '',
       address:      config.address      ?? '',
+      latitude:     config.latitude  != null ? String(config.latitude)  : '',
+      longitude:    config.longitude != null ? String(config.longitude) : '',
       reportDay:    String(config.reportDay ?? 1),
     })
   }, [config])
@@ -93,6 +97,8 @@ export function Config() {
         ...(form.managerPhone.trim() && { managerPhone: form.managerPhone.trim() }),
         ...(form.managerEmail.trim() && { managerEmail: form.managerEmail.trim() }),
         ...(form.address.trim()      && { address:      form.address.trim() }),
+        ...(form.latitude.trim()  && !isNaN(parseFloat(form.latitude))  && { latitude:  parseFloat(form.latitude) }),
+        ...(form.longitude.trim() && !isNaN(parseFloat(form.longitude)) && { longitude: parseFloat(form.longitude) }),
       })
       toast('Configurações salvas!')
     } catch (e: any) { toast(friendlyError(e), 'error') }
@@ -190,6 +196,35 @@ export function Config() {
                   />
                 </div>
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label className="label">Latitude</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="any"
+                    value={form.latitude}
+                    onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))}
+                    placeholder="-26.763457"
+                  />
+                </div>
+                <div>
+                  <label className="label">Longitude</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="any"
+                    value={form.longitude}
+                    onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))}
+                    placeholder="-48.674538"
+                  />
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
+                Coordenadas usadas no mapa da área do morador. Obtenha em{' '}
+                <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--water)' }}>maps.google.com</a>
+                {' '}clicando com botão direito no local.
+              </p>
             </div>
           </Section>
 
