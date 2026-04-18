@@ -44,8 +44,11 @@ const MONTHS_PT = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const crypto = require('crypto')
+
 function sanitizeKey(raw) {
-  return raw.replace(/[./#$[\]]/g, '_').slice(0, 100)
+  // Usa SHA-256 para evitar colisões entre chaves similares (ex: ip:1.2.3.4 vs ip:1_2_3_4)
+  return crypto.createHash('sha256').update(String(raw)).digest('hex')
 }
 
 function getClientIp(req) {
@@ -678,12 +681,16 @@ exports.adminLogin = onCall(
     enforceAppCheck: true,
   },
   async (request) => {
-    const ipKey = getClientIp(request.rawRequest)
+    const ipKey       = getClientIp(request.rawRequest)
+    const { username, password } = request.data || {}
 
+    // Rate limit por IP E por username — previne bypass via proxies
+    const usernameKey = username ? `user:${username}` : null
     if (await isRateLimited(ipKey))
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
+    if (usernameKey && await isRateLimited(usernameKey))
+      throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
 
-    const { username, password } = request.data || {}
     if (!username || !password)
       throw new HttpsError('invalid-argument', 'Dados inválidos.')
 
@@ -703,10 +710,14 @@ exports.adminLogin = onCall(
       throw new HttpsError('internal', 'Erro interno.')
     }
 
-    if (!usernameOk || !passwordOk)
+    if (!usernameOk || !passwordOk) {
+      // Registra falha em ambas as chaves mesmo com timing constante
+      if (usernameKey) await recordFailedAttempt(usernameKey)
       throw new HttpsError('unauthenticated', 'Usuário ou senha incorretos.')
+    }
 
     await clearRateLimit(ipKey)
+    if (usernameKey) await clearRateLimit(usernameKey)
 
     try {
       const token = await getAuth().createCustomToken(ADMIN_UID, { role: 'admin' })
@@ -822,11 +833,16 @@ exports.getPublicApartment = onCall(
       logger.warn('Não foi possível gerar token morador:', err)
     }
 
+    // Busca dados públicos — accessPasswordHash NUNCA é gravado em /public,
+    // portanto não precisa ser removido aqui. hasPassword é derivado de /apartments.
     const publicSnap = await db.ref(`public/${token}`).get()
     const publicData = publicSnap.exists() ? publicSnap.val() : {}
-    const { accessPasswordHash: _h, hasPassword: _hp, ...safeData } = publicData
 
-    return { ...safeData, _firebaseToken: residentFirebaseToken }
+    return {
+      ...publicData,
+      hasPassword: !!aptData.accessPasswordHash,
+      _firebaseToken: residentFirebaseToken,
+    }
   }
 )
 
@@ -855,6 +871,21 @@ exports.monthlyBackup = onSchedule(
       return
     }
 
+    const raw = snap.val()
+
+    // Remove campos sensíveis antes de salvar no Storage:
+    // - _rateLimit: dados operacionais temporários, sem valor para backup
+    // - apartments[*].accessPasswordHash: hashes Argon2id — não devem vazar se bucket for comprometido
+    const sanitized = { ...raw, _rateLimit: undefined }
+    if (sanitized.apartments) {
+      sanitized.apartments = Object.fromEntries(
+        Object.entries(sanitized.apartments).map(([id, apt]) => {
+          const { accessPasswordHash: _omit, ...safeApt } = apt
+          return [id, safeApt]
+        })
+      )
+    }
+
     const now      = new Date()
     const label    = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     const filePath = `backups/rtdb-${label}.json`
@@ -862,7 +893,7 @@ exports.monthlyBackup = onSchedule(
     await getStorage()
       .bucket(process.env.STORAGE_BUCKET)
       .file(filePath)
-      .save(JSON.stringify(snap.val(), null, 2), {
+      .save(JSON.stringify(sanitized, null, 2), {
         contentType: 'application/json',
         metadata:    { metadata: { createdAt: now.toISOString() } },
       })
@@ -885,7 +916,7 @@ exports.monthlyEmailReport = onSchedule(
   {
     schedule:       '0 8 * * *',
     timeZone:       'America/Sao_Paulo',
-    secrets:        ['DATABASE_URL', 'GMAIL_APP_PASSWORD'],
+    secrets:        ['DATABASE_URL', 'GMAIL_APP_PASSWORD', 'GMAIL_SENDER'],
     timeoutSeconds: 60,
     memory:         '256MiB',
     region:         'us-central1',
@@ -1023,17 +1054,23 @@ exports.monthlyEmailReport = onSchedule(
       aptRows,
     })
 
+    const senderEmail = process.env.GMAIL_SENDER
+    if (!senderEmail) {
+      logger.error('monthlyEmailReport: GMAIL_SENDER não configurado.')
+      return
+    }
+
     // ── Envio ─────────────────────────────────────────────────────────────
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'hidrogas.noreply@gmail.com',
+        user: senderEmail,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
     })
 
     await transporter.sendMail({
-      from:    '"HidroGás" <hidrogas.noreply@gmail.com>',
+      from:    `"HidroGás" <${senderEmail}>`,
       to:      toEmail,
       subject: `Relatório ${monthName}/${refYear} — ${condName}`,
       text,
