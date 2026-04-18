@@ -35,6 +35,8 @@ export interface Config {
   managerPhone?: string    // Telefone do síndico
   managerEmail?: string    // Email do síndico para receber relatório mensal
   address?: string         // Endereço do condomínio
+  latitude?: number        // Latitude para o mapa (graus decimais)
+  longitude?: number       // Longitude para o mapa (graus decimais)
   reportDay?: number       // Dia do mês para envio do relatório (1–28, default 1)
   updatedAt: number
 }
