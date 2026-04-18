@@ -440,7 +440,7 @@ function buildEmailHtml({
                ══════════════════════════════════════════════════════════════ -->
           <tr>
             <td class="body-pad" style="background:#ffffff;padding:36px 44px 0;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
-              <p style="margin:0 0 0;font-size:15px;color:#334155;line-height:1.75;font-family:Georgia,'Times New Roman',serif;">
+              <p style="margin:0 0 0;font-size:15px;color:#334155;line-height:1.75;">
                 Olá, <strong style="color:#0f172a;">${managerName}</strong>. Segue o relatório de consumo de água e gás referente a
                 <strong style="color:#0f172a;">${monthName}&nbsp;de&nbsp;${year}</strong>.
                 Todas as leituras abaixo foram encerradas e validadas pelo sistema.
