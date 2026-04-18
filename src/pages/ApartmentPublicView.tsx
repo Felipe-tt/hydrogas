@@ -63,9 +63,10 @@ function useResidentPrefs() {
   }, [darkMode])
 
   useEffect(() => {
-    // Aplica escala via CSS custom property no root — todos os rem/em escalam
-    document.documentElement.style.setProperty('--resident-scale', fontSize === 'large' ? '1.15' : '1')
+    if (fontSize === 'large') document.body.classList.add('resident-large')
+    else document.body.classList.remove('resident-large')
     try { localStorage.setItem('hidrogas-resident-font', fontSize) } catch {}
+    return () => document.body.classList.remove('resident-large')
   }, [fontSize])
 
   return { darkMode, setDarkMode: setDarkModeState, fontSize, setFontSize: setFontSizeState }
@@ -276,66 +277,82 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
 
       {/* Gráfico de barras */}
       {barData.length > 0 && (
-        <div className="card" style={{ padding: '16px 16px 12px', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Histórico mensal
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
+        <div className="card" style={{ padding: '20px 16px 16px', marginBottom: 20 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Histórico mensal</span>
+            <div style={{ display: 'flex', gap: 14 }}>
               {[{ color: 'var(--water)', label: 'Água' }, { color: 'var(--gas)', label: 'Gás' }].map(({ color, label }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
+                  <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 500 }}>{label}</span>
                 </div>
               ))}
             </div>
           </div>
-          {/* Grade de referência + barras */}
-          <div style={{ position: 'relative' }}>
-            {/* Linhas de grade horizontais */}
-            {[100, 66, 33].map(pct => (
-              <div key={pct} style={{
-                position: 'absolute', left: 0, right: 0,
-                top: `${100 - pct}%`,
-                borderTop: '1px dashed var(--border)',
-                pointerEvents: 'none',
-              }} />
-            ))}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140, paddingBottom: 0 }}>
-              {barData.map((d, i) => {
-                const total  = d.water + d.gas
-                const pct    = total / maxVal
-                const wH     = Math.max(pct * 130 * (total > 0 ? d.water / total : 0), 0)
-                const gH     = Math.max(pct * 130 * (total > 0 ? d.gas   / total : 0), 0)
-                const isLast = i === barData.length - 1
-                return (
-                  <div key={d.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-                    {/* Valor total */}
-                    <div style={{
-                      fontSize: 9, color: isLast ? 'var(--text)' : 'var(--text-3)',
-                      fontFamily: 'DM Mono, monospace', fontWeight: isLast ? 700 : 400,
-                      whiteSpace: 'nowrap', marginBottom: 2,
-                    }}>
-                      {total > 0 ? fmt(total).replace('R$ ', 'R$') : ''}
+          {/* Área do gráfico com eixo Y */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/* Eixo Y */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 22, width: 44, flexShrink: 0 }}>
+              {[maxVal, maxVal * 0.66, maxVal * 0.33, 0].map((v, i) => (
+                <span key={i} style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', textAlign: 'right', lineHeight: 1 }}>
+                  {v > 0 ? `R$${v.toFixed(0)}` : '0'}
+                </span>
+              ))}
+            </div>
+            {/* Barras */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              {/* Linhas de grade */}
+              {[0, 33, 66, 100].map(pct => (
+                <div key={pct} style={{
+                  position: 'absolute', left: 0, right: 0,
+                  top: `${100 - pct}%`,
+                  borderTop: `1px ${pct === 0 ? 'solid' : 'dashed'} var(--border)`,
+                  pointerEvents: 'none', bottom: pct === 0 ? 22 : undefined,
+                }} />
+              ))}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, paddingBottom: 22 }}>
+                {barData.map((d, i) => {
+                  const total  = d.water + d.gas
+                  const pct    = total / maxVal
+                  const BAR_H  = 138
+                  const wH     = total > 0 ? Math.max(pct * BAR_H * (d.water / total), 2) : 0
+                  const gH     = total > 0 ? Math.max(pct * BAR_H * (d.gas   / total), 2) : 0
+                  const isLast = i === barData.length - 1
+                  return (
+                    <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, minWidth: 0 }}>
+                      {/* Barra */}
+                      <div style={{
+                        width: '72%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                        height: BAR_H, borderRadius: '6px 6px 0 0', overflow: 'hidden',
+                        boxShadow: isLast ? '0 0 0 2px var(--water)' : 'none',
+                      }}>
+                        {wH > 0 && <div style={{ height: wH, background: 'var(--water)', opacity: isLast ? 1 : 0.55 }} />}
+                        {gH > 0 && <div style={{ height: gH, background: 'var(--gas)',   opacity: isLast ? 1 : 0.55 }} />}
+                        {total === 0 && <div style={{ height: 2, background: 'var(--border)' }} />}
+                      </div>
+                      {/* Label */}
+                      <div style={{ marginTop: 6, fontSize: 9, color: isLast ? 'var(--text)' : 'var(--text-3)', fontWeight: isLast ? 700 : 400, whiteSpace: 'nowrap', textAlign: 'center' }}>
+                        {d.label}
+                      </div>
                     </div>
-                    {/* Barra empilhada */}
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: 130, gap: 1 }}>
-                      {wH > 0 && <div style={{ height: wH, background: 'var(--water)', borderRadius: gH > 0 ? '0' : '4px 4px 0 0', opacity: isLast ? 1 : 0.6, transition: 'opacity 0.2s' }} />}
-                      {gH > 0 && <div style={{ height: gH, background: 'var(--gas)',   borderRadius: wH > 0 ? '4px 4px 0 0' : '4px 4px 0 0', opacity: isLast ? 1 : 0.6, transition: 'opacity 0.2s' }} />}
-                      {total === 0 && <div style={{ height: 3, background: 'var(--border)', borderRadius: 2 }} />}
-                    </div>
-                    {/* Label mês */}
-                    <div style={{
-                      fontSize: 9, color: isLast ? 'var(--text-2)' : 'var(--text-3)',
-                      fontWeight: isLast ? 700 : 400, whiteSpace: 'nowrap',
-                    }}>
-                      {d.label}
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
+          {/* Resumo do mês atual */}
+          {barData.length > 0 && (() => {
+            const last = barData[barData.length - 1]
+            return (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Mês atual ({last.label})</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
+                  {fmt(last.water + last.gas)}
+                </span>
+              </div>
+            )
+          })()}
         </div>
       )}
 
