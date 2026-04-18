@@ -370,14 +370,23 @@ export function Apartments() {
 
   return (
     <div className="page">
+      {/* FAB mobile */}
+      <button
+        className="fab"
+        onClick={openCreate}
+        aria-label="Novo Apartamento"
+      >
+        <Plus size={22} />
+      </button>
+
       <div className="page-header">
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Apartamentos</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--text-2)', fontSize: 14 }}>{apartments.length} unidade(s)</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn-primary" onClick={openCreate}>
-            <Plus size={16} /><span className="hide-on-mobile"> Novo Apartamento</span>
+          <button className="btn-primary hide-on-mobile" onClick={openCreate}>
+            <Plus size={16} /> Novo Apartamento
           </button>
         </div>
       </div>
