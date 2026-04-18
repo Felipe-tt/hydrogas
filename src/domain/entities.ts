@@ -7,7 +7,8 @@ export interface Apartment {
   createdAt: number
   active: boolean
   publicToken?: string
-  accessPassword?: string
+  /** Hash Argon2id da senha do morador. Nunca armazene a senha plain text. */
+  accessPasswordHash?: string
 }
 
 export type UtilityType = 'water' | 'gas'
@@ -16,7 +17,7 @@ export interface Reading {
   id: string
   apartmentId: string
   type: UtilityType
-  month: number
+  month: number   // 1-12
   year: number
   startValue: number
   endValue?: number
@@ -27,9 +28,14 @@ export interface Reading {
 }
 
 export interface Config {
-  waterRate: number
-  gasRate: number
+  waterRate: number        // default 0.033
+  gasRate: number          // default 0.033
   condominiumName: string
+  managerName?: string     // Nome do síndico
+  managerPhone?: string    // Telefone do síndico
+  managerEmail?: string    // Email do síndico para receber relatório mensal
+  address?: string         // Endereço do condomínio
+  reportDay?: number       // Dia do mês para envio do relatório (1–28, default 1)
   updatedAt: number
 }
 
