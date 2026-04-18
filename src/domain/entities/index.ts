@@ -28,9 +28,12 @@ export interface Reading {
 }
 
 export interface Config {
-  waterRate: number  // default 0.033
-  gasRate: number    // default 0.033
+  waterRate: number        // default 0.033
+  gasRate: number          // default 0.033
   condominiumName: string
+  managerName?: string     // Nome do síndico
+  managerPhone?: string    // Telefone/WhatsApp do síndico
+  address?: string         // Endereço do condomínio
   updatedAt: number
 }
 
