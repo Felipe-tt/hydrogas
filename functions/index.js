@@ -228,10 +228,10 @@ exports.monthlyEmailReport = onSchedule(
     // Verifica se hoje é o dia configurado para envio
     const reportDay = config.reportDay ?? 1
     const today     = new Date()
-    if (today.getDate() !== reportDay) {
-      logger.info(`monthlyEmailReport: hoje é dia ${today.getDate()}, envio configurado para dia ${reportDay}. Pulando.`)
-      return
-    }
+    // if (today.getDate() !== reportDay) {
+    //   logger.info(`monthlyEmailReport: hoje é dia ${today.getDate()}, envio configurado para dia ${reportDay}. Pulando.`)
+    //   return
+    // }
 
     // Valida email do destinatário
     const toEmail = (config.managerEmail || '').trim()
