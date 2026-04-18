@@ -495,6 +495,16 @@ export function Readings() {
 
   return (
     <div className="page">
+      {/* FAB mobile */}
+      <button
+        className="fab"
+        onClick={() => setShowOpen(true)}
+        disabled={apartments.length === 0}
+        aria-label="Nova Leitura"
+      >
+        <Plus size={22} />
+      </button>
+
       {/* Header */}
       <div className="page-header">
         <div>
@@ -503,8 +513,8 @@ export function Readings() {
         </div>
         <div className="page-header-actions">
           <MonthSelector />
-          <button className="btn-primary" onClick={() => setShowOpen(true)} disabled={apartments.length === 0}>
-            <Plus size={16} /><span className="hide-on-mobile">Nova Leitura</span>
+          <button className="btn-primary hide-on-mobile" onClick={() => setShowOpen(true)} disabled={apartments.length === 0}>
+            <Plus size={16} /> Nova Leitura
           </button>
         </div>
       </div>
