@@ -1,23 +1,15 @@
 import { useState, useRef, useCallback }                    from 'react'
 import { Droplets, Lock, User, Eye, EyeOff, AlertCircle }  from 'lucide-react'
+import { httpsCallable }                                    from 'firebase/functions'
+import { getFunctions }                                     from 'firebase/functions'
 import { signInWithCustomToken }                            from 'firebase/auth'
-import { auth }                                             from '../infrastructure/firebase'
+import { app, auth }                                        from '../infrastructure/firebase'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 interface LoginProps {
   onLogin?: () => void
 }
-
-interface CloudFnSuccess {
-  token: string
-}
-
-interface CloudFnError {
-  error: string
-}
-
-type CloudFnResponse = CloudFnSuccess | CloudFnError
 
 // ── Hook: lógica de autenticação ──────────────────────────────────────────────
 
@@ -38,56 +30,33 @@ function useAdminLogin() {
     setError('')
 
     try {
-      // 1. Chamar Cloud Function para validar credenciais
-      const fnUrl = import.meta.env.VITE_CLOUD_FN_URL
-      if (!fnUrl) {
-        setError('URL da função de autenticação não configurada. Defina VITE_CLOUD_FN_URL no .env.')
-        return
-      }
-      let res: Response
-      try {
-        res = await fetch(fnUrl, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ username: username.trim(), password }),
-        })
-      } catch {
-        setError('Não foi possível conectar ao servidor. Verifique sua internet.')
-        return
-      }
+      // 1. Chamar Cloud Function via SDK (inclui App Check automaticamente)
+      const functions  = getFunctions(app, 'us-central1')
+      const adminLogin = httpsCallable<
+        { username: string; password: string },
+        { token: string }
+      >(functions, 'adminLogin')
 
-      // 2. Parsear JSON da resposta
-      let data: CloudFnResponse
+      let token: string
       try {
-        data = await res.json()
-      } catch {
-        setError(`Resposta inesperada do servidor (HTTP ${res.status}).`)
-        return
-      }
-
-      // 3. Tratar erros HTTP
-      if (!res.ok) {
-        const msg = (data as CloudFnError).error
-        if (res.status === 401) {
+        const result = await adminLogin({ username: username.trim(), password })
+        token = result.data.token
+      } catch (fnErr: any) {
+        const code = fnErr?.code ?? ''
+        if (code === 'functions/unauthenticated') {
           setError('Usuário ou senha incorretos.')
           onAuthError()
-        } else if (res.status === 429) {
-          setError(msg || 'Muitas tentativas. Aguarde 15 minutos.')
-        } else if (res.status === 500) {
-          setError(msg || 'Erro interno no servidor.')
+        } else if (code === 'functions/resource-exhausted') {
+          setError('Muitas tentativas. Aguarde 15 minutos.')
+        } else if (code === 'functions/invalid-argument') {
+          setError('Preencha usuário e senha.')
         } else {
-          setError(msg || `Erro inesperado (${res.status}).`)
+          setError('Erro ao conectar ao servidor. Verifique sua internet.')
         }
         return
       }
 
-      // 4. Autenticar no Firebase com o custom token
-      const { token } = data as CloudFnSuccess
-      if (!token) {
-        setError('Resposta inválida do servidor (sem token).')
-        return
-      }
-
+      // 2. Autenticar no Firebase com o custom token
       try {
         await signInWithCustomToken(auth, token)
         onSuccess()
@@ -121,8 +90,6 @@ export function Login({ onLogin }: LoginProps) {
 
   const { loading, error, login } = useAdminLogin()
 
-  // Chamado pelo hook quando as credenciais são rejeitadas (401)
-  // Limpa a senha e devolve o foco ao campo para o usuário corrigir
   const handleAuthError = useCallback(() => {
     setPassword('')
     passwordRef.current?.focus()
