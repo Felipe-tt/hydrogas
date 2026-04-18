@@ -27,6 +27,7 @@ interface PublicReading {
 interface CondoInfo {
   name?: string | null; managerName?: string | null
   managerPhone?: string | null; address?: string | null
+  latitude?: number | null; longitude?: number | null
 }
 interface PublicData {
   number: string; block?: string | null; responsible?: string | null
@@ -467,11 +468,16 @@ function ConsumoView({ readings, onClose }: { readings: PublicReading[]; onClose
 
 // ── View: Sobre o Condomínio ──────────────────────────────────────────────────
 function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condoInfo?: CondoInfo; onClose: () => void }) {
-  const info     = condoInfo
-  // Coordenadas e endereço devem vir do /config via condoInfo.address
-  // Não hardcodamos localização no bundle público
-  const addr     = info?.address || null
-  const mapsLink = addr ? `https://www.google.com/maps/search/${encodeURIComponent(addr)}` : null
+  const info      = condoInfo
+  const addr      = info?.address || null
+  // Usa coordenadas precisas do banco quando disponíveis — nunca hardcoded no bundle.
+  // Fallback: busca textual pelo endereço (sem coordenadas na URL).
+  const hasCoords = info?.latitude != null && info?.longitude != null
+  const mapsQuery = hasCoords
+    ? `${info!.latitude},${info!.longitude}`
+    : addr ? encodeURIComponent(addr) : null
+  const mapsLink  = mapsQuery ? `https://www.google.com/maps?q=${mapsQuery}` : null
+  const iframeSrc = mapsQuery ? `https://maps.google.com/maps?q=${mapsQuery}&z=17&output=embed` : null
 
   return (
     <SubViewShell title="Sobre o Condomínio" onClose={onClose}>
@@ -497,13 +503,13 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
         </div>
       </div>
 
-      {addr && mapsLink && (
+      {mapsLink && iframeSrc && (
       <div className="card" style={{ overflow: 'hidden', marginBottom: 14 }}>
         <a href={mapsLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
           <div style={{ height: 180, background: 'var(--surface-2)', position: 'relative', overflow: 'hidden' }}>
             <iframe
               title="Localização"
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=17&output=embed`}
+              src={iframeSrc}
               style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
               loading="lazy" referrerPolicy="no-referrer-when-downgrade"
             />
