@@ -607,8 +607,18 @@ select.input { cursor: pointer; }
   margin-bottom: 16px;
 }
 .dash-col-span-2 { grid-column: span 2; }
-@media (max-width: 1100px) { .dash-row-3 { grid-template-columns: 1fr 1fr; } .dash-col-span-2 { grid-column: span 2; } }
-@media (max-width: 768px)  { .dash-row-3 { grid-template-columns: 1fr; } .dash-col-span-2 { grid-column: span 1; } }
+
+/* Between 769–1100px: 2 cols, span-2 takes full row, next item below */
+@media (max-width: 1100px) {
+  .dash-row-3 { grid-template-columns: 1fr 1fr; }
+  .dash-col-span-2 { grid-column: span 2; }
+}
+
+/* Mobile: single column, all items stack */
+@media (max-width: 768px) {
+  .dash-row-3 { grid-template-columns: 1fr; gap: 12px; }
+  .dash-col-span-2 { grid-column: span 1; }
+}
 
 .dash-chart-card { padding: 22px 22px 16px; }
 
@@ -623,6 +633,64 @@ select.input { cursor: pointer; }
   height: 220px; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   color: var(--text-3); font-size: 13px; gap: 6px;
+}
+
+/* ── Mini Stats Panel ── */
+.mini-stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .mini-stats-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .mini-stats-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Top Consumers Table ── */
+.top-consumers-table { font-size: 13px; }
+
+.tc-th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.tc-td {
+  padding: 9px 10px;
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+}
+
+.tc-apt  { font-weight: 700; color: var(--text); }
+.tc-water { color: var(--water); }
+.tc-gas   { color: var(--gas); }
+.tc-total { font-weight: 700; color: var(--text); }
+
+@media (max-width: 600px) {
+  .top-consumers-table { font-size: 11px; }
+  .tc-th { padding: 6px 6px; font-size: 9px; }
+  .tc-td { padding: 7px 6px; }
+}
+
+@media (max-width: 400px) {
+  .top-consumers-table { font-size: 10px; }
+  .tc-th { padding: 5px 4px; font-size: 8px; letter-spacing: 0; }
+  .tc-td { padding: 6px 4px; }
 }
 
 @media (max-width: 480px) {
