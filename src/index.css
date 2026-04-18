@@ -662,3 +662,13 @@ select.input { cursor: pointer; }
   animation: gradientFlow 8s ease infinite;
 }
 @keyframes gradientFlow { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+/* ── Texto grande morador ──────────────────────────────────────────────────── */
+body.resident-large { font-size: 18px; }
+body.resident-large .card,
+body.resident-large p,
+body.resident-large span,
+body.resident-large div,
+body.resident-large button,
+body.resident-large input,
+body.resident-large label { font-size: inherit !important; }
