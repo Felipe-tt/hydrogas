@@ -30,7 +30,6 @@ function useAdminLogin() {
     setError('')
 
     try {
-      // 1. Chamar Cloud Function via SDK (inclui App Check automaticamente)
       const functions  = getFunctions(app, 'us-central1')
       const adminLogin = httpsCallable<
         { username: string; password: string },
@@ -56,7 +55,6 @@ function useAdminLogin() {
         return
       }
 
-      // 2. Autenticar no Firebase com o custom token
       try {
         await signInWithCustomToken(auth, token)
         onSuccess()
@@ -102,46 +100,39 @@ export function Login({ onLogin }: LoginProps) {
   }
 
   return (
-    <div style={{
-      minHeight:       '100vh',
-      background:      'var(--bg)',
-      display:         'flex',
-      alignItems:      'center',
-      justifyContent:  'center',
-      padding:         16,
-    }}>
+    <div className="login-page">
 
       {/* Gradientes decorativos */}
-      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(234,88,12,0.05) 0%, transparent 70%)', borderRadius: '50%' }} />
+      <div className="login-bg-decorations">
+        <div className="login-bg-blob-1" />
+        <div className="login-bg-blob-2" />
       </div>
 
-      <div style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1 }}>
+      <div className="login-content">
 
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ width: 64, height: 64, background: 'linear-gradient(135deg, #2563eb, #3b82f6)', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(37,99,235,0.3)' }}>
+        <div className="login-logo-wrap">
+          <div className="login-logo-icon">
             <Droplets size={30} color="white" />
           </div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: -0.5 }}>HidroGás</h1>
-          <p style={{ margin: '6px 0 0', color: 'var(--text-2)', fontSize: 14 }}>Painel Administrativo</p>
+          <h1 className="login-title">HidroGás</h1>
+          <p className="login-subtitle">Painel Administrativo</p>
         </div>
 
         {/* Card */}
-        <div className="card" style={{ padding: 32 }}>
-          <h2 style={{ margin: '0 0 24px', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Entrar</h2>
+        <div className="card login-card">
+          <h2 className="login-card-title">Entrar</h2>
 
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} noValidate className="login-form">
 
             {/* Usuário */}
             <div>
               <label className="label" htmlFor="login-username">Usuário</label>
-              <div style={{ position: 'relative' }}>
-                <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+              <div className="login-input-wrap">
+                <User size={15} className="login-input-icon" />
                 <input
                   id="login-username"
-                  className="input"
+                  className="input login-input-with-icon"
                   type="text"
                   placeholder="admin"
                   value={username}
@@ -149,7 +140,6 @@ export function Login({ onLogin }: LoginProps) {
                   autoComplete="username"
                   autoCapitalize="none"
                   spellCheck={false}
-                  style={{ paddingLeft: 36 }}
                   disabled={loading}
                 />
               </div>
@@ -158,25 +148,24 @@ export function Login({ onLogin }: LoginProps) {
             {/* Senha */}
             <div>
               <label className="label" htmlFor="login-password">Senha</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+              <div className="login-input-wrap">
+                <Lock size={15} className="login-input-icon" />
                 <input
                   id="login-password"
                   ref={passwordRef}
-                  className="input"
+                  className="input login-input-with-icon-right"
                   type={showPwd ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  style={{ paddingLeft: 36, paddingRight: 40 }}
                   disabled={loading}
                 />
                 <button
                   type="button"
                   aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}
                   onClick={() => setShowPwd(v => !v)}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 2 }}
+                  className="login-toggle-password"
                   tabIndex={-1}
                 >
                   {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -186,10 +175,7 @@ export function Login({ onLogin }: LoginProps) {
 
             {/* Erro */}
             {error && (
-              <div
-                role="alert"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 12px', color: '#dc2626', fontSize: 13 }}
-              >
+              <div role="alert" className="login-error">
                 <AlertCircle size={14} style={{ flexShrink: 0 }} />
                 {error}
               </div>
@@ -198,9 +184,8 @@ export function Login({ onLogin }: LoginProps) {
             {/* Submit */}
             <button
               type="submit"
-              className="btn-primary"
+              className="btn-primary login-submit"
               disabled={loading || !username.trim() || !password.trim()}
-              style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}
             >
               {loading
                 ? <><Spinner /> Verificando...</>
@@ -211,9 +196,7 @@ export function Login({ onLogin }: LoginProps) {
           </form>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--text-3)' }}>
-          Autenticação protegida
-        </p>
+        <p className="login-footer-note">Autenticação protegida</p>
       </div>
     </div>
   )
@@ -227,7 +210,7 @@ function Spinner() {
       width="14" height="14"
       viewBox="0 0 14 14"
       fill="none"
-      style={{ animation: 'spin 0.7s linear infinite' }}
+      className="spinner-svg"
       aria-hidden="true"
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
