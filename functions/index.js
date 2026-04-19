@@ -263,23 +263,26 @@ function buildEmailHtml({
     : null
   const barChart    = buildBarChart(aptRows)
 
-  // ── ícone SVG gota (inline, sem emoji) ───────────────────────────────────
+  // ── ícones SVG como <img data-URI> — compatível com Gmail, Outlook, Apple Mail ──
+  // SVG inline em <div> é bloqueado por Gmail. A solução é base64 num <img>.
+  const svgToDataUri = (svgBody, size) => {
+    const raw = `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">${svgBody}</svg>`
+    const b64 = Buffer.from(raw).toString('base64')
+    return `<img src="data:image/svg+xml;base64,${b64}" width="${size}" height="${size}" alt="" style="display:block;border:0;"/>`
+  }
+
   const iconDrop = (size, color) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">` +
-    `<path d="M10 2C10 2 4 8 4 12a6 6 0 0 0 12 0c0-4-6-10-6-10z" fill="${color}"/>` +
-    `</svg>`
+    svgToDataUri(`<path d="M10 2C10 2 4 8 4 12a6 6 0 0 0 12 0c0-4-6-10-6-10z" fill="${color}"/>`, size)
 
   const iconFire = (size, color) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">` +
-    `<path d="M10 2c0 0-4 4.5-3 8 .5 1.7 1.5 2.8 3 3.5 1.5-.7 2.5-1.8 3-3.5 1-3.5-3-8-3-8z" fill="${color}"/>` +
-    `<path d="M10 9c0 0-2 2-1.5 4 .3 1 1 1.8 1.5 2 .5-.2 1.2-1 1.5-2 .5-2-1.5-4-1.5-4z" fill="#fed7aa"/>` +
-    `</svg>`
+    svgToDataUri(
+      `<path d="M10 2c0 0-4 4.5-3 8 .5 1.7 1.5 2.8 3 3.5 1.5-.7 2.5-1.8 3-3.5 1-3.5-3-8-3-8z" fill="${color}"/>` +
+      `<path d="M10 9c0 0-2 2-1.5 4 .3 1 1 1.8 1.5 2 .5-.2 1.2-1 1.5-2 .5-2-1.5-4-1.5-4z" fill="#fed7aa"/>`, size)
 
   const iconBag = (size, color) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">` +
-    `<rect x="3" y="8" width="14" height="10" rx="2" fill="${color}"/>` +
-    `<path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="${color}" stroke-width="1.5" fill="none"/>` +
-    `</svg>`
+    svgToDataUri(
+      `<rect x="3" y="8" width="14" height="10" rx="2" fill="${color}"/>` +
+      `<path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="${color}" stroke-width="1.5" fill="none"/>`, size)
 
   // ── barra split água/gás ──────────────────────────────────────────────────
   const splitBar = `
@@ -352,9 +355,13 @@ function buildEmailHtml({
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                       <tr>
                         <td valign="middle" style="padding-right:12px;">
-                          <div style="width:40px;height:40px;background:#1e3a8a;border-radius:10px;text-align:center;line-height:40px;">
-                            ${iconDrop(20, '#38bdf8')}
-                          </div>
+                          <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                            <tr>
+                              <td align="center" valign="middle" style="width:40px;height:40px;background:#1e3a8a;border-radius:10px;">
+                                ${iconDrop(20, '#38bdf8')}
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                         <td valign="middle">
                           <div style="font-size:18px;font-weight:500;color:#ffffff;letter-spacing:-0.02em;line-height:1;">Hidrog&#225;s</div>
@@ -627,9 +634,13 @@ function buildEmailHtml({
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
                       <tr>
                         <td style="padding-right:8px;">
-                          <div style="width:26px;height:26px;background:#1e3a8a;border-radius:6px;text-align:center;line-height:26px;">
-                            ${iconDrop(13, '#38bdf8')}
-                          </div>
+                          <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                            <tr>
+                              <td align="center" valign="middle" style="width:26px;height:26px;background:#1e3a8a;border-radius:6px;">
+                                ${iconDrop(13, '#38bdf8')}
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                         <td valign="middle">
                           <div style="font-size:13px;font-weight:500;color:#e2e8f0;">Hidrog&#225;s</div>
