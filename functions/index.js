@@ -722,7 +722,7 @@ exports.adminLogin = onCall(
     }
 
     if (!usernameOk || !passwordOk) {
-      // Registra falha em ambas as chaves mesmo com timing constante
+      await recordFailedAttempt(ipKey)
       if (usernameKey) await recordFailedAttempt(usernameKey)
       throw new HttpsError('unauthenticated', 'Usuário ou senha incorretos.')
     }
