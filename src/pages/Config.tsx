@@ -15,7 +15,7 @@ function maskPhone(value: string): string {
 }
 
 function maskRate(value: string): string {
-  return value.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+  return value.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./, '$1')
 }
 
 interface FormErrors {
@@ -102,10 +102,7 @@ export function Config() {
         setGeocoding(false)
       }
       await configRepo.update({
-        waterRate,
-        gasRate,
-        condominiumName: form.condominiumName.trim(),
-        reportDay,
+        waterRate, gasRate, condominiumName: form.condominiumName.trim(), reportDay,
         ...(form.managerName.trim()  && { managerName:  form.managerName.trim() }),
         ...(form.managerPhone.trim() && { managerPhone: form.managerPhone.trim() }),
         ...(form.managerEmail.trim() && { managerEmail: form.managerEmail.trim() }),
@@ -117,34 +114,32 @@ export function Config() {
     setLoading(false)
   }
 
-  const waterPreview  = (10 * parseFloat(form.waterRate || '0')).toFixed(2)
-  const gasPreview    = (10 * parseFloat(form.gasRate   || '0')).toFixed(2)
-  const waterRate     = parseFloat(form.waterRate || '0')
-  const gasRate       = parseFloat(form.gasRate   || '0')
+  const waterPreview = (10 * parseFloat(form.waterRate || '0')).toFixed(2)
+  const gasPreview   = (10 * parseFloat(form.gasRate   || '0')).toFixed(2)
+  const waterRate    = parseFloat(form.waterRate || '0')
+  const gasRate      = parseFloat(form.gasRate   || '0')
 
-  const closedReadings   = readings.filter(r => r.closedAt)
-  const totalWaterCost   = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.totalCost ?? 0), 0)
-  const totalGasCost     = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.totalCost ?? 0), 0)
-  const totalWaterM3     = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.consumption ?? 0), 0)
-  const totalGasM3       = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.consumption ?? 0), 0)
-  const activeApts       = apartments.filter(a => a.active).length
+  const closedReadings  = readings.filter(r => r.closedAt)
+  const totalWaterCost  = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.totalCost ?? 0), 0)
+  const totalGasCost    = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.totalCost ?? 0), 0)
+  const totalWaterM3    = closedReadings.filter(r => r.type === 'water').reduce((a, r) => a + (r.consumption ?? 0), 0)
+  const totalGasM3      = closedReadings.filter(r => r.type === 'gas').reduce((a, r) => a + (r.consumption ?? 0), 0)
+  const activeApts      = apartments.filter(a => a.active).length
 
   return (
     <div className="page">
 
       {/* ── Page header ── */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Configurações</h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--text-2)', fontSize: 14 }}>
-          Gerencie as tarifas e preferências do sistema
-        </p>
+      <div className="config-page-header">
+        <h1 className="page-title">Configurações</h1>
+        <p className="page-subtitle">Gerencie as tarifas e preferências do sistema</p>
       </div>
 
       {/* ── Two-column layout ── */}
       <div className="config-layout">
 
         {/* ── LEFT: forms ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="config-left-col">
 
           {/* Condomínio */}
           <Section
@@ -153,9 +148,9 @@ export function Config() {
             title="Condomínio"
             description="Dados gerais do condomínio"
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="config-form-col">
               <div>
-                <label className="label">Nome do condomínio <span style={{ color: '#dc2626' }}>*</span></label>
+                <label className="label">Nome do condomínio <span className="config-required-star">*</span></label>
                 <input
                   className="input"
                   value={form.condominiumName}
@@ -165,31 +160,30 @@ export function Config() {
                 />
                 {errors.condominiumName && <FieldError msg={errors.condominiumName} />}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+              <div className="config-grid-auto">
                 <div>
                   <label className="label">Nome do síndico</label>
-                  <div style={{ position: 'relative' }}>
-                    <User size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                  <div className="config-input-icon-wrap">
+                    <User size={13} className="config-input-icon config-input-icon-center" />
                     <input
-                      className="input"
+                      className="input config-input-pl"
                       value={form.managerName}
                       onChange={e => setForm(f => ({ ...f, managerName: e.target.value }))}
                       placeholder="Nome completo"
-                      style={{ paddingLeft: 32 }}
                     />
                   </div>
                 </div>
                 <div>
                   <label className="label">Telefone</label>
-                  <div style={{ position: 'relative' }}>
-                    <Phone size={13} style={{ position: 'absolute', left: 11, top: errors.managerPhone ? 13 : '50%', transform: errors.managerPhone ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                  <div className="config-input-icon-wrap">
+                    <Phone size={13} className={`config-input-icon ${errors.managerPhone ? 'config-input-icon-top' : 'config-input-icon-center'}`} />
                     <input
-                      className="input"
+                      className="input config-input-pl"
                       value={form.managerPhone}
                       onChange={e => { setForm(f => ({ ...f, managerPhone: maskPhone(e.target.value) })); setErrors(v => ({ ...v, managerPhone: undefined })) }}
                       placeholder="(47) 99999-9999"
                       inputMode="tel"
-                      style={{ paddingLeft: 32, ...(errors.managerPhone ? { borderColor: '#dc2626' } : {}) }}
+                      style={errors.managerPhone ? { borderColor: '#dc2626' } : {}}
                     />
                   </div>
                   {errors.managerPhone && <FieldError msg={errors.managerPhone} />}
@@ -197,14 +191,13 @@ export function Config() {
               </div>
               <div>
                 <label className="label">Endereço</label>
-                <div style={{ position: 'relative' }}>
-                  <MapPin size={13} style={{ position: 'absolute', left: 11, top: 13, color: 'var(--text-3)', pointerEvents: 'none' }} />
+                <div className="config-input-icon-wrap">
+                  <MapPin size={13} className="config-input-icon config-input-icon-top" />
                   <input
-                    className="input"
+                    className="input config-input-pl"
                     value={form.address}
                     onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                     placeholder="R. Orestes Figueiredo, 110 — Balneário Piçarras, SC"
-                    style={{ paddingLeft: 32 }}
                   />
                 </div>
               </div>
@@ -220,40 +213,44 @@ export function Config() {
             title="Relatório mensal"
             description="Receba um resumo de consumo por e-mail todo mês"
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="config-form-col">
               <div>
                 <label className="label">E-mail do síndico</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={13} style={{ position: 'absolute', left: 11, top: errors.managerEmail ? 13 : '50%', transform: errors.managerEmail ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                <div className="config-input-icon-wrap">
+                  <Mail size={13} className={`config-input-icon ${errors.managerEmail ? 'config-input-icon-top' : 'config-input-icon-center'}`} />
                   <input
-                    className="input"
+                    className="input config-input-pl"
                     type="email"
                     inputMode="email"
                     value={form.managerEmail}
                     onChange={e => { setForm(f => ({ ...f, managerEmail: e.target.value })); setErrors(v => ({ ...v, managerEmail: undefined })) }}
                     placeholder="sindico@email.com"
-                    style={{ paddingLeft: 32, ...(errors.managerEmail ? { borderColor: '#dc2626' } : {}) }}
+                    style={errors.managerEmail ? { borderColor: '#dc2626' } : {}}
                   />
                 </div>
                 {errors.managerEmail && <FieldError msg={errors.managerEmail} />}
               </div>
               <div>
-                <label className="label">Dia do envio <span style={{ color: 'var(--text-3)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(1–28 de cada mês)</span></label>
-                <div style={{ position: 'relative' }}>
-                  <Calendar size={13} style={{ position: 'absolute', left: 11, top: errors.reportDay ? 13 : '50%', transform: errors.reportDay ? 'none' : 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                <label className="label">
+                  Dia do envio{' '}
+                  <span style={{ color: 'var(--text-3)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(1–28 de cada mês)</span>
+                </label>
+                <div className="config-input-icon-wrap">
+                  <Calendar size={13} className={`config-input-icon ${errors.reportDay ? 'config-input-icon-top' : 'config-input-icon-center'}`} />
                   <input
-                    className="input"
+                    className="input config-input-pl"
                     type="number"
                     inputMode="numeric"
                     min={1} max={28}
                     value={form.reportDay}
                     onChange={e => { setForm(f => ({ ...f, reportDay: e.target.value })); setErrors(v => ({ ...v, reportDay: undefined })) }}
-                    style={{ paddingLeft: 32, maxWidth: 120, ...(errors.reportDay ? { borderColor: '#dc2626' } : {}) }}
+                    style={{ maxWidth: 120, ...(errors.reportDay ? { borderColor: '#dc2626' } : {}) }}
                   />
                 </div>
                 {errors.reportDay && <FieldError msg={errors.reportDay} />}
-                <div style={{ marginTop: 9, padding: '8px 12px', background: 'rgba(16,185,129,0.08)', borderRadius: 8, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5, border: '1px solid rgba(16,185,129,0.15)' }}>
-                  O relatório do mês anterior será enviado todo dia <strong style={{ color: '#10b981' }}>{form.reportDay || '1'}</strong> às 08h00 (horário de Brasília).
+                <div className="config-report-hint" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                  O relatório do mês anterior será enviado todo dia{' '}
+                  <strong style={{ color: '#10b981' }}>{form.reportDay || '1'}</strong> às 08h00 (horário de Brasília).
                 </div>
               </div>
             </div>
@@ -268,16 +265,16 @@ export function Config() {
             title="Tarifas"
             description="Custo por m³ para cada serviço"
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <div className="config-form-col">
+              <div className="config-tariff-grid">
 
                 {/* Água */}
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-                    <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--water-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div className="config-tariff-header">
+                    <div className="config-tariff-icon" style={{ background: 'var(--water-light)' }}>
                       <Droplets size={12} color="var(--water)" />
                     </div>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Água</span>
+                    <span className="config-tariff-name">Água</span>
                   </div>
                   <label className="label">Valor por m³ (R$)</label>
                   <input
@@ -293,11 +290,11 @@ export function Config() {
 
                 {/* Gás */}
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-                    <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--gas-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div className="config-tariff-header">
+                    <div className="config-tariff-icon" style={{ background: 'var(--gas-light)' }}>
                       <Flame size={12} color="var(--gas)" />
                     </div>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>Gás</span>
+                    <span className="config-tariff-name">Gás</span>
                   </div>
                   <label className="label">Valor por m³ (R$)</label>
                   <input
@@ -313,17 +310,8 @@ export function Config() {
               </div>
 
               {/* Fórmula hint */}
-              <div style={{
-                display: 'flex', alignItems: 'flex-start', gap: 8,
-                padding: '10px 13px',
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border)',
-                borderRadius: 9,
-                fontSize: 12,
-                color: 'var(--text-2)',
-                lineHeight: 1.6,
-              }}>
-                <Info size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div className="config-formula-hint">
+                <Info size={13} color="var(--text-3)" className="config-formula-hint-icon" />
                 <span>
                   <strong style={{ color: 'var(--text)', fontWeight: 600 }}>Cálculo:</strong>{' '}
                   Consumo = Leitura final − Leitura inicial &nbsp;·&nbsp; Custo = Consumo × Tarifa
@@ -341,18 +329,12 @@ export function Config() {
             title="Aparência"
             description="Tema visual da interface"
           >
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '13px 16px',
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-            }}>
+            <div className="config-appearance-row">
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
+                <div className="config-appearance-label">
                   {darkMode ? 'Modo escuro' : 'Modo claro'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                <div className="config-appearance-sub">
                   {darkMode ? 'Interface com fundo escuro' : 'Interface com fundo claro'}
                 </div>
               </div>
@@ -367,13 +349,8 @@ export function Config() {
           <Divider />
 
           {/* Save */}
-          <div style={{ paddingTop: 4, paddingBottom: 8 }}>
-            <button
-              className="btn-primary"
-              onClick={save}
-              disabled={loading}
-              style={{ fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, width: '100%', justifyContent: 'center', minHeight: 42 }}
-            >
+          <div className="config-save-wrap">
+            <button className="btn-primary config-save-btn" onClick={save} disabled={loading}>
               {loading ? (
                 <><Spinner size={15} color="white" />{geocoding ? 'Buscando localização...' : 'Salvando...'}</>
               ) : (
@@ -384,27 +361,23 @@ export function Config() {
         </div>
 
         {/* ── RIGHT: info panels ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="config-right-col">
 
-          {/* Sistema */}
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(8,145,178,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Simulador */}
+          <div className="card config-info-card">
+            <div className="config-info-card-header">
+              <div className="config-info-card-icon" style={{ background: 'rgba(8,145,178,0.1)' }}>
                 <Calculator size={15} color="#0891b2" />
               </div>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Simulador de tarifa</span>
+              <span className="config-info-card-title">Simulador de tarifa</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="config-sim-list">
               {[5, 10, 20, 50].map(m3 => (
-                <div key={m3} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 500 }}>{m3} m³</span>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ fontSize: 12, color: 'var(--water)', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
-                      💧 R$ {(m3 * waterRate).toFixed(2)}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'var(--gas)', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
-                      🔥 R$ {(m3 * gasRate).toFixed(2)}
-                    </span>
+                <div key={m3} className="config-sim-row">
+                  <span className="config-sim-m3">{m3} m³</span>
+                  <div className="config-sim-prices">
+                    <span className="config-sim-water">💧 R$ {(m3 * waterRate).toFixed(2)}</span>
+                    <span className="config-sim-gas">🔥 R$ {(m3 * gasRate).toFixed(2)}</span>
                   </div>
                 </div>
               ))}
@@ -412,14 +385,14 @@ export function Config() {
           </div>
 
           {/* Resumo do sistema */}
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card config-info-card">
+            <div className="config-info-card-header">
+              <div className="config-info-card-icon" style={{ background: 'rgba(124,58,237,0.1)' }}>
                 <Shield size={15} color="#7c3aed" />
               </div>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Resumo do sistema</span>
+              <span className="config-info-card-title">Resumo do sistema</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="config-summary-list">
               {[
                 { label: 'Apartamentos ativos', value: String(activeApts), color: 'var(--text)' },
                 { label: 'Total leituras', value: String(closedReadings.length), color: 'var(--text)' },
@@ -429,42 +402,42 @@ export function Config() {
                 { label: 'Faturado gás', value: `R$ ${totalGasCost.toFixed(2)}`, color: 'var(--gas)' },
                 { label: 'Total geral', value: `R$ ${(totalWaterCost + totalGasCost).toFixed(2)}`, color: 'var(--text)' },
               ].map(({ label, value, color }) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>{label}</span>
-                  <span style={{ fontSize: 13, color, fontWeight: 700, fontFamily: 'DM Mono, monospace' }}>{value}</span>
+                <div key={label} className="config-summary-row">
+                  <span className="config-summary-label">{label}</span>
+                  <span className="config-summary-value" style={{ color }}>{value}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Tarifas atuais */}
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Tarifas salvas */}
+          <div className="card config-info-card">
+            <div className="config-info-card-header">
+              <div className="config-info-card-icon" style={{ background: 'rgba(16,185,129,0.1)' }}>
                 <Bell size={15} color="#10b981" />
               </div>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>Tarifas salvas</span>
+              <span className="config-info-card-title">Tarifas salvas</span>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1, padding: '12px 14px', background: 'var(--water-light)', borderRadius: 10, border: '1px solid rgba(37,99,235,0.15)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+            <div className="config-rates-row">
+              <div className="config-rate-card config-rate-card-water">
+                <div className="config-rate-header">
                   <Droplets size={13} color="var(--water)" />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--water)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Água</span>
+                  <span className="config-rate-label" style={{ color: 'var(--water)' }}>Água</span>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--water)', fontFamily: 'DM Mono, monospace' }}>
+                <div className="config-rate-value" style={{ color: 'var(--water)' }}>
                   R$ {config.waterRate.toFixed(4)}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--water)', opacity: 0.7, marginTop: 2 }}>por m³</div>
+                <div className="config-rate-unit" style={{ color: 'var(--water)' }}>por m³</div>
               </div>
-              <div style={{ flex: 1, padding: '12px 14px', background: 'var(--gas-light)', borderRadius: 10, border: '1px solid rgba(234,88,12,0.15)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+              <div className="config-rate-card config-rate-card-gas">
+                <div className="config-rate-header">
                   <Flame size={13} color="var(--gas)" />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gas)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Gás</span>
+                  <span className="config-rate-label" style={{ color: 'var(--gas)' }}>Gás</span>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gas)', fontFamily: 'DM Mono, monospace' }}>
+                <div className="config-rate-value" style={{ color: 'var(--gas)' }}>
                   R$ {config.gasRate.toFixed(4)}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--gas)', opacity: 0.7, marginTop: 2 }}>por m³</div>
+                <div className="config-rate-unit" style={{ color: 'var(--gas)' }}>por m³</div>
               </div>
             </div>
           </div>
@@ -480,7 +453,7 @@ export function Config() {
 
 function FieldError({ msg }: { msg: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, fontSize: 12, color: '#dc2626' }}>
+    <div className="config-field-error">
       <AlertCircle size={11} />
       <span>{msg}</span>
     </div>
@@ -497,15 +470,15 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <div className="config-section-row" style={{ padding: '4px 0' }}>
-      <div style={{ paddingTop: 2 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 5 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div className="config-section-row config-section-row-inner">
+      <div>
+        <div className="config-section-title-row">
+          <div className="config-section-icon-wrap" style={{ background: iconBg }}>
             {icon}
           </div>
-          <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{title}</span>
+          <span className="config-section-title-text">{title}</span>
         </div>
-        <p style={{ margin: '0 0 0 37px', fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>{description}</p>
+        <p className="config-section-description">{description}</p>
       </div>
       <div>{children}</div>
     </div>
@@ -513,12 +486,12 @@ function Section({
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: 'var(--border)', margin: '24px 0' }} />
+  return <div className="config-divider" />
 }
 
 function PreviewBadge({ color, bg, preview, rate }: { color: string; bg: string; preview: string; rate: string }) {
   return (
-    <div style={{ marginTop: 9, padding: '8px 12px', background: bg, borderRadius: 8, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
+    <div className="config-preview-badge" style={{ background: bg }}>
       Exemplo: 10 m³ × R$ {rate || '0'}/m³ ={' '}
       <strong style={{ color, fontWeight: 700 }}>R$ {preview}</strong>
     </div>
