@@ -21,25 +21,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ toast }}>
       {children}
-      <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="toast-container">
         {toasts.map(t => (
-          <div key={t.id} className="toast-enter" style={{
-            background: 'var(--surface)',
-            border: `1px solid ${colors[t.type]}40`,
-            borderLeft: `4px solid ${colors[t.type]}`,
-            borderRadius: 10,
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: 'var(--shadow-lg)',
-            minWidth: 260,
-            maxWidth: 360,
-            fontSize: 14,
-            fontWeight: 500,
-            color: 'var(--text)',
-          }}>
-            <span style={{ color: colors[t.type], fontSize: 16, fontWeight: 700 }}>{icons[t.type]}</span>
+          <div
+            key={t.id}
+            className="toast-enter toast-item"
+            style={{
+              border: `1px solid ${colors[t.type]}40`,
+              borderLeft: `4px solid ${colors[t.type]}`,
+            }}
+          >
+            <span className="toast-icon" style={{ color: colors[t.type] }}>{icons[t.type]}</span>
             {t.message}
           </div>
         ))}
