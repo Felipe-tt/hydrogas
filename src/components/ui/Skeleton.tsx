@@ -59,9 +59,9 @@ export function Skeleton({
 export function KPICardSkeleton() {
   injectStyle()
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="card skeleton-kpi-card">
+      <div className="skeleton-kpi-inner">
+        <div className="skeleton-kpi-left">
           <Skeleton width="55%" height={12} />
           <Skeleton width="70%" height={26} />
           <Skeleton width="40%" height={11} />
@@ -77,36 +77,36 @@ export function KPICardSkeleton() {
 export function ApartmentCardSkeleton() {
   injectStyle()
   return (
-    <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="card skeleton-apt-card">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="skeleton-apt-header">
+        <div className="skeleton-apt-header-left">
           <Skeleton width={36} height={36} borderRadius={8} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="skeleton-apt-header-meta">
             <Skeleton width={80} height={16} />
             <Skeleton width={55} height={12} />
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="skeleton-apt-header-actions">
           <Skeleton width={34} height={34} borderRadius={6} />
           <Skeleton width={34} height={34} borderRadius={6} />
         </div>
       </div>
 
       {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border)' }} />
+      <div className="skeleton-divider" />
 
       {/* Senha */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="skeleton-col">
         <Skeleton width="45%" height={12} />
         <Skeleton width="100%" height={34} borderRadius={7} />
       </div>
 
       {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border)' }} />
+      <div className="skeleton-divider" />
 
       {/* Link */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="skeleton-col">
         <Skeleton width="40%" height={12} />
         <Skeleton width="100%" height={34} borderRadius={7} />
       </div>
@@ -121,7 +121,7 @@ export function ReadingRowSkeleton() {
   return (
     <tr>
       {[90, 60, 70, 65, 65, 65, 80].map((w, i) => (
-        <td key={i} style={{ padding: '12px 14px' }}>
+        <td key={i} className="skeleton-table-td">
           <Skeleton width={`${w}%`} height={14} />
         </td>
       ))}
@@ -136,7 +136,7 @@ export function ReadingCardSkeleton() {
   return (
     <div className="reading-card">
       <div className="reading-card-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="skeleton-reading-card-header-inner">
           <Skeleton width={24} height={24} borderRadius={6} />
           <Skeleton width={90} height={15} />
         </div>
@@ -144,13 +144,13 @@ export function ReadingCardSkeleton() {
       </div>
       <div className="reading-card-grid">
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div key={i} className="skeleton-reading-grid-item">
             <Skeleton width="60%" height={11} />
             <Skeleton width="80%" height={14} />
           </div>
         ))}
       </div>
-      <div className="reading-card-actions" style={{ marginTop: 10 }}>
+      <div className="reading-card-actions skeleton-reading-actions">
         <Skeleton height={34} borderRadius={7} />
       </div>
     </div>
@@ -164,7 +164,7 @@ export function HistoryRowSkeleton() {
   return (
     <tr>
       {[80, 55, 50, 65, 65, 60].map((w, i) => (
-        <td key={i} style={{ padding: '12px 14px' }}>
+        <td key={i} className="skeleton-table-td">
           <Skeleton width={`${w}%`} height={14} />
         </td>
       ))}
@@ -179,7 +179,7 @@ export function HistoryCardSkeleton() {
   return (
     <div className="reading-card">
       <div className="reading-card-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="skeleton-reading-card-header-inner">
           <Skeleton width={24} height={24} borderRadius={6} />
           <Skeleton width={100} height={15} />
         </div>
@@ -187,7 +187,7 @@ export function HistoryCardSkeleton() {
       </div>
       <div className="reading-card-grid">
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div key={i} className="skeleton-reading-grid-item">
             <Skeleton width="55%" height={11} />
             <Skeleton width="75%" height={14} />
           </div>
@@ -205,7 +205,7 @@ export function DashboardSkeleton() {
     <div className="page">
       {/* Page header */}
       <div className="page-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton-dash-header-left">
           <Skeleton width={140} height={22} />
           <Skeleton width={220} height={14} />
         </div>
@@ -219,11 +219,11 @@ export function DashboardSkeleton() {
 
       {/* Charts */}
       <div className="chart-grid">
-        <div className="card" style={{ padding: 20 }}>
+        <div className="card skeleton-kpi-card">
           <Skeleton width="50%" height={16} style={{ marginBottom: 18 }} />
           <Skeleton width="100%" height={200} borderRadius={8} />
         </div>
-        <div className="card" style={{ padding: 20 }}>
+        <div className="card skeleton-kpi-card">
           <Skeleton width="50%" height={16} style={{ marginBottom: 18 }} />
           <Skeleton width="100%" height={200} borderRadius={8} />
         </div>
@@ -239,17 +239,13 @@ export function ApartmentsSkeleton() {
   return (
     <div className="page">
       <div className="page-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton-apts-header">
           <Skeleton width={160} height={22} />
           <Skeleton width={100} height={14} />
         </div>
         <Skeleton width={160} height={36} borderRadius={8} />
       </div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-        gap: 20,
-      }}>
+      <div className="skeleton-apt-grid">
         {[1, 2, 3, 4].map(i => <ApartmentCardSkeleton key={i} />)}
       </div>
     </div>
@@ -263,18 +259,18 @@ export function ReadingsSkeleton() {
   return (
     <div className="page">
       <div className="page-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton-col">
           <Skeleton width={100} height={22} />
           <Skeleton width={180} height={14} />
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="skeleton-readings-actions">
           <Skeleton width={160} height={36} borderRadius={8} />
           <Skeleton width={130} height={36} borderRadius={8} />
         </div>
       </div>
 
       {/* Filtros */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div className="skeleton-readings-filters">
         <Skeleton width={120} height={34} borderRadius={8} />
         <Skeleton width={120} height={34} borderRadius={8} />
       </div>
@@ -283,9 +279,9 @@ export function ReadingsSkeleton() {
       <div className="card readings-table-wrap">
         <table className="readings-table">
           <thead>
-            <tr style={{ background: 'var(--table-head)' }}>
+            <tr className="skeleton-table-head-row">
               {['Apartamento', 'Tipo', 'Mês/Ano', 'Consumo', 'Custo', 'Status', 'Ações'].map(h => (
-                <th key={h} style={{ padding: '12px 14px', textAlign: 'left' }}>
+                <th key={h} className="skeleton-table-th">
                   <Skeleton width="80%" height={13} />
                 </th>
               ))}
@@ -312,7 +308,7 @@ export function HistorySkeleton() {
   return (
     <div className="page">
       <div className="page-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="skeleton-col">
           <Skeleton width={120} height={22} />
           <Skeleton width={200} height={14} />
         </div>
@@ -322,9 +318,11 @@ export function HistorySkeleton() {
       {/* Cards de resumo */}
       <div className="summary-grid-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Skeleton width="55%" height={12} />
-            <Skeleton width="70%" height={22} />
+          <div key={i} className="card skeleton-kpi-card">
+            <div className="skeleton-col">
+              <Skeleton width="55%" height={12} />
+              <Skeleton width="70%" height={22} />
+            </div>
           </div>
         ))}
       </div>
@@ -333,9 +331,9 @@ export function HistorySkeleton() {
       <div className="card readings-table-wrap">
         <table className="readings-table">
           <thead>
-            <tr style={{ background: 'var(--table-head)' }}>
+            <tr className="skeleton-table-head-row">
               {['Apartamento', 'Tipo', 'Período', 'Consumo', 'Custo', 'Fechado em'].map(h => (
-                <th key={h} style={{ padding: '12px 14px', textAlign: 'left' }}>
+                <th key={h} className="skeleton-table-th">
                   <Skeleton width="80%" height={13} />
                 </th>
               ))}
@@ -360,32 +358,32 @@ export function HistorySkeleton() {
 export function ConfigSkeleton() {
   injectStyle()
   return (
-    <div className="page" style={{ maxWidth: 720 }}>
-      <div style={{ marginBottom: 32 }}>
+    <div className="page skeleton-config-page">
+      <div className="skeleton-config-header">
         <Skeleton width={160} height={22} style={{ marginBottom: 8 }} />
         <Skeleton width={280} height={14} />
       </div>
 
       {[1, 2, 3].map((_, i) => (
         <React.Fragment key={i}>
-          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 32, padding: '4px 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div className="skeleton-config-row">
+            <div className="skeleton-config-row-left">
+              <div className="skeleton-config-row-icon">
                 <Skeleton width={28} height={28} borderRadius={8} />
                 <Skeleton width={90} height={14} />
               </div>
               <Skeleton width="70%" height={12} style={{ marginLeft: 37 }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="skeleton-config-row-right">
               <Skeleton width="40%" height={13} />
               <Skeleton width="100%" height={38} borderRadius={8} />
             </div>
           </div>
-          {i < 2 && <div style={{ height: 1, background: 'var(--border)', margin: '24px 0' }} />}
+          {i < 2 && <div className="skeleton-config-divider" />}
         </React.Fragment>
       ))}
 
-      <div style={{ marginTop: 24 }}>
+      <div className="skeleton-config-save">
         <Skeleton width="100%" height={40} borderRadius={8} />
       </div>
     </div>
@@ -400,7 +398,7 @@ export function Spinner({ size = 14, color = 'currentColor' }: { size?: number; 
       width={size} height={size}
       viewBox="0 0 14 14"
       fill="none"
-      style={{ animation: 'spin 0.7s linear infinite', flexShrink: 0 }}
+      className="spinner-svg"
       aria-hidden="true"
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
