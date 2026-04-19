@@ -10,7 +10,6 @@ export function History() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
 
-  // Skeleton enquanto dados do Firebase não chegaram
   const isLoading = config === null && apartments.length === 0 && readings.length === 0
   if (isLoading) return <HistorySkeleton />
 
@@ -53,11 +52,15 @@ export function History() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Histórico</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-2)', fontSize: 14 }}>Consolidado anual</p>
+          <h1 className="page-title">Histórico</h1>
+          <p className="page-subtitle">Consolidado anual</p>
         </div>
         <div className="page-header-actions">
-          <select value={year} onChange={e => setYear(Number(e.target.value))} className="input" style={{ width: 'auto', padding: '7px 12px' }}>
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="input history-year-select"
+          >
             {[now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2].map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
@@ -70,65 +73,70 @@ export function History() {
 
       <div className="summary-grid-3">
         {[
-          { label: 'Total Água', value: fmt(monthlyData.reduce((a, m) => a + m.totalWater, 0)), icon: Droplets, color: '#3b82f6' },
-          { label: 'Total Gás',  value: fmt(monthlyData.reduce((a, m) => a + m.totalGas, 0)),   icon: Flame,    color: '#f97316' },
-          { label: 'Total Geral', value: fmt(grandTotal), icon: TrendingUp, color: '#7c3aed' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          { label: 'Total Água', value: fmt(monthlyData.reduce((a, m) => a + m.totalWater, 0)), icon: Droplets, color: '#3b82f6', bg: 'rgba(59,130,246,0.13)' },
+          { label: 'Total Gás',  value: fmt(monthlyData.reduce((a, m) => a + m.totalGas, 0)),   icon: Flame,    color: '#f97316', bg: 'rgba(249,115,22,0.13)' },
+          { label: 'Total Geral', value: fmt(grandTotal), icon: TrendingUp, color: '#7c3aed', bg: 'rgba(124,58,237,0.13)' },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="card history-summary-card">
+            <div className="history-summary-icon" style={{ background: bg }}>
               <Icon size={20} color={color} />
             </div>
             <div>
-              <div style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 500 }}>{label} {year}</div>
-              <div className="font-mono-num" style={{ fontSize: 20, fontWeight: 700, color }}>{value}</div>
+              <div className="history-summary-label">{label} {year}</div>
+              <div className="font-mono-num history-summary-value" style={{ color }}>{value}</div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="card" style={{ overflow: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
+      <div className="card history-table-wrap">
+        <table className="history-table">
           <thead>
-            <tr style={{ background: 'var(--table-head)', borderBottom: '1px solid var(--border)' }}>
+            <tr className="history-table-head-row">
               {['Mês','Custo Água','Custo Gás','Total do Mês','Leituras'].map(h => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                <th key={h} className="history-th">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {monthlyData.map((m, i) => (
-              <tr key={m.month} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--table-alt)', opacity: m.count === 0 ? 0.45 : 1 }}>
-                <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)' }}>{MONTHS[m.month - 1]}</td>
-                <td style={{ padding: '12px 16px' }} className="font-mono-num">
-                  <span style={{ color: 'var(--water)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <tr
+                key={m.month}
+                style={{
+                  borderBottom: '1px solid var(--border)',
+                  background: i % 2 === 0 ? 'var(--surface)' : 'var(--table-alt)',
+                  opacity: m.count === 0 ? 0.45 : 1,
+                }}
+              >
+                <td className="history-td-month">{MONTHS[m.month - 1]}</td>
+                <td className="history-td font-mono-num">
+                  <span className="history-cell-water">
                     {m.totalWater > 0 && <Droplets size={12} />}{fmt(m.totalWater)}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px' }} className="font-mono-num">
-                  <span style={{ color: 'var(--gas)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <td className="history-td font-mono-num">
+                  <span className="history-cell-gas">
                     {m.totalGas > 0 && <Flame size={12} />}{fmt(m.totalGas)}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)' }} className="font-mono-num">
+                <td className="history-td-total font-mono-num">
                   {m.total > 0 ? `R$ ${m.total.toFixed(2)}` : '—'}
                 </td>
-                <td style={{ padding: '12px 16px', color: 'var(--text-2)' }}>{m.count > 0 ? `${m.count}` : '—'}</td>
+                <td className="history-td" style={{ color: 'var(--text-2)' }}>{m.count > 0 ? `${m.count}` : '—'}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ background: 'var(--table-head)', borderTop: '2px solid var(--border)' }}>
-              <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)' }}>Total {year}</td>
-              <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--water)' }} className="font-mono-num">
+            <tr className="history-tfoot-row">
+              <td className="history-tfoot-label">Total {year}</td>
+              <td className="history-tfoot-water font-mono-num">
                 {fmt(monthlyData.reduce((a, m) => a + m.totalWater, 0))}
               </td>
-              <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--gas)' }} className="font-mono-num">
+              <td className="history-tfoot-gas font-mono-num">
                 {fmt(monthlyData.reduce((a, m) => a + m.totalGas, 0))}
               </td>
-              <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: 15, color: 'var(--text)' }} className="font-mono-num">
-                {fmt(grandTotal)}
-              </td>
-              <td style={{ padding: '12px 16px', color: 'var(--text-2)' }}>
+              <td className="history-tfoot-total font-mono-num">{fmt(grandTotal)}</td>
+              <td className="history-tfoot-count">
                 {monthlyData.reduce((a, m) => a + m.count, 0)}
               </td>
             </tr>
