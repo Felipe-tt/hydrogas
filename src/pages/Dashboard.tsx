@@ -50,11 +50,10 @@ function KPICard({ label, value, sub, color, icon: Icon, index, trend }: any) {
       <div className="kpi-label">{label}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
       <div className="kpi-accent" style={{ background: color }} />
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `radial-gradient(ellipse at 100% 0%, ${color}10 0%, transparent 60%)`,
-        pointerEvents: 'none',
-      }} />
+      <div
+        className="kpi-card-shine"
+        style={{ backgroundImage: `radial-gradient(ellipse at 100% 0%, ${color}10 0%, transparent 60%)` }}
+      />
     </div>
   )
 }
@@ -63,19 +62,18 @@ function KPICard({ label, value, sub, color, icon: Icon, index, trend }: any) {
 function CustomTooltip({ active, payload, label, formatter, darkMode }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{
-      background: darkMode ? '#1e293b' : '#fff',
-      border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`,
-      borderRadius: 10,
-      padding: '10px 14px',
-      fontSize: 12,
-      color: darkMode ? '#f1f5f9' : '#0f172a',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-    }}>
-      <div style={{ fontWeight: 600, marginBottom: 6, color: darkMode ? '#94a3b8' : '#64748b' }}>{label}</div>
+    <div
+      className="chart-tooltip"
+      style={{
+        background: darkMode ? '#1e293b' : '#fff',
+        border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`,
+        color: darkMode ? '#f1f5f9' : '#0f172a',
+      }}
+    >
+      <div className="chart-tooltip-label" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>{label}</div>
       {payload.map((p: any, i: number) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.fill || p.color, flexShrink: 0 }} />
+        <div key={i} className="chart-tooltip-row">
+          <span className="chart-tooltip-dot" style={{ background: p.fill || p.color }} />
           <span style={{ color: darkMode ? '#cbd5e1' : '#475569' }}>{p.name}:</span>
           <span style={{ fontWeight: 600 }}>{formatter ? formatter(p.value) : p.value}</span>
         </div>
@@ -114,16 +112,16 @@ function TopConsumers({ closed, apartments, darkMode }: any) {
 
   if (rows.length === 0) return (
     <div className="chart-empty" style={{ height: 180 }}>
-      <Building2 size={28} style={{ color: 'var(--text-3)', marginBottom: 8 }} />
+      <Building2 size={28} className="chart-empty-icon" />
       <span>Sem dados neste mês</span>
     </div>
   )
 
   return (
-    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <table className="top-consumers-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div className="top-consumers-wrap">
+      <table className="top-consumers-table top-consumers-full">
         <thead>
-          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+          <tr className="tc-thead-row">
             {['Ap.', 'Água m³', 'Gás m³', 'Custo Água', 'Custo Gás', 'Total'].map(h => (
               <th key={h} className="tc-th">{h}</th>
             ))}
@@ -131,9 +129,9 @@ function TopConsumers({ closed, apartments, darkMode }: any) {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.number} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+            <tr key={r.number} className={i % 2 === 0 ? 'tc-row-even' : 'tc-row-odd'}>
               <td className="tc-td tc-apt">
-                <span style={{ fontFamily: 'DM Mono, monospace' }}>{r.number}</span>
+                <span className="tc-apt-mono">{r.number}</span>
               </td>
               <td className="tc-td tc-water">{r.water > 0 ? `${r.water.toFixed(1)}` : '—'}</td>
               <td className="tc-td tc-gas">{r.gas > 0 ? `${r.gas.toFixed(1)}` : '—'}</td>
@@ -151,10 +149,10 @@ function TopConsumers({ closed, apartments, darkMode }: any) {
 // ── Mini Stat Card ────────────────────────────────────────────────────────────
 function MiniStat({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
   return (
-    <div style={{ padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color, fontFamily: 'DM Mono, monospace', lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 3 }}>{sub}</div>}
+    <div className="mini-stat-card">
+      <div className="mini-stat-label">{label}</div>
+      <div className="mini-stat-value" style={{ color }}>{value}</div>
+      {sub && <div className="mini-stat-sub">{sub}</div>}
     </div>
   )
 }
@@ -215,7 +213,6 @@ export function Dashboard() {
     return { mes: MONTHS[m - 1], agua: +water.toFixed(2), gas: +gas.toFixed(2), total: +(water + gas).toFixed(2) }
   }), [readings, selectedMonth, selectedYear])
 
-  // 12-month full year trend
   const yearTrendData = useMemo(() => Array.from({ length: 12 }, (_, i) => {
     const m = i + 1
     const rs = readings.filter(r => r.month === m && r.year === selectedYear && r.closedAt)
@@ -224,7 +221,6 @@ export function Dashboard() {
     return { mes: MONTHS[i], agua: +water.toFixed(2), gas: +gas.toFixed(2), total: +(water + gas).toFixed(2) }
   }), [readings, selectedYear])
 
-  // Pie chart data
   const pieData = useMemo(() => {
     if (totalWaterCost === 0 && totalGasCost === 0) return []
     return [
@@ -233,7 +229,6 @@ export function Dashboard() {
     ]
   }, [totalWaterCost, totalGasCost])
 
-  // Per-apartment avg
   const activeApts = apartments.filter(a => a.active).length
   const avgCost = activeApts > 0 && currTotal > 0 ? currTotal / closed.length : 0
 
@@ -327,7 +322,7 @@ export function Dashboard() {
           <SectionHeader title="Consumo por Apartamento" subtitle="m³ neste mês" />
           {chartData.length === 0 ? (
             <div className="chart-empty">
-              <Droplets size={28} style={{ color: 'var(--text-3)', marginBottom: 8 }} />
+              <Droplets size={28} className="chart-empty-icon" />
               <span>Sem dados neste mês</span>
             </div>
           ) : (
@@ -349,7 +344,6 @@ export function Dashboard() {
       {/* ── Second row: anual + distribuição + mini-stats ── */}
       <div className="dash-row-3">
 
-        {/* Custo anual linha */}
         <div className="card dash-chart-card dash-col-span-2">
           <SectionHeader title={`Evolução Anual ${selectedYear}`} subtitle="Total mensal (água + gás)" />
           <ResponsiveContainer width="100%" height={180}>
@@ -366,16 +360,15 @@ export function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Distribuição água vs gás */}
         <div className="card dash-chart-card">
           <SectionHeader title="Distribuição" subtitle="Água vs Gás este mês" />
           {pieData.length === 0 ? (
             <div className="chart-empty" style={{ height: 180 }}>
-              <TrendingUp size={28} style={{ color: 'var(--text-3)', marginBottom: 8 }} />
+              <TrendingUp size={28} className="chart-empty-icon" />
               <span>Sem dados</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="pie-distribution-wrap">
               <ResponsiveContainer width="50%" height={160}>
                 <PieChart>
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
@@ -384,15 +377,15 @@ export function Dashboard() {
                   <Tooltip formatter={(v: any) => fmt(v)} />
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="pie-legend">
                 {pieData.map(d => (
                   <div key={d.name}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 600 }}>{d.name}</span>
+                    <div className="pie-legend-item-header">
+                      <span className="pie-legend-dot" style={{ background: d.color }} />
+                      <span className="pie-legend-name">{d.name}</span>
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: d.color, fontFamily: 'DM Mono, monospace' }}>{fmt(d.value)}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                    <div className="pie-legend-value" style={{ color: d.color }}>{fmt(d.value)}</div>
+                    <div className="pie-legend-pct">
                       {currTotal > 0 ? `${((d.value / currTotal) * 100).toFixed(1)}% do total` : '—'}
                     </div>
                   </div>
@@ -406,13 +399,11 @@ export function Dashboard() {
       {/* ── Third row: top consumers + mini stats ── */}
       <div className="dash-row-3">
 
-        {/* Top consumers table */}
         <div className="card dash-chart-card dash-col-span-2">
           <SectionHeader title="Consumo por Apartamento" subtitle="Detalhamento neste mês" />
           <TopConsumers closed={closed} apartments={apartments} darkMode={darkMode} />
         </div>
 
-        {/* Mini stats panel */}
         <div className="mini-stats-panel">
           <MiniStat
             label="Ticket médio / leitura"
