@@ -68,35 +68,19 @@ export function Sidebar({ onLogout }: SidebarProps) {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav style={{
-        display: 'none', position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: 'var(--nav-h)', background: 'var(--sidebar-bg)',
-        borderTop: '1px solid var(--sidebar-border)',
-        zIndex: 100, paddingBottom: 'env(safe-area-inset-bottom)',
-      }} className="mobile-nav">
+      <nav className="mobile-nav">
         {links.map(({ to, label, icon: Icon }) => (
           <NavLink
-            key={to} to={to} end={to === '/'}
-            style={({ isActive }) => ({
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', flex: 1, gap: 3,
-              textDecoration: 'none', fontSize: 10, fontWeight: 600,
-              color: isActive ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
-              transition: 'color 0.15s',
-            })}
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) => `mobile-nav-link${isActive ? ' active' : ''}`}
           >
             <Icon size={20} />
             <span>{label === 'Configurações' ? 'Config' : label}</span>
           </NavLink>
         ))}
       </nav>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .hide-on-mobile { display: none !important; }
-          .mobile-nav { display: flex !important; }
-        }
-      `}</style>
     </>
   )
 }
