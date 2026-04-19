@@ -21,13 +21,6 @@ export function QRCodeModal({ apt, onClose }: Props) {
 
   const url = apt.publicToken ? getPublicLink(apt.publicToken) : ''
 
-  // Detect active theme to colorize QR dots correctly
-  const isDark =
-    typeof document !== 'undefined' &&
-    (document.documentElement.classList.contains('dark') ||
-      document.documentElement.getAttribute('data-theme') === 'dark')
-
-  // ALTERADO: usa a variável CSS
   const qrDotColor = 'var(--qr-dot-color)'
   const qrAccentColor = '#2563eb'
 
@@ -42,19 +35,10 @@ export function QRCodeModal({ apt, onClose }: Props) {
         data: url,
         margin: 0,
         qrOptions: { errorCorrectionLevel: 'H' },
-        dotsOptions: {
-          type: 'rounded',
-          color: qrDotColor,
-        },
+        dotsOptions: { type: 'rounded', color: qrDotColor },
         backgroundOptions: { color: 'transparent' },
-        cornersSquareOptions: {
-          type: 'extra-rounded',
-          color: qrDotColor,
-        },
-        cornersDotOptions: {
-          type: 'dot',
-          color: qrAccentColor,
-        },
+        cornersSquareOptions: { type: 'extra-rounded', color: qrDotColor },
+        cornersDotOptions: { type: 'dot', color: qrAccentColor },
       })
 
       qr.append(qrRef.current)
@@ -85,6 +69,14 @@ export function QRCodeModal({ apt, onClose }: Props) {
     setDownloading(false)
   }, [apt])
 
+  // Corner bracket positions
+  const corners = [
+    { top: 8,    left: 8,  borderTopWidth: '2.5px',    borderLeftWidth: '2.5px',   borderRadius: '4px 0 0 0' },
+    { top: 8,    right: 8, borderTopWidth: '2.5px',    borderRightWidth: '2.5px',  borderRadius: '0 4px 0 0' },
+    { bottom: 8, left: 8,  borderBottomWidth: '2.5px', borderLeftWidth: '2.5px',   borderRadius: '0 0 0 4px' },
+    { bottom: 8, right: 8, borderBottomWidth: '2.5px', borderRightWidth: '2.5px',  borderRadius: '0 0 4px 0' },
+  ] as React.CSSProperties[]
+
   return (
     <>
       <style>{`
@@ -108,7 +100,6 @@ export function QRCodeModal({ apt, onClose }: Props) {
           100% { transform: scale(1.8); opacity: 0   }
         }
 
-        /* ─── Backdrop ─── */
         .qr-backdrop {
           background: rgba(2, 6, 23, 0.75);
         }
@@ -117,7 +108,6 @@ export function QRCodeModal({ apt, onClose }: Props) {
           background: rgba(15, 23, 42, 0.5);
         }
 
-        /* ─── Card ─── */
         .qr-card {
           background: var(--sidebar-bg);
           border: 1px solid var(--border);
@@ -132,7 +122,6 @@ export function QRCodeModal({ apt, onClose }: Props) {
             0 0 0 1px rgba(0, 0, 0, 0.05);
         }
 
-        /* ─── QR frame (white card holding the code) ─── */
         .qr-frame {
           background: #ffffff;
           box-shadow:
@@ -146,19 +135,16 @@ export function QRCodeModal({ apt, onClose }: Props) {
             0 6px 20px rgba(0, 0, 0, 0.07);
         }
 
-        /* ─── Center logo ring ─── */
         .qr-logo-ring {
           background: var(--sidebar-bg);
           border: 3px solid #ffffff;
         }
 
-        /* ─── URL strip ─── */
         .qr-url-strip {
           background: var(--surface-2);
           border: 1px solid var(--border);
         }
 
-        /* ─── Buttons ─── */
         .qr-close-btn {
           background: transparent;
           border: 1px solid var(--border);
@@ -198,183 +184,72 @@ export function QRCodeModal({ apt, onClose }: Props) {
         .qr-download-btn:disabled { opacity: 0.7; cursor: not-allowed; }
       `}</style>
 
-      {/* ── Backdrop ── */}
+      {/* Backdrop */}
       <div
-        className="qr-backdrop"
+        className="qr-backdrop qr-backdrop-base"
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1000,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          animation: 'qr-fadeIn 0.2s ease',
-        }}
       >
-        {/* ── Card ── */}
-        <div
-          className="qr-card"
-          style={{
-            width: '100%',
-            maxWidth: 380,
-            borderRadius: 24,
-            overflow: 'hidden',
-            animation: 'qr-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
-          }}
-        >
+        {/* Card */}
+        <div className="qr-card qr-card-base">
+
           {/* Accent bar */}
-          <div style={{
-            height: 3,
-            background: 'linear-gradient(90deg, #2563eb, #06b6d4, #2563eb)',
-            backgroundSize: '200% 100%',
-            animation: 'qr-shimmer 2.5s linear infinite',
-          }} />
+          <div className="qr-accent-bar" />
 
           {/* Header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            padding: '20px 22px 0',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: 'rgba(37,99,235,0.12)',
-                border: '1px solid rgba(37,99,235,0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>
+          <div className="qr-header">
+            <div className="qr-header-left">
+              <div className="qr-header-icon">
                 <Wifi size={18} color="#2563eb" />
               </div>
               <div>
-                {/* ALTERADO: usa a variável CSS para o texto principal */}
-                <div style={{
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: 'var(--qr-text-primary)',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.2,
-                }}>
+                <div className="qr-header-title">
                   Ap. {apt.number}{apt.block ? ` · Bloco ${apt.block}` : ''}
                 </div>
-                {/* ALTERADO: usa a variável CSS para o texto secundário */}
-                <div style={{ fontSize: 12, color: 'var(--qr-text-secondary)', marginTop: 2 }}>
-                  Acesso via QR Code
-                </div>
+                <div className="qr-header-sub">Acesso via QR Code</div>
               </div>
             </div>
 
-            <button
-              className="qr-close-btn"
-              onClick={onClose}
-              style={{ borderRadius: 10, padding: 6, cursor: 'pointer', display: 'flex' }}
-            >
+            <button className="qr-close-btn qr-copy-btn-inner" onClick={onClose}>
               <X size={15} />
             </button>
           </div>
 
           {/* QR display */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            padding: '24px 22px 20px',
-          }}>
-            <div className="qr-frame" style={{ position: 'relative', borderRadius: 20, padding: 22 }}>
+          <div className="qr-display-area">
+            <div className="qr-frame qr-frame-wrap">
 
               {/* Live dot */}
-              <div style={{ position: 'absolute', top: -5, right: -5, width: 14, height: 14 }}>
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  borderRadius: '50%',
-                  background: '#22c55e',
-                  animation: 'qr-pulse-ring 1.8s ease-out infinite',
-                }} />
-                <div style={{
-                  position: 'absolute', inset: 3,
-                  borderRadius: '50%',
-                  background: '#22c55e',
-                }} />
+              <div className="qr-live-dot-wrap">
+                <div className="qr-live-dot-ring" />
+                <div className="qr-live-dot-core" />
               </div>
 
               {/* Corner brackets */}
-              {([
-                { top: 8,    left: 8,  borderTopWidth: 2.5,    borderLeftWidth: 2.5,   borderRadius: '4px 0 0 0' },
-                { top: 8,    right: 8, borderTopWidth: 2.5,    borderRightWidth: 2.5,  borderRadius: '0 4px 0 0' },
-                { bottom: 8, left: 8,  borderBottomWidth: 2.5, borderLeftWidth: 2.5,   borderRadius: '0 0 0 4px' },
-                { bottom: 8, right: 8, borderBottomWidth: 2.5, borderRightWidth: 2.5,  borderRadius: '0 0 4px 0' },
-              ] as React.CSSProperties[]).map((s, i) => (
-                <div key={i} style={{
-                  position: 'absolute',
-                  width: 18, height: 18,
-                  borderColor: '#2563eb',
-                  borderStyle: 'solid',
-                  borderWidth: 0,
-                  ...s,
-                }} />
+              {corners.map((s, i) => (
+                <div key={i} className="qr-corner-bracket" style={s} />
               ))}
 
               {error ? (
-                <div style={{
-                  width: 256, height: 256,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#ef4444', fontSize: 13,
-                }}>
-                  {error}
-                </div>
+                <div className="qr-error-state">{error}</div>
               ) : (
                 <div ref={qrRef} />
               )}
 
               {/* Logo */}
-              <div className="qr-logo-ring" style={{
-                position: 'absolute',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 50, height: 50,
-                borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-              }}>
-                <img src="/favicon.svg" style={{ width: 26, height: 26 }} alt="" />
+              <div className="qr-logo-ring qr-logo-ring-wrap">
+                <img src="/favicon.svg" className="qr-logo-img" alt="" />
               </div>
             </div>
           </div>
 
           {/* URL row */}
-          <div style={{ padding: '0 22px 12px' }}>
-            <div className="qr-url-strip" style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              borderRadius: 10, padding: '8px 8px 8px 13px',
-            }}>
-              <span style={{
-                flex: 1,
-                fontFamily: '"DM Mono", "Fira Mono", monospace',
-                fontSize: 11,
-                color: 'var(--text-2)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {url || '—'}
-              </span>
+          <div className="qr-url-row">
+            <div className="qr-url-strip qr-url-inner">
+              <span className="qr-url-text">{url || '—'}</span>
               <button
-                className={`qr-copy-btn${copied ? ' copied' : ''}`}
+                className={`qr-copy-btn qr-copy-btn-inner${copied ? ' copied' : ''}`}
                 onClick={handleCopy}
                 title="Copiar link"
-                style={{
-                  flexShrink: 0,
-                  borderRadius: 7, padding: '4px 9px',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  fontSize: 11, fontWeight: 500,
-                }}
               >
                 {copied ? <Check size={12} /> : <Copy size={12} />}
                 {copied ? 'Copiado' : 'Copiar'}
@@ -383,29 +258,15 @@ export function QRCodeModal({ apt, onClose }: Props) {
           </div>
 
           {/* Download */}
-          <div style={{ padding: '0 22px 22px' }}>
+          <div className="qr-download-row">
             <button
-              className="qr-download-btn"
+              className="qr-download-btn qr-download-btn-inner"
               onClick={handleDownload}
               disabled={downloading || !url}
-              style={{
-                width: '100%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                borderRadius: 12, padding: '12px 16px',
-                cursor: 'pointer',
-                fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.01em',
-              }}
             >
               {downloading ? (
                 <>
-                  <span style={{
-                    width: 14, height: 14,
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: '#fff',
-                    borderRadius: '50%',
-                    display: 'inline-block',
-                    animation: 'qr-spin 0.7s linear infinite',
-                  }} />
+                  <span className="qr-spin-indicator" />
                   Gerando…
                 </>
               ) : (
