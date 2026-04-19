@@ -16,18 +16,14 @@ export function MonthSelector() {
   }
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 4,
-      background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: 10, padding: '6px 10px',
-    }}>
-      <button onClick={prev} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-2)', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6 }}>
+    <div className="month-selector">
+      <button onClick={prev} className="month-selector-btn">
         <ChevronLeft size={16} />
       </button>
-      <span style={{ fontWeight: 600, fontSize: 13, minWidth: 72, textAlign: 'center', whiteSpace: 'nowrap', color: 'var(--text)' }}>
+      <span className="month-selector-label">
         {MONTHS[selectedMonth - 1]} {selectedYear}
       </span>
-      <button onClick={next} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-2)', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6 }}>
+      <button onClick={next} className="month-selector-btn">
         <ChevronRight size={16} />
       </button>
     </div>
