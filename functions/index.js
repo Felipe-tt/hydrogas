@@ -263,26 +263,17 @@ function buildEmailHtml({
     : null
   const barChart    = buildBarChart(aptRows)
 
-  // ── ícones SVG como <img data-URI> — compatível com Gmail, Outlook, Apple Mail ──
-  // SVG inline em <div> é bloqueado por Gmail. A solução é base64 num <img>.
-  const svgToDataUri = (svgBody, size) => {
-    const raw = `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">${svgBody}</svg>`
-    const b64 = Buffer.from(raw).toString('base64')
-    return `<img src="data:image/svg+xml;base64,${b64}" width="${size}" height="${size}" alt="" style="display:block;border:0;"/>`
-  }
-
-  const iconDrop = (size, color) =>
-    svgToDataUri(`<path d="M10 2C10 2 4 8 4 12a6 6 0 0 0 12 0c0-4-6-10-6-10z" fill="${color}"/>`, size)
-
-  const iconFire = (size, color) =>
-    svgToDataUri(
-      `<path d="M10 2c0 0-4 4.5-3 8 .5 1.7 1.5 2.8 3 3.5 1.5-.7 2.5-1.8 3-3.5 1-3.5-3-8-3-8z" fill="${color}"/>` +
-      `<path d="M10 9c0 0-2 2-1.5 4 .3 1 1 1.8 1.5 2 .5-.2 1.2-1 1.5-2 .5-2-1.5-4-1.5-4z" fill="#fed7aa"/>`, size)
-
-  const iconBag = (size, color) =>
-    svgToDataUri(
-      `<rect x="3" y="8" width="14" height="10" rx="2" fill="${color}"/>` +
-      `<path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="${color}" stroke-width="1.5" fill="none"/>`, size)
+  // ── ícones via <img> com URL absoluta — compatível com Gmail, Outlook, Apple Mail ──
+  // data: URIs são bloqueados pelo Gmail. Os SVGs ficam hospedados no Netlify (APP_URL)
+  // e são referenciados por URL https, que todos os clientes de email aceitam.
+  // A cor já está definida dentro de cada arquivo SVG em public/.
+  const appUrl = (process.env.APP_URL || '').replace(/\/$/, '')
+  const iconDrop = (size) =>
+    `<img src="${appUrl}/icon-drop.svg" width="${size}" height="${size}" alt="" border="0">`
+  const iconFire = (size) =>
+    `<img src="${appUrl}/icon-fire.svg" width="${size}" height="${size}" alt="" border="0">`
+  const iconBag = (size) =>
+    `<img src="${appUrl}/icon-bag.svg" width="${size}" height="${size}" alt="" border="0">`
 
   // ── barra split água/gás ──────────────────────────────────────────────────
   const splitBar = `
@@ -358,7 +349,7 @@ function buildEmailHtml({
                           <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                             <tr>
                               <td align="center" valign="middle" style="width:40px;height:40px;background:#1e3a8a;border-radius:10px;">
-                                ${iconDrop(20, '#38bdf8')}
+                                ${iconDrop(20)}
                               </td>
                             </tr>
                           </table>
@@ -466,7 +457,7 @@ function buildEmailHtml({
                       <tr>
                         <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 14px;text-align:center;">
                           <div style="width:34px;height:34px;background:#dbeafe;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
-                            ${iconDrop(16, '#1d4ed8')}
+                            ${iconDrop(16)}
                           </div>
                           <div style="font-size:9px;font-weight:500;color:#1e40af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">&#193;gua</div>
                           <div style="font-size:20px;font-weight:500;color:#1e40af;letter-spacing:-0.03em;line-height:1;">${formatBRL(agua)}</div>
@@ -482,7 +473,7 @@ function buildEmailHtml({
                       <tr>
                         <td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 14px;text-align:center;">
                           <div style="width:34px;height:34px;background:#ffedd5;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
-                            ${iconFire(16, '#c2410c')}
+                            ${iconFire(16)}
                           </div>
                           <div style="font-size:9px;font-weight:500;color:#c2410c;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">G&#225;s</div>
                           <div style="font-size:20px;font-weight:500;color:#c2410c;letter-spacing:-0.03em;line-height:1;">${formatBRL(gas)}</div>
@@ -498,7 +489,7 @@ function buildEmailHtml({
                       <tr>
                         <td style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:16px 14px;text-align:center;">
                           <div style="width:34px;height:34px;background:#1e293b;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
-                            ${iconBag(16, '#94a3b8')}
+                            ${iconBag(16)}
                           </div>
                           <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">Total</div>
                           <div style="font-size:20px;font-weight:500;color:#f1f5f9;letter-spacing:-0.03em;line-height:1;">${formatBRL(geral)}</div>
@@ -637,7 +628,7 @@ function buildEmailHtml({
                           <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                             <tr>
                               <td align="center" valign="middle" style="width:26px;height:26px;background:#1e3a8a;border-radius:6px;">
-                                ${iconDrop(13, '#38bdf8')}
+                                ${iconDrop(13)}
                               </td>
                             </tr>
                           </table>
@@ -927,7 +918,7 @@ exports.monthlyEmailReport = onSchedule(
   {
     schedule:       '0 8 * * *',
     timeZone:       'America/Sao_Paulo',
-    secrets:        ['DATABASE_URL', 'GMAIL_APP_PASSWORD', 'GMAIL_SENDER'],
+    secrets:        ['DATABASE_URL', 'GMAIL_APP_PASSWORD', 'GMAIL_SENDER', 'APP_URL'],
     timeoutSeconds: 60,
     memory:         '256MiB',
     region:         'us-central1',
