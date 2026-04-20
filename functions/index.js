@@ -854,7 +854,7 @@ exports.getPublicApartment = onCall(
 //
 // Secret necessário:
 //   firebase functions:secrets:set STORAGE_BUCKET
-//   → valor: hydrogas-77f04.appspot.com
+//   → valor: <SEU-PROJETO>.appspot.com
 // ─────────────────────────────────────────────────────────────────────────────
 
 exports.monthlyBackup = onSchedule(
