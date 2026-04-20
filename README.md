@@ -65,4 +65,18 @@ npm run dev
 
 ## Variáveis de ambiente
 
-Veja `.env.example` para a lista completa. Os secrets sensíveis (`ADMIN_PASSWORD_HASH`, `DATABASE_URL`) ficam no Firebase Secret Manager e nunca vão para o repositório.
+Veja `.env.example` para a lista completa de variáveis do frontend.
+
+### Secrets da Cloud Function (Firebase Secret Manager)
+
+| Secret | Descrição |
+|---|---|
+| `DATABASE_URL` | URL do Realtime Database (`https://SEU-PROJETO-default-rtdb.firebaseio.com`) |
+| `ADMIN_USERNAME` | Nome de usuário do painel admin |
+| `ADMIN_PASSWORD_HASH` | Hash Argon2id da senha (gerado pelo `setup-secrets.js`) |
+| `GMAIL_SENDER` | E-mail Gmail usado para envio dos relatórios |
+| `GMAIL_APP_PASSWORD` | App Password do Gmail ([gerar aqui](https://myaccount.google.com/apppasswords)) |
+| `APP_URL` | URL pública do site Netlify, ex: `https://hydrogas.netlify.app` — usada nos ícones dos e-mails |
+| `STORAGE_BUCKET` | Bucket do Firebase Storage para backups, ex: `hydrogas-77f04.appspot.com` |
+
+Os secrets nunca vão para o repositório. Use `node functions/setup-secrets.js` para configurar os principais de uma só vez.
