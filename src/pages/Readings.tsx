@@ -377,8 +377,30 @@ export function Readings() {
   const isLoading = config === null && apartments.length === 0 && readings.length === 0
   if (isLoading) return <ReadingsSkeleton />
 
+  // Leitura pré-criada automaticamente (aberta, sem endValue) para o mês/ap/tipo selecionado
+  const preCreatedReading = openForm.apartmentId
+    ? readings.find(
+        r =>
+          r.apartmentId === openForm.apartmentId &&
+          r.type        === openForm.type         &&
+          r.month       === selectedMonth          &&
+          r.year        === selectedYear           &&
+          !r.closedAt,
+      ) ?? null
+    : null
+
   const handleOpen = async () => {
     if (!openForm.apartmentId) { toast('Selecione um apartamento', 'error'); return }
+
+    // Se já existe leitura pré-criada, abre direto o modal de fechar
+    if (preCreatedReading) {
+      setShowOpen(false)
+      setShowClose(preCreatedReading)
+      setEndValue('')
+      setOpenForm({ apartmentId: '', type: 'water', startValue: '' })
+      return
+    }
+
     if (!openForm.startValue)  { toast('Informe a leitura inicial', 'error'); return }
     setLoading(true)
     try {
@@ -608,17 +630,50 @@ export function Readings() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="label">Leitura inicial (m³) *</label>
-              <input className="input" type="number" inputMode="decimal" step="0.01" placeholder="0.00" value={openForm.startValue} onChange={e => setOpenForm(f => ({ ...f, startValue: e.target.value }))} />
-            </div>
+
+            {/* Campo de leitura inicial: mostra pré-preenchido (somente leitura) se já existe
+                leitura automática do mês anterior; caso contrário, campo editável normal */}
+            {preCreatedReading ? (
+              <div>
+                <label className="label">Leitura inicial (m³)</label>
+                <div
+                  className="input"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: openForm.type === 'water' ? 'var(--water-light)' : 'var(--gas-light)',
+                    color: openForm.type === 'water' ? 'var(--water)' : 'var(--gas)',
+                    fontWeight: 600,
+                    cursor: 'default',
+                  }}
+                >
+                  {openForm.type === 'water'
+                    ? <Droplets size={14} />
+                    : <Flame size={14} />}
+                  <span className="font-mono-num">{preCreatedReading.startValue.toFixed(2)} m³</span>
+                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 'auto', opacity: 0.8 }}>
+                    preenchido automaticamente
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6 }}>
+                  Leitura inicial herdada do fechamento do mês anterior. Clique em <strong>Registrar</strong> para ir direto ao fechamento.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="label">Leitura inicial (m³) *</label>
+                <input className="input" type="number" inputMode="decimal" step="0.01" placeholder="0.00" value={openForm.startValue} onChange={e => setOpenForm(f => ({ ...f, startValue: e.target.value }))} />
+              </div>
+            )}
+
             <div className="readings-tariff-hint">
               Tarifa: <strong style={{ color: 'var(--text)' }}>R$ {openForm.type === 'water' ? config?.waterRate?.toFixed(4) : config?.gasRate?.toFixed(4)}/m³</strong>
             </div>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowOpen(false)}>Cancelar</button>
               <button className="btn-primary" onClick={handleOpen} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {loading ? <><Spinner size={14} color="white" />Salvando...</> : 'Registrar'}
+                {loading ? <><Spinner size={14} color="white" />Salvando...</> : preCreatedReading ? 'Ir para Fechamento' : 'Registrar'}
               </button>
             </div>
           </div>
