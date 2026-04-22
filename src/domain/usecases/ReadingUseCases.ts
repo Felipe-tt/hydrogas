@@ -64,6 +64,29 @@ export class ReadingUseCases {
       totalCost,
       closedAt: Date.now(),
     })
+
+    // ── Cria automaticamente a leitura inicial do mês seguinte ──────────────
+    // A leitura final deste mês torna-se a leitura inicial do próximo, evitando
+    // que o usuário precise digitá-la novamente.
+    const nextMonth = reading.month === 12 ? 1  : reading.month + 1
+    const nextYear  = reading.month === 12 ? reading.year + 1 : reading.year
+
+    const nextMonthReadings = await this.readingRepo.getByMonthYear(nextMonth, nextYear)
+
+    // Só cria se não existir nenhuma leitura (aberta ou fechada) deste tipo/ap no próximo mês
+    const alreadyExistsNext = nextMonthReadings.some(
+      r => r.apartmentId === reading.apartmentId && r.type === reading.type,
+    )
+
+    if (!alreadyExistsNext) {
+      await this.readingRepo.create({
+        apartmentId: reading.apartmentId,
+        type:        reading.type,
+        month:       nextMonth,
+        year:        nextYear,
+        startValue:  endValue,
+      })
+    }
   }
 
   async getMonthlySummary(month: number, year: number): Promise<MonthSummary[]> {
