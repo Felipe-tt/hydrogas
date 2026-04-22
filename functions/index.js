@@ -123,10 +123,37 @@ async function clearRateLimit(key) {
 
 // ─── Email template ───────────────────────────────────────────────────────────
 
+// PNGs embutidos via CID attachment (nodemailer inline).
+// SVG inline foi removido — Gmail bloqueia SVG em emails.
+// Gerados com cairosvg a partir dos SVGs originais do design.
+// Tamanhos usados no template: drop=20,16,13 | fire=16 | bag=16
+const ICON_DROP_20_B64 = "iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABmJLR0QA/wD/AP+gvaeTAAABPUlEQVQ4jd3Rv0oDQRDH8e9cgucFG20MWtsLYkIEixBFEh/BiOgTiF0eRLDxT6HPYHMGC1GDFiLa2amgvXDZEG4sTCG5TW61Erfbnd9+doaFf7FKTdMoNU3DJStpgeJZtCnI/tdOt64rwdGvwUIYLXoiITDSO+porJXWcnDxY7AYfkyKZO+AfF/pTbU721oae7fd86yaqohkDy0YQF4kezCoEStYbLbrQHXQJaBWDKO6rZAYuXSpgUbmCZgaAgK8SuDPXC1INLRDjcyGAwYwHbfNev9hcmRhzQHrvZ7MJkFlztUTklnbp2RcQVvWBj66aqL6kAqqcuIKxshxKhhk/F1x6/J+ouPvpYLnZWl3u3EVSIzzHVMvXj2tiUkFAW5Wcs+jnj+PsCOqt4ABjKjeqrI9bvxCq5x7cZjiD65Pbl9fcu4sAxUAAAAASUVORK5CYII="
+const ICON_DROP_16_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABEUlEQVQ4jbWQv0rDUBjFz7lt2vgHF32G4uTSklRxMIvQDoKjLyKOvoSuIuImiIsilMbJFkHwAXwCcerUJG2OSweT5jaKeMbvO+d3vnuB/1QzHG14vdH6Io+xLfZCrdamzoOhc7/1qJXfAU5lxml0LbIF0FuuRleQ+GNAezc+AXDwbXTY7sfHRd45qt+Pm1Q6BFDNrRJjjPcc1N7sF0ikpucFYQBw0lRn+adkAH4YdQB6RafOGna2w2jfCqB4ZA/PEMh6cp+YNsoAEDYXAPhZCoA+rAARd2VxShlPBjBZq18AerF2g4N6xb20Al5bTJi4HQC3c83AzZKpdZ8CTnLzYnm9cYOUD0GmwuEgcN9t3j/pC4OpUsUyFi+pAAAAAElFTkSuQmCC"
+const ICON_DROP_13_B64 = "iVBORw0KGgoAAAANSUhEUgAAAA0AAAANCAYAAABy6+R8AAAABmJLR0QA/wD/AP+gvaeTAAAA5UlEQVQoka2OvUoDURCFv7krMSGtrZ2Cla3mpxCMj5BaEdLnQQxiYbONvY8QDalSqFhYapEiDyCKBveC67HID7J7Vyycbs6Zb86B/5q9oVZqg6TbvlQU8l1I9Kk/F5xO1vxZyLessDv46IDFi13o+Ga/clEI7fSTTYt4ACo/5Gkqtu9a5XGwnkX0MgBANTJOgknzlMdQZUCp2FikLZPMqV4AzGxTI1dPuGkBMD907znoU6UrwUsY0bNbLV3noPsDe8XsCPAZIjHZ4ahpb8uu2Z+1od+S1EGsA5MvEd+2yk+/Vf/TfAOHLkax98sXWAAAAABJRU5ErkJggg=="
+const ICON_FIRE_16_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAA5ElEQVQ4jWNgoCX4X8Ev+L9AQACfGhZ8kr9+sc9lYGH4x8DAEIJLDRMuiZ8lomEMjAyBDP8Zgn8Wi5JmwP9QBmaG/4xtCBHGtv8N2NViFfwhK2HHwMCgjCSk+uezqA3RBjAx/TVDF/v7nxFDDKcBDP8Z/zMwMDAwSqgwMIqrQMQYGf4TbQAjw7+9DExMDMx2MQzM9tEMDIyMDExM//YTbQBb75uzDDLaWxj5RBgY+UQZmGS1NrJ1vzmH3TIc4P+Zmcr/uARuMzAwMDB9+6DKaJJ+F5danODv9ZVtf6+vbiVZ4wgDAARHNcqogouDAAAAAElFTkSuQmCC"
+const ICON_BAG_16_B64  = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABFUlEQVQ4jc2QPy9DURjGf++9V9QHECSWLsoXsDXSRNKOZgOzRfoRmIwSoWJqaOyW0kHC2G8gFgaTxuZPaHvPY6heym17DRLPdM57nj/vc+AvUaqcZXYPqzODOBY3PKjUplriBGMeQFg99P2l4vLi/XeuF2fQEvuYnnzZRNsPJoE337VLcdygz14FT8qvreQbAHvHtU05q8ZRYzcARkOC5+7Fhd4jaCw+6wPl8kXqZaRZlFxa2JwHt0KvHZKlHKQNXQHXD9OpnY1crt1ToSPWFhgGCLJdf0VJlgUYv2sK2O6pILl0nzo/IHOzw/4gMf6VgadfyCLup4HcZVK5ydWj89eH0tHpgjM/M0jsnG7WVwvnScOG4h0jpF3aZQmxQAAAAABJRU5ErkJggg=="
+
+// Gera <img> tag apontando para CID attachment em vez de SVG inline.
+// O CID é mapeado em emailIconAttachments() abaixo.
+function imgCid(cid, size, alt) {
+  return `<img src="cid:${cid}" width="${size}" height="${size}" alt="${alt}" style="display:block;border:0;">`
+}
+
+// Retorna o array de attachments inline para passar ao nodemailer.
+function emailIconAttachments() {
+  return [
+    { cid: 'icon_drop_20', filename: 'icon_drop_20.png', content: Buffer.from(ICON_DROP_20_B64, 'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+    { cid: 'icon_drop_16', filename: 'icon_drop_16.png', content: Buffer.from(ICON_DROP_16_B64, 'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+    { cid: 'icon_drop_13', filename: 'icon_drop_13.png', content: Buffer.from(ICON_DROP_13_B64, 'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+    { cid: 'icon_fire_16', filename: 'icon_fire_16.png', content: Buffer.from(ICON_FIRE_16_B64, 'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+    { cid: 'icon_bag_16',  filename: 'icon_bag_16.png',  content: Buffer.from(ICON_BAG_16_B64,  'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+  ]
+}
+
 /**
  * Renders a single apartment row.
  * Gmail-safe: sem font-family em td/th, sem white-space:nowrap em td.
- * Ícone de gota SVG inline substituindo emoji (evita rendering inconsistente entre OS).
+ * Ícones PNG via CID attachment (SVG inline bloqueado pelo Gmail).
  */
 function buildApartmentRow(apt, index, maxTotal) {
   const bg    = index % 2 === 0 ? '#ffffff' : '#f8fafc'
@@ -263,23 +290,11 @@ function buildEmailHtml({
     : null
   const barChart    = buildBarChart(aptRows)
 
-  // ── ícones SVG inline — funciona no Gmail/Apple Mail sem depender de URL externa ──
-  // Outlook não suporta SVG inline, mas como o design usa fundo colorido no td pai,
-  // o ícone simplesmente some sem quebrar o layout.
-  const iconDrop = (size) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-      <path d="M10 2C10 2 4 8 4 12a6 6 0 0 0 12 0c0-4-6-10-6-10z" fill="#38bdf8"/>
-    </svg>`
-  const iconFire = (size) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-      <path d="M10 2c0 0-4 4.5-3 8 .5 1.7 1.5 2.8 3 3.5 1.5-.7 2.5-1.8 3-3.5 1-3.5-3-8-3-8z" fill="#f97316"/>
-      <path d="M10 9c0 0-2 2-1.5 4 .3 1 1 1.8 1.5 2 .5-.2 1.2-1 1.5-2 .5-2-1.5-4-1.5-4z" fill="#fed7aa"/>
-    </svg>`
-  const iconBag = (size) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-      <rect x="3" y="8" width="14" height="10" rx="2" fill="#94a3b8"/>
-      <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
-    </svg>`
+  // ── ícones PNG via CID attachment — Gmail bloqueia SVG inline ──────────────
+  // Os attachments são definidos em emailIconAttachments() e passados ao nodemailer.
+  const iconDrop = (size) => imgCid(`icon_drop_${size}`, size, 'água')
+  const iconFire = (size) => imgCid(`icon_fire_${size}`, size, 'gás')
+  const iconBag  = (size) => imgCid(`icon_bag_${size}`,  size, 'total')
 
   // ── barra split água/gás ──────────────────────────────────────────────────
   const splitBar = `
@@ -1078,11 +1093,12 @@ exports.monthlyEmailReport = onSchedule(
     })
 
     await transporter.sendMail({
-      from:    `"HidroGás" <${senderEmail}>`,
-      to:      toEmail,
-      subject: `Relatório ${monthName}/${refYear} — ${condName}`,
+      from:        `"HidroGás" <${senderEmail}>`,
+      to:          toEmail,
+      subject:     `Relatório ${monthName}/${refYear} — ${condName}`,
       text,
       html,
+      attachments: emailIconAttachments(),
     })
 
     logger.info(`monthlyEmailReport: enviado para ${toEmail} — ${monthName}/${refYear}`)
