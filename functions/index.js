@@ -77,6 +77,15 @@ function pct(part, total) {
   return Math.round((part / total) * 100)
 }
 
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 // ─── Rate limiting ────────────────────────────────────────────────────────────
 
 async function isRateLimited(key) {
@@ -177,7 +186,7 @@ function buildApartmentRow(apt, index, maxTotal) {
           <div style="width:7px;height:7px;border-radius:50%;background:${dot};"></div>
         </td>
         <td style="vertical-align:middle;">
-          <span style="font-size:13px;font-weight:500;color:#0f172a;">Ap.&nbsp;${apt.num}</span>${badge}
+          <span style="font-size:13px;font-weight:500;color:#0f172a;">Ap.&nbsp;${escapeHtml(apt.num)}</span>${badge}
         </td>
       </tr></table>
     </td>
@@ -213,7 +222,7 @@ function buildBarChart(aptRows) {
     const wH     = apt.total > 0 ? Math.max(2, Math.round((apt.wCost / apt.total) * totalH)) : Math.floor(totalH / 2)
     const gH     = Math.max(0, totalH - wH)
     const spacer = BAR_HEIGHT - totalH
-    const label  = String(apt.num).slice(0, 5)
+    const label  = escapeHtml(String(apt.num).slice(0, 5))
 
     return `
       <td align="center" valign="bottom" style="padding:0 5px;vertical-align:bottom;">
@@ -277,6 +286,8 @@ function buildEmailHtml({
   totals,
   aptRows,
 }) {
+  condName    = escapeHtml(condName)
+  managerName = escapeHtml(managerName)
   const { agua, gas, geral, m3Agua, m3Gas, numApts } = totals
 
   const avgPerApt   = numApts > 0 ? geral / numApts : 0
@@ -606,7 +617,7 @@ function buildEmailHtml({
                         <td class="insight-td" width="33%" style="padding-right:8px;">
                           <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:11px 13px;">
                             <div style="font-size:9px;font-weight:500;color:#92400e;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Maior consumidor</div>
-                            <div style="font-size:13px;font-weight:500;color:#78350f;">Ap.&nbsp;${maxApt.num}</div>
+                            <div style="font-size:13px;font-weight:500;color:#78350f;">Ap.&nbsp;${escapeHtml(maxApt.num)}</div>
                             <div style="font-size:11px;color:#b45309;margin-top:2px;">${formatBRL(maxApt.total)}</div>
                           </div>
                         </td>
@@ -614,7 +625,7 @@ function buildEmailHtml({
                         <td class="insight-td" width="33%" style="padding-right:8px;">
                           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:11px 13px;">
                             <div style="font-size:9px;font-weight:500;color:#14532d;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Menor consumidor</div>
-                            <div style="font-size:13px;font-weight:500;color:#15803d;">Ap.&nbsp;${minApt.num}</div>
+                            <div style="font-size:13px;font-weight:500;color:#15803d;">Ap.&nbsp;${escapeHtml(minApt.num)}</div>
                             <div style="font-size:11px;color:#16a34a;margin-top:2px;">${formatBRL(minApt.total)}</div>
                           </div>
                         </td>
