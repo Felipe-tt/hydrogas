@@ -7,9 +7,9 @@
  *  'enroll'    → oferta de cadastro de digital (pós login com senha bem-sucedido)
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import {
-  Droplets, Lock, User, Eye, EyeOff, AlertCircle, Fingerprint, ShieldCheck,
+  Droplets, Lock, User, Eye, EyeOff, AlertCircle, Fingerprint,
 } from 'lucide-react'
 import { httpsCallable }         from 'firebase/functions'
 import { getFunctions }          from 'firebase/functions'
@@ -125,17 +125,22 @@ export function Login({ onLogin }: LoginProps) {
 
   const handleEnrollAccept = useCallback(async () => {
     const ok = await bio.enroll()
-    // ok=true → cadastro concluído; ok=false pode ser cancelamento (state='idle') ou erro auth
-    // Só permanece na tela se houve erro de autenticação (ex: sessão expirada)
     if (ok) { onLogin?.(); return }
-    // Após enroll(), o state já foi setado; checamos via localStorage se revoke() foi chamado
     const stillEnrolled = localStorage.getItem('hg_bio_enrolled') === 'true'
     if (!stillEnrolled) {
-      // revoke() foi chamado → credencial inválida, mas usuário já está autenticado → vai pro app
       onLogin?.()
     }
-    // state='idle' (cancelamento) → fica na tela para o usuário decidir
+    // state='idle' (cancelamento) → fica na tela para o usuário tentar de novo ou pular
   }, [bio, onLogin])
+
+  // Ao entrar na tela 'enroll', dispara o prompt biométrico automaticamente.
+  // A confirmação da digital É o aceite — não existe botão de "aceitar".
+  useLayoutEffect(() => {
+    if (screen === 'enroll' && bio.state === 'idle') {
+      handleEnrollAccept()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen])
 
   const decorations = (
     <div className="login-bg-decorations">
@@ -204,30 +209,44 @@ export function Login({ onLogin }: LoginProps) {
         {logo}
         <div className="card login-card">
           <div className="enroll-screen">
-            <div className="enroll-icon-wrap">
-              <ShieldCheck size={36} strokeWidth={1.5} className="enroll-shield-icon" />
-            </div>
-            <h2 className="enroll-title">Ativar acesso por digital?</h2>
+            <button
+              className={`bio-icon-btn${bio.state === 'enrolling' ? ' bio-icon-btn--scanning' : ''}`}
+              onClick={bio.state === 'idle' ? handleEnrollAccept : undefined}
+              disabled={bio.state === 'enrolling'}
+              aria-label="Confirmar com digital"
+            >
+              <Fingerprint
+                size={52} strokeWidth={1.4}
+                className={`bio-fingerprint-icon${
+                  bio.state === 'enrolling' ? ' bio-fingerprint-icon--active' :
+                  bio.state === 'error'     ? ' bio-fingerprint-icon--error'  : ''
+                }`}
+              />
+            </button>
+            <h2 className="enroll-title" style={{ marginTop: 16 }}>Ativar acesso por digital</h2>
             <p className="enroll-desc">
-              Nas próximas entradas, basta tocar o sensor — sem digitar senha.
-              Sua digital nunca sai deste dispositivo.
+              {bio.state === 'enrolling'
+                ? 'Aguardando confirmação da digital…'
+                : bio.state === 'error'
+                  ? 'Não foi possível registrar. Tente novamente.'
+                  : 'Confirme sua digital para ativar. Nas próximas entradas, ela substitui a senha.'
+              }
             </p>
             {bio.error && (
               <div role="alert" className="login-error" style={{ marginBottom: 12 }}>
                 <AlertCircle size={14} style={{ flexShrink: 0 }} />{bio.error}
               </div>
             )}
+            {bio.state === 'error' && (
+              <button className="btn-primary bio-retry-btn" onClick={handleEnrollAccept}>
+                Tentar novamente
+              </button>
+            )}
             <button
-              className="btn-primary enroll-accept-btn"
-              onClick={handleEnrollAccept}
+              className="enroll-skip-btn"
+              onClick={() => onLogin?.()}
               disabled={bio.state === 'enrolling'}
             >
-              {bio.state === 'enrolling'
-                ? <><Spinner /> Aguardando digital...</>
-                : <><Fingerprint size={16} /> Ativar digital</>
-              }
-            </button>
-            <button className="enroll-skip-btn" onClick={() => onLogin?.()} disabled={bio.state === 'enrolling'}>
               Agora não
             </button>
           </div>
