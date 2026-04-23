@@ -110,7 +110,8 @@ export function Login({ onLogin }: LoginProps) {
         // Checa no momento exato do sucesso — não depende do state assíncrono inicial
         const supported = isBiometricSupported()
         if (!supported) { onLogin?.(); return }
-        if (bio.isEnrolled()) { setScreen('biometric'); return }
+        // Já autenticou com senha → vai direto pro app, independente de ter biometria
+        if (bio.isEnrolled()) { onLogin?.(); return }
         const available = await isPlatformAuthenticatorAvailable()
         available ? setScreen('enroll') : onLogin?.()
       },
