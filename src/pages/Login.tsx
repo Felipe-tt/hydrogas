@@ -92,10 +92,12 @@ export function Login({ onLogin }: LoginProps) {
     })
   }, [])
 
+  const enrolled = bio.isEnrolled()
+  
   useEffect(() => {
     if (!bioChecked) return
-    if (bioAvailable && bio.isEnrolled()) setScreen('biometric')
-  }, [bioChecked, bioAvailable])
+    if (bioAvailable && enrolled) setScreen('biometric')
+  }, [bioChecked, bioAvailable, enrolled])
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
