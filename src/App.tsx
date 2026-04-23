@@ -139,7 +139,7 @@ function AdminGate() {
   const handleLogout = () => signOut(auth)
 
   if (loading) return <AuthLoadingSkeleton />
-  if (!user) return <Login />
+  if (!user) return <Login onLogin={() => {}} />
 
   return <AdminLayout onLogout={handleLogout} />
 }
