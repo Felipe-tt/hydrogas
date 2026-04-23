@@ -20,10 +20,15 @@ export const app  = initializeApp(firebaseConfig)
 export const db   = getDatabase(app)
 export const auth = getAuth(app)
 
-initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
-  isTokenAutoRefreshEnabled: true,
-})
+// App Check: só inicializa se a chave reCAPTCHA estiver configurada.
+// Sem isso, a ausência da variável causa erro silencioso que bloqueia
+// todas as Cloud Functions com enforceAppCheck: true.
+if (import.meta.env.VITE_RECAPTCHA_KEY) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
+    isTokenAutoRefreshEnabled: true,
+  })
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function snap<T>(snapshot: any): T[] {
