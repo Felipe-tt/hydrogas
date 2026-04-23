@@ -106,7 +106,13 @@ export function Login({ onLogin }: LoginProps) {
     if (!username.trim() || !password.trim()) return
     await login(
       username, password,
-      () => { isPlatformAuthenticatorAvailable().then(avail => { avail && !bio.isEnrolled() ? setScreen('enroll') : onLogin?.() }) },
+      async () => {
+        // Checa no momento exato do sucesso — não depende do state assíncrono inicial
+        const supported = isBiometricSupported()
+        if (!supported || bio.isEnrolled()) { onLogin?.(); return }
+        const available = await isPlatformAuthenticatorAvailable()
+        available ? setScreen('enroll') : onLogin?.()
+      },
       () => { setPassword(''); passwordRef.current?.focus() },
     )
   }
