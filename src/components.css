@@ -3292,3 +3292,183 @@
   font-size: 13px;
   color: var(--text-3);
 }
+
+/* ── Biometria: tela de autenticação ─────────────────────────────────────── */
+
+.bio-screen {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             16px;
+  padding:         8px 0 4px;
+}
+
+.bio-icon-btn {
+  width:            96px;
+  height:           96px;
+  border-radius:    50%;
+  border:           2px solid var(--border);
+  background:       var(--card);
+  cursor:           pointer;
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+  transition:       border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  position:         relative;
+  margin-bottom:    4px;
+}
+
+.bio-icon-btn:hover:not(:disabled) {
+  border-color: #2563eb;
+  box-shadow:   0 0 0 4px rgba(37, 99, 235, 0.12);
+  transform:    scale(1.04);
+}
+
+.bio-icon-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.bio-icon-btn:disabled {
+  cursor: default;
+}
+
+/* Anel pulsante durante leitura */
+.bio-icon-btn--scanning {
+  border-color: #2563eb;
+  animation:    bio-ring-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes bio-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(37, 99, 235, 0.35) }
+  50%       { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0)  }
+}
+
+.bio-fingerprint-icon {
+  color:      var(--text-2);
+  transition: color 0.2s;
+}
+
+.bio-fingerprint-icon--active {
+  color:      #2563eb;
+  animation:  bio-pulse 1.4s ease-in-out infinite;
+}
+
+.bio-fingerprint-icon--error {
+  color: #dc2626;
+}
+
+@keyframes bio-pulse {
+  0%, 100% { opacity: 1   }
+  50%       { opacity: 0.5 }
+}
+
+.bio-instruction {
+  font-size:   15px;
+  font-weight: 500;
+  color:       var(--text);
+  margin:      0;
+}
+
+.bio-error {
+  width: 100%;
+}
+
+.bio-retry-btn {
+  width:           100%;
+  justify-content: center;
+  padding:         10px 16px;
+  display:         flex;
+  align-items:     center;
+  gap:             8px;
+}
+
+.bio-use-password {
+  background:    none;
+  border:        none;
+  cursor:        pointer;
+  color:         var(--text-3);
+  font-size:     13px;
+  padding:       6px 8px;
+  border-radius: 6px;
+  display:       flex;
+  align-items:   center;
+  margin-top:    4px;
+  transition:    color 0.15s, background 0.15s;
+}
+
+.bio-use-password:hover {
+  color:      var(--text-2);
+  background: var(--hover);
+}
+
+/* ── Biometria: tela de enroll ───────────────────────────────────────────── */
+
+.enroll-screen {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             14px;
+  text-align:      center;
+  padding:         8px 0 4px;
+}
+
+.enroll-icon-wrap {
+  width:            72px;
+  height:           72px;
+  border-radius:    50%;
+  background:       rgba(37, 99, 235, 0.08);
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+  margin-bottom:    4px;
+}
+
+.enroll-shield-icon {
+  color: #2563eb;
+}
+
+.enroll-title {
+  margin:      0;
+  font-size:   18px;
+  font-weight: 700;
+  color:       var(--text);
+}
+
+.enroll-desc {
+  margin:      0;
+  font-size:   13px;
+  color:       var(--text-2);
+  line-height: 1.55;
+  max-width:   300px;
+}
+
+.enroll-accept-btn {
+  width:           100%;
+  justify-content: center;
+  padding:         11px 16px;
+  display:         flex;
+  align-items:     center;
+  gap:             8px;
+  margin-top:      4px;
+}
+
+.enroll-skip-btn {
+  background:    none;
+  border:        none;
+  cursor:        pointer;
+  color:         var(--text-3);
+  font-size:     13px;
+  padding:       6px 8px;
+  border-radius: 6px;
+  transition:    color 0.15s, background 0.15s;
+}
+
+.enroll-skip-btn:hover:not(:disabled) {
+  color:      var(--text-2);
+  background: var(--hover);
+}
+
+.enroll-skip-btn:disabled {
+  opacity: 0.5;
+  cursor:  default;
+}
