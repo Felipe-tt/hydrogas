@@ -14,7 +14,7 @@ export default defineConfig({
         short_name: 'HidroGás',
         description: 'Controle gerencial de água e gás para condomínios',
         theme_color: '#2563eb',
-        background_color: '#1e40af',
+        background_color: '#334da1',
         display: 'standalone',
         start_url: '/',
         icons: [
