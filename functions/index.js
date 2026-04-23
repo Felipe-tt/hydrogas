@@ -953,7 +953,7 @@ exports.getBiometricRegisterChallenge = onCall(
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: true,
+    enforceAppCheck: false,
   },
   async (request) => {
     // Requer sessão Firebase válida (só chega aqui pós-login com senha)
@@ -989,7 +989,7 @@ exports.registerBiometric = onCall(
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: true,
+    enforceAppCheck: false,
   },
   async (request) => {
     // Requer sessão Firebase válida
@@ -1069,7 +1069,7 @@ exports.getBiometricAuthChallenge = onCall(
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: true,
+    enforceAppCheck: false,
   },
   async (request) => {
     const ipKey = getClientIp(request.rawRequest)
@@ -1101,7 +1101,7 @@ exports.verifyBiometric = onCall(
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: true,
+    enforceAppCheck: false,
   },
   async (request) => {
     const ipKey = getClientIp(request.rawRequest)
@@ -1217,7 +1217,10 @@ exports.verifyBiometric = onCall(
     // Spec: se signCount do servidor > 0 e recebido <= armazenado → possível clone
     const receivedSignCount = (authDataBuf[33] << 24) | (authDataBuf[34] << 16) |
                               (authDataBuf[35] << 8)  |  authDataBuf[36]
-    if (stored.signCount > 0 && receivedSignCount <= stored.signCount) {
+    // Só revoga se AMBOS os contadores são > 0 e o recebido é menor.
+    // Autenticadores Android/Chrome frequentemente retornam signCount = 0 sempre,
+    // o que causaria falsos positivos e revogação indevida da credencial.
+    if (stored.signCount > 0 && receivedSignCount > 0 && receivedSignCount <= stored.signCount) {
       logger.error('signCount regressivo — possível clonagem de autenticador!', {
         stored: stored.signCount, received: receivedSignCount
       })
