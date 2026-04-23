@@ -124,7 +124,16 @@ export function Login({ onLogin }: LoginProps) {
 
   const handleEnrollAccept = useCallback(async () => {
     const ok = await bio.enroll()
-    if (ok || bio.state === 'idle') onLogin?.()
+    // ok=true → cadastro concluído; ok=false pode ser cancelamento (state='idle') ou erro auth
+    // Só permanece na tela se houve erro de autenticação (ex: sessão expirada)
+    if (ok) { onLogin?.(); return }
+    // Após enroll(), o state já foi setado; checamos via localStorage se revoke() foi chamado
+    const stillEnrolled = localStorage.getItem('hg_bio_enrolled') === 'true'
+    if (!stillEnrolled) {
+      // revoke() foi chamado → credencial inválida, mas usuário já está autenticado → vai pro app
+      onLogin?.()
+    }
+    // state='idle' (cancelamento) → fica na tela para o usuário decidir
   }, [bio, onLogin])
 
   const decorations = (
