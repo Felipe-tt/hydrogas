@@ -142,8 +142,9 @@ function AdminGate() {
       setLoading(false)
 
       if (!u) {
-        // Logout → reseta tudo
+        // Logout → reseta tudo, inclusive firstFire para o próximo login
         setEnrollDone(false)
+        firstFire.current = true
       } else if (isFirstFire) {
         // Primeira execução com usuário = sessão já existia (persistência Firebase)
         // → vai direto pro app sem passar pelo enroll
