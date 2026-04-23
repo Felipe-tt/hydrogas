@@ -93,6 +93,10 @@
       ".read":  false,
       ".write": false
     },
+    "_biometric": {
+      ".read":  false,
+      ".write": false
+    },
     "$other": {
       ".read":  false,
       ".write": false
