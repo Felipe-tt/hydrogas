@@ -55,7 +55,9 @@ function useAdminLogin() {
         return
       }
       try {
-        await signInWithCustomToken(auth, token)
+        const userCredential = await signInWithCustomToken(auth, token)
+        // Aguarda o SDK propagar o token internamente antes de chamar funções autenticadas
+        await userCredential.user.getIdToken()
         onSuccess()
       } catch (fbErr: any) {
         const code = fbErr?.code || ''
@@ -104,7 +106,7 @@ export function Login({ onLogin }: LoginProps) {
     if (!username.trim() || !password.trim()) return
     await login(
       username, password,
-      () => { bioAvailable && !bio.isEnrolled() ? setScreen('enroll') : onLogin?.() },
+      () => { isPlatformAuthenticatorAvailable().then(avail => { avail && !bio.isEnrolled() ? setScreen('enroll') : onLogin?.() }) },
       () => { setPassword(''); passwordRef.current?.focus() },
     )
   }
