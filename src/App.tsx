@@ -15,6 +15,7 @@ import { Login } from './pages/Login'
 
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './infrastructure/firebase'
+import { isBiometricSupported } from './hooks/useBiometric'
 
 import { useUIStore } from './store'
 import { Skeleton } from './components/ui/Skeleton'
@@ -146,9 +147,18 @@ function AdminGate() {
         setEnrollDone(false)
         firstFire.current = true
       } else if (isFirstFire) {
-        // Primeira execução com usuário = sessão já existia (persistência Firebase)
-        // → vai direto pro app sem passar pelo enroll
-        setEnrollDone(true)
+        // Primeira execução com usuário = sessão já existia (persistência Firebase).
+        // Se tiver biometria cadastrada, mantém enrollDone=false para que o Login
+        // mostre a tela de digital. Caso contrário, vai direto pro app.
+        const hasBiometric =
+          isBiometricSupported() &&
+          localStorage.getItem('hg_bio_enrolled') === 'true' &&
+          localStorage.getItem('hg_bio_cred_id')  !== null
+        if (!hasBiometric) {
+          setEnrollDone(true)
+        }
+        // hasBiometric=true → enrollDone fica false; Login detecta enrolled e
+        // vai pra tela 'biometric' automaticamente via useEffect
       }
       // isFirstFire=false e u existe = login novo feito agora
       // → enrollDone permanece false até onLogin() ser chamado pela tela de enroll
