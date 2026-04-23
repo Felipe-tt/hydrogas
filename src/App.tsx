@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 import { useFirebaseSync } from './hooks/useFirebaseSync'
@@ -128,25 +128,31 @@ function AdminLayout({ onLogout }: { onLogout: () => void }) {
 function AdminGate() {
   const [user, setUser]             = useState<any>(null)
   const [loading, setLoading]       = useState(true)
-  // enrollDone: true quando o usuário passou pelo fluxo de login/enroll nesta sessão,
-  // OU quando já tinha sessão ativa ao carregar o app (não precisa re-enroll).
   const [enrollDone, setEnrollDone] = useState(false)
+  // Ref para saber se o primeiro disparo do onAuthStateChanged já ocorreu.
+  // Necessário porque o closure do useEffect captura loading=true para sempre.
+  const firstFire = useRef(true)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
+      const isFirstFire = firstFire.current
+      firstFire.current = false
+
       setUser(u)
       setLoading(false)
+
       if (!u) {
         // Logout → reseta tudo
         setEnrollDone(false)
-      } else if (loading) {
-        // Sessão já existia ao montar o componente (persistência Firebase) → vai direto pro app
+      } else if (isFirstFire) {
+        // Primeira execução com usuário = sessão já existia (persistência Firebase)
+        // → vai direto pro app sem passar pelo enroll
         setEnrollDone(true)
       }
-      // Se !loading e u existe → foi um login novo → enrollDone permanece false até onLogin()
+      // isFirstFire=false e u existe = login novo feito agora
+      // → enrollDone permanece false até onLogin() ser chamado pela tela de enroll
     })
     return () => unsub()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleLogout = () => signOut(auth)
