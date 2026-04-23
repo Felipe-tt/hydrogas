@@ -87,8 +87,14 @@ export function Login({ onLogin }: LoginProps) {
   const bio = useBiometric()
 
   useEffect(() => {
-    if (!isBiometricSupported()) { setBioChecked(true); return }
+    const supported = isBiometricSupported()
+    if (!supported) {
+      alert(`[BIO DEBUG]\nsecureContext: ${window.isSecureContext}\nPKC: ${typeof window.PublicKeyCredential}\nsupported: false`)
+      setBioChecked(true)
+      return
+    }
     isPlatformAuthenticatorAvailable().then(available => {
+      alert(`[BIO DEBUG]\nsecureContext: ${window.isSecureContext}\nPKC: ${typeof window.PublicKeyCredential}\nsupported: true\nplatformAuth: ${available}\nenrolled: ${localStorage.getItem('hg_bio_enrolled')}`)
       setBioAvail(available)
       setBioChecked(true)
     })
