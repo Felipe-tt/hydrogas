@@ -104,7 +104,7 @@ export function Login({ onLogin }: LoginProps) {
     if (!username.trim() || !password.trim()) return
     await login(
       username, password,
-      () => { isPlatformAuthenticatorAvailable().then(avail => { avail && !bio.isEnrolled() ? setScreen('enroll') : onLogin?.() }) },
+      () => { bioAvailable && !bio.isEnrolled() ? setScreen('enroll') : onLogin?.() },
       () => { setPassword(''); passwordRef.current?.focus() },
     )
   }
