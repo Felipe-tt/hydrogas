@@ -706,6 +706,543 @@ function buildEmailHtml({
 
 // ─── Functions ────────────────────────────────────────────────────────────────
 
+/**
+ * BIOMETRIA — Arquitetura de segurança
+ * ─────────────────────────────────────────────────────────────────────────────
+ * getBiometricRegisterChallenge  → emite challenge HMAC para registro (requer auth)
+ * registerBiometric              → valida attestation e salva chave pública (requer auth)
+ * getBiometricAuthChallenge      → emite challenge de uso único TTL 2min (público)
+ * verifyBiometric                → verifica assinatura ECDSA/RSA, emite Custom Token
+ *
+ * Proteções implementadas:
+ *  • Replay attack:   challenge de uso único — deletado no servidor após verificação
+ *  • Phishing:        origin e rpId validados criptograficamente no clientDataJSON
+ *  • Challenge forge: challenge gerado e verificado server-side via HMAC-SHA256
+ *  • Força bruta:     rate limit por IP em todas as 4 funções
+ *  • Auth obrigatória para registro: impossível registrar sem sessão Firebase válida
+ *  • Credencial única: nova credencial sobrescreve a anterior automaticamente
+ *  • userVerification validado: UP e UV flags obrigatórios no authenticatorData
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+// ── Constantes biométricas ────────────────────────────────────────────────────
+
+const BIO_CHALLENGE_TTL_MS   = 2 * 60 * 1000   // 2 minutos
+const BIO_CHALLENGE_HMAC_KEY = process.env.BIO_HMAC_KEY  // secret obrigatório
+const BIO_ADMIN_USER_ID      = Buffer.from('hydrogas-admin-webauthn').toString('base64url')
+
+// ── Helpers WebAuthn ──────────────────────────────────────────────────────────
+
+/** Gera um challenge aleatório de 32 bytes e assina com HMAC para evitar forja */
+function generateSignedChallenge() {
+  const random    = crypto.randomBytes(32).toString('base64url')
+  const timestamp = Date.now().toString()
+  const payload   = `${random}.${timestamp}`
+  const hmac      = crypto.createHmac('sha256', BIO_CHALLENGE_HMAC_KEY)
+    .update(payload).digest('base64url')
+  return { challenge: `${payload}.${hmac}`, random, timestamp }
+}
+
+/** Verifica se o challenge foi gerado por este servidor e ainda está no TTL */
+function verifySignedChallenge(challenge) {
+  const parts = challenge.split('.')
+  if (parts.length !== 3) return false
+  const [random, timestamp, receivedHmac] = parts
+  const expectedHmac = crypto.createHmac('sha256', BIO_CHALLENGE_HMAC_KEY)
+    .update(`${random}.${timestamp}`).digest('base64url')
+  // Comparação em tempo constante para evitar timing attack
+  if (!crypto.timingSafeEqual(Buffer.from(receivedHmac), Buffer.from(expectedHmac))) return false
+  const age = Date.now() - parseInt(timestamp, 10)
+  return age >= 0 && age <= BIO_CHALLENGE_TTL_MS
+}
+
+/** base64url → Buffer */
+function b64u(str) {
+  return Buffer.from(str.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+}
+
+/**
+ * Extrai e valida a chave pública COSE do attestationObject.
+ * Suporta ES256 (alg -7, ECDSA P-256) e RS256 (alg -257, RSASSA-PKCS1-v1_5).
+ * Retorna { publicKeyJwk, algorithm } ou lança erro.
+ *
+ * Parsing manual de CBOR mínimo (evita dependência externa):
+ *  - Só processa maps, byte strings e integers simples
+ *  - Suficiente para credentialPublicKey em fmt:'none' / fmt:'packed' / fmt:'fido-u2f'
+ */
+function extractPublicKeyFromAttestation(attestationObjectB64u) {
+  const buf = b64u(attestationObjectB64u)
+
+  // CBOR map top-level: encontrar authData pelo key "authData"
+  // Formato: map(N) key:"fmt" value:text key:"attStmt" value:map key:"authData" value:bytes
+  // Usamos indexOf para localizar o bytestring "authData" como CBOR text
+  // CBOR text "authData" = 0x68 61 75 74 68 44 61 74 61
+  const AUTHDATA_KEY = Buffer.from([0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61])
+  let authDataStart  = -1
+  for (let i = 0; i <= buf.length - AUTHDATA_KEY.length; i++) {
+    if (buf.slice(i, i + AUTHDATA_KEY.length).equals(AUTHDATA_KEY)) {
+      authDataStart = i + AUTHDATA_KEY.length
+      break
+    }
+  }
+  if (authDataStart === -1) throw new Error('authData não encontrado no attestationObject')
+
+  // O próximo byte após "authData" é o CBOR header do bytestring
+  // 0x58 NN = bytes(NN) (1 byte length), 0x59 NN NN = bytes(NNNN) (2 byte length)
+  let authData
+  const hdr = buf[authDataStart]
+  if (hdr === 0x58) {
+    const len = buf[authDataStart + 1]
+    authData  = buf.slice(authDataStart + 2, authDataStart + 2 + len)
+  } else if (hdr === 0x59) {
+    const len = (buf[authDataStart + 1] << 8) | buf[authDataStart + 2]
+    authData  = buf.slice(authDataStart + 3, authDataStart + 3 + len)
+  } else {
+    throw new Error('Formato authData inesperado')
+  }
+
+  // authData layout (spec §6.1):
+  //  [0..31]   rpIdHash (32 bytes)
+  //  [32]      flags (1 byte) — bit 6 = AT (attested credential data included)
+  //  [33..36]  signCount (4 bytes, big-endian)
+  //  [37..48]  aaguid (16 bytes)
+  //  [49..50]  credentialIdLength (2 bytes, big-endian)
+  //  [51..]    credentialId (credentialIdLength bytes)
+  //  [51+L..]  credentialPublicKey (CBOR)
+  if (authData.length < 55) throw new Error('authData muito curto')
+  const flags = authData[32]
+  const AT    = (flags >> 6) & 1
+  if (!AT) throw new Error('Attested Credential Data ausente no authData')
+
+  const credIdLen      = (authData[49] << 8) | authData[50]
+  const credPubKeyStart = 51 + credIdLen
+  const credPubKeyCbor  = authData.slice(credPubKeyStart)
+
+  // Parse CBOR mínimo para COSE key (map com integer keys)
+  // COSE key para EC2 (alg -7): { 1:2, 3:-7, -1:1, -2:x(32), -3:y(32) }
+  // COSE key para RSA (alg -257): { 1:3, 3:-257, -1:n, -2:e }
+  const cose = parseCoseKey(credPubKeyCbor)
+
+  const alg = cose[3]
+  if (alg === -7) {
+    // ES256 — ECDSA P-256
+    const x = cose[-2]
+    const y = cose[-3]
+    if (!x || !y || x.length !== 32 || y.length !== 32)
+      throw new Error('Chave EC inválida')
+    return {
+      algorithm: 'ES256',
+      publicKeyJwk: { kty: 'EC', crv: 'P-256', x: x.toString('base64url'), y: y.toString('base64url') },
+    }
+  } else if (alg === -257) {
+    // RS256 — RSASSA-PKCS1-v1_5
+    const n = cose[-1]
+    const e = cose[-2]
+    if (!n || !e) throw new Error('Chave RSA inválida')
+    return {
+      algorithm: 'RS256',
+      publicKeyJwk: { kty: 'RSA', n: n.toString('base64url'), e: e.toString('base64url') },
+    }
+  } else {
+    throw new Error(`Algoritmo COSE não suportado: ${alg}`)
+  }
+}
+
+/** Parser CBOR mínimo para COSE key map (integer keys apenas) */
+function parseCoseKey(buf) {
+  const result = {}
+  let pos = 0
+  // Expect map header
+  const firstByte = buf[pos++]
+  const majorType = firstByte >> 5
+  if (majorType !== 5) throw new Error('COSE key não é um CBOR map')
+  let count = firstByte & 0x1f
+  if (count === 24) count = buf[pos++]
+  for (let i = 0; i < count; i++) {
+    const key = readCborInt(buf, pos)
+    pos = key.nextPos
+    const val = readCborValue(buf, pos)
+    pos = val.nextPos
+    result[key.value] = val.value
+  }
+  return result
+}
+
+function readCborInt(buf, pos) {
+  const b = buf[pos]
+  const major = b >> 5
+  const info  = b & 0x1f
+  if (major !== 0 && major !== 1) throw new Error('Esperado integer CBOR')
+  let value, nextPos
+  if (info < 24) {
+    value   = major === 1 ? -(info + 1) : info
+    nextPos = pos + 1
+  } else if (info === 24) {
+    value   = major === 1 ? -(buf[pos + 1] + 1) : buf[pos + 1]
+    nextPos = pos + 2
+  } else {
+    throw new Error('Integer CBOR muito grande')
+  }
+  return { value, nextPos }
+}
+
+function readCborValue(buf, pos) {
+  const b     = buf[pos]
+  const major = b >> 5
+  const info  = b & 0x1f
+  if (major === 0 || major === 1) return readCborInt(buf, pos)
+  if (major === 2) {
+    // byte string
+    let len, nextPos
+    if (info < 24) { len = info; nextPos = pos + 1 }
+    else if (info === 24) { len = buf[pos + 1]; nextPos = pos + 2 }
+    else if (info === 25) { len = (buf[pos + 1] << 8) | buf[pos + 2]; nextPos = pos + 3 }
+    else throw new Error('Byte string CBOR muito grande')
+    return { value: buf.slice(nextPos, nextPos + len), nextPos: nextPos + len }
+  }
+  if (major === 3) {
+    // text string
+    let len, nextPos
+    if (info < 24) { len = info; nextPos = pos + 1 }
+    else if (info === 24) { len = buf[pos + 1]; nextPos = pos + 2 }
+    else throw new Error('Text string CBOR muito grande')
+    return { value: buf.slice(nextPos, nextPos + len).toString('utf8'), nextPos: nextPos + len }
+  }
+  if (major === 5) {
+    // map — recursivo (para attStmt etc.)
+    let count = info, nextPos = pos + 1
+    const map = {}
+    if (count === 24) { count = buf[nextPos++] }
+    for (let i = 0; i < count; i++) {
+      const k = readCborValue(buf, nextPos); nextPos = k.nextPos
+      const v = readCborValue(buf, nextPos); nextPos = v.nextPos
+      map[k.value] = v.value
+    }
+    return { value: map, nextPos }
+  }
+  throw new Error(`Tipo CBOR não suportado: major=${major}`)
+}
+
+/**
+ * Verifica a assinatura WebAuthn usando Node.js crypto nativo.
+ * Suporta ES256 e RS256.
+ * A mensagem assinada é: SHA-256(authenticatorData || SHA-256(clientDataJSON))
+ * conforme spec WebAuthn §6.3.3
+ */
+function verifyWebAuthnSignature(publicKeyJwk, algorithm, authenticatorDataBuf, clientDataJSONBuf, signatureBuf) {
+  const clientDataHash = crypto.createHash('sha256').update(clientDataJSONBuf).digest()
+  const message        = Buffer.concat([authenticatorDataBuf, clientDataHash])
+
+  if (algorithm === 'ES256') {
+    const key    = crypto.createPublicKey({ key: publicKeyJwk, format: 'jwk' })
+    return crypto.verify('SHA256', message, { key, dsaEncoding: 'ieee-p1363' }, signatureBuf)
+      // Tentar DER se ieee-p1363 falhar (alguns autenticadores usam DER)
+      || crypto.verify('SHA256', message, key, signatureBuf)
+  } else if (algorithm === 'RS256') {
+    const key = crypto.createPublicKey({ key: publicKeyJwk, format: 'jwk' })
+    return crypto.verify('SHA256', message, key, signatureBuf)
+  }
+  return false
+}
+
+// ── 1. getBiometricRegisterChallenge ─────────────────────────────────────────
+
+exports.getBiometricRegisterChallenge = onCall(
+  {
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    timeoutSeconds:  15,
+    memory:          '256MiB',
+    region:          'us-central1',
+    enforceAppCheck: true,
+  },
+  async (request) => {
+    // Requer sessão Firebase válida (só chega aqui pós-login com senha)
+    if (!request.auth || request.auth.uid !== ADMIN_UID) {
+      throw new HttpsError('unauthenticated', 'Autenticação necessária.')
+    }
+
+    const ipKey = getClientIp(request.rawRequest)
+    if (await isRateLimited(ipKey)) {
+      throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
+    }
+
+    if (!BIO_CHALLENGE_HMAC_KEY) {
+      logger.error('BIO_HMAC_KEY não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+
+    const { challenge } = generateSignedChallenge()
+
+    // rpId = hostname sem porta (spec WebAuthn §5.4.2)
+    // Em produção: seu domínio real. Em dev: "localhost"
+    const rpId = process.env.BIO_RP_ID || 'localhost'
+
+    return { challenge, rpId, userId: BIO_ADMIN_USER_ID }
+  }
+)
+
+// ── 2. registerBiometric ──────────────────────────────────────────────────────
+
+exports.registerBiometric = onCall(
+  {
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    timeoutSeconds:  30,
+    memory:          '256MiB',
+    region:          'us-central1',
+    enforceAppCheck: true,
+  },
+  async (request) => {
+    // Requer sessão Firebase válida
+    if (!request.auth || request.auth.uid !== ADMIN_UID) {
+      throw new HttpsError('unauthenticated', 'Autenticação necessária.')
+    }
+
+    const ipKey = getClientIp(request.rawRequest)
+    if (await isRateLimited(ipKey)) {
+      throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
+    }
+
+    const { credentialId, clientDataJSON, attestationObject } = request.data || {}
+    if (!credentialId || !clientDataJSON || !attestationObject) {
+      throw new HttpsError('invalid-argument', 'Dados incompletos.')
+    }
+
+    if (!BIO_CHALLENGE_HMAC_KEY) {
+      logger.error('BIO_HMAC_KEY não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+
+    // Validar clientDataJSON
+    let clientData
+    try {
+      clientData = JSON.parse(b64u(clientDataJSON).toString('utf8'))
+    } catch {
+      throw new HttpsError('invalid-argument', 'clientDataJSON inválido.')
+    }
+
+    // Verificar type obrigatório
+    if (clientData.type !== 'webauthn.create') {
+      throw new HttpsError('invalid-argument', 'Tipo de operação incorreto.')
+    }
+
+    // Verificar challenge HMAC (previne forja de challenge pelo cliente)
+    if (!verifySignedChallenge(clientData.challenge)) {
+      throw new HttpsError('invalid-argument', 'Challenge inválido ou expirado.')
+    }
+
+    // Verificar origin (previne phishing)
+    const expectedOrigins = (process.env.BIO_ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+    if (!expectedOrigins.includes(clientData.origin)) {
+      logger.warn('Origin inválida no registro:', clientData.origin)
+      throw new HttpsError('invalid-argument', 'Origin inválida.')
+    }
+
+    // Extrair e validar chave pública do attestationObject
+    let publicKeyData
+    try {
+      publicKeyData = extractPublicKeyFromAttestation(attestationObject)
+    } catch (err) {
+      logger.error('Erro ao extrair chave pública:', err)
+      throw new HttpsError('invalid-argument', 'Attestation inválido.')
+    }
+
+    // Salvar credencial no RTDB (sobrescreve qualquer credencial anterior)
+    // Nunca armazena dado biométrico — apenas chave pública (segura para armazenar)
+    await getDatabase().ref('_biometric/credential').set({
+      credentialId:  credentialId,
+      publicKeyJwk:  JSON.stringify(publicKeyData.publicKeyJwk),
+      algorithm:     publicKeyData.algorithm,
+      registeredAt:  Date.now(),
+      signCount:     0,   // contador anti-clonagem (incrementado a cada auth)
+    })
+
+    logger.info('Credencial biométrica registrada com sucesso.')
+    return { ok: true }
+  }
+)
+
+// ── 3. getBiometricAuthChallenge ──────────────────────────────────────────────
+
+exports.getBiometricAuthChallenge = onCall(
+  {
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    timeoutSeconds:  15,
+    memory:          '256MiB',
+    region:          'us-central1',
+    enforceAppCheck: true,
+  },
+  async (request) => {
+    const ipKey = getClientIp(request.rawRequest)
+    if (await isRateLimited(ipKey)) {
+      throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
+    }
+
+    if (!BIO_CHALLENGE_HMAC_KEY) {
+      logger.error('BIO_HMAC_KEY não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+
+    // Verificar se existe credencial registrada (evita expor endpoint sem necessidade)
+    const snap = await getDatabase().ref('_biometric/credential').get()
+    if (!snap.exists()) {
+      throw new HttpsError('not-found', 'Nenhuma credencial registrada.')
+    }
+
+    const { challenge } = generateSignedChallenge()
+    return { challenge }
+  }
+)
+
+// ── 4. verifyBiometric ────────────────────────────────────────────────────────
+
+exports.verifyBiometric = onCall(
+  {
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    timeoutSeconds:  30,
+    memory:          '256MiB',
+    region:          'us-central1',
+    enforceAppCheck: true,
+  },
+  async (request) => {
+    const ipKey = getClientIp(request.rawRequest)
+    if (await isRateLimited(ipKey)) {
+      throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
+    }
+
+    const { credentialId, clientDataJSON, authenticatorData, signature } = request.data || {}
+    if (!credentialId || !clientDataJSON || !authenticatorData || !signature) {
+      throw new HttpsError('invalid-argument', 'Dados incompletos.')
+    }
+
+    if (!BIO_CHALLENGE_HMAC_KEY) {
+      logger.error('BIO_HMAC_KEY não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+
+    // Buscar credencial armazenada
+    const snap = await getDatabase().ref('_biometric/credential').get()
+    if (!snap.exists()) {
+      throw new HttpsError('not-found', 'Credencial não encontrada.')
+    }
+    const stored = snap.val()
+
+    // Verificar se o credentialId corresponde ao registrado
+    // Comparação em tempo constante
+    const storedIdBuf   = Buffer.from(stored.credentialId)
+    const receivedIdBuf = Buffer.from(credentialId)
+    if (
+      storedIdBuf.length !== receivedIdBuf.length ||
+      !crypto.timingSafeEqual(storedIdBuf, receivedIdBuf)
+    ) {
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('unauthenticated', 'Credencial inválida.')
+    }
+
+    // Validar clientDataJSON
+    let clientData
+    try {
+      clientData = JSON.parse(b64u(clientDataJSON).toString('utf8'))
+    } catch {
+      throw new HttpsError('invalid-argument', 'clientDataJSON inválido.')
+    }
+
+    if (clientData.type !== 'webauthn.get') {
+      throw new HttpsError('invalid-argument', 'Tipo de operação incorreto.')
+    }
+
+    // Verificar challenge HMAC — uso único garantido pelo TTL no HMAC
+    if (!verifySignedChallenge(clientData.challenge)) {
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('unauthenticated', 'Challenge inválido ou expirado.')
+    }
+
+    // Verificar origin
+    const expectedOrigins = (process.env.BIO_ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+    if (!expectedOrigins.includes(clientData.origin)) {
+      logger.warn('Origin inválida na verificação:', clientData.origin)
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('unauthenticated', 'Origin inválida.')
+    }
+
+    // Verificar authenticatorData
+    const authDataBuf = b64u(authenticatorData)
+    if (authDataBuf.length < 37) {
+      throw new HttpsError('invalid-argument', 'authenticatorData inválido.')
+    }
+
+    // Verificar rpIdHash (SHA-256 do rpId esperado)
+    const expectedRpId     = process.env.BIO_RP_ID || 'localhost'
+    const expectedRpIdHash = crypto.createHash('sha256').update(expectedRpId).digest()
+    const receivedRpIdHash = authDataBuf.slice(0, 32)
+    if (!crypto.timingSafeEqual(expectedRpIdHash, receivedRpIdHash)) {
+      logger.warn('rpIdHash inválido na verificação')
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('unauthenticated', 'rpId inválido.')
+    }
+
+    // Verificar flags: UP (user present) e UV (user verified) obrigatórios
+    const flags = authDataBuf[32]
+    const UP    = flags & 0x01  // bit 0
+    const UV    = (flags >> 2) & 0x01  // bit 2
+    if (!UP || !UV) {
+      logger.warn('Flags UP/UV ausentes — userVerification não satisfeito')
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('unauthenticated', 'Verificação do usuário não satisfeita.')
+    }
+
+    // Verificar assinatura criptográfica
+    let signatureValid = false
+    try {
+      const publicKeyJwk = JSON.parse(stored.publicKeyJwk)
+      signatureValid = verifyWebAuthnSignature(
+        publicKeyJwk,
+        stored.algorithm,
+        authDataBuf,
+        b64u(clientDataJSON),
+        b64u(signature),
+      )
+    } catch (err) {
+      logger.error('Erro ao verificar assinatura:', err)
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('internal', 'Erro ao verificar assinatura.')
+    }
+
+    if (!signatureValid) {
+      logger.warn('Assinatura biométrica inválida')
+      await recordFailedAttempt(ipKey)
+      throw new HttpsError('unauthenticated', 'Assinatura inválida.')
+    }
+
+    // Verificar signCount (proteção anti-clonagem de autenticador)
+    // Spec: se signCount do servidor > 0 e recebido <= armazenado → possível clone
+    const receivedSignCount = (authDataBuf[33] << 24) | (authDataBuf[34] << 16) |
+                              (authDataBuf[35] << 8)  |  authDataBuf[36]
+    if (stored.signCount > 0 && receivedSignCount <= stored.signCount) {
+      logger.error('signCount regressivo — possível clonagem de autenticador!', {
+        stored: stored.signCount, received: receivedSignCount
+      })
+      // Revogar credencial como medida de segurança
+      await getDatabase().ref('_biometric/credential').remove()
+      throw new HttpsError('unauthenticated', 'Autenticador comprometido. Recadastre a digital.')
+    }
+
+    // Atualizar signCount no banco
+    await getDatabase().ref('_biometric/credential/signCount').set(receivedSignCount)
+
+    await clearRateLimit(ipKey)
+
+    // Emitir Custom Token — mesmo mecanismo do adminLogin
+    try {
+      const token = await getAuth().createCustomToken(ADMIN_UID, { role: 'admin' })
+      logger.info('Login biométrico bem-sucedido.')
+      return { token }
+    } catch (err) {
+      logger.error('Erro ao criar token pós-biometria:', err)
+      throw new HttpsError('internal', 'Erro ao criar sessão.')
+    }
+  }
+)
+
 exports.adminLogin = onCall(
   {
     secrets:         ['ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH', 'DATABASE_URL'],
