@@ -109,7 +109,8 @@ export function Login({ onLogin }: LoginProps) {
       async () => {
         // Checa no momento exato do sucesso — não depende do state assíncrono inicial
         const supported = isBiometricSupported()
-        if (!supported || bio.isEnrolled()) { onLogin?.(); return }
+        if (!supported) { onLogin?.(); return }
+        if (bio.isEnrolled()) { setScreen('biometric'); return }
         const available = await isPlatformAuthenticatorAvailable()
         available ? setScreen('enroll') : onLogin?.()
       },
