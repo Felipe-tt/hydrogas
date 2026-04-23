@@ -121,25 +121,39 @@ function AdminLayout({ onLogout }: { onLogout: () => void }) {
 
 /**
  * AdminGate é a única fonte de verdade sobre autenticação.
- * Login.tsx apenas chama signInWithEmailAndPassword — o
- * onAuthStateChanged aqui reage automaticamente ao resultado.
+ * Login.tsx chama signInWithCustomToken — o onAuthStateChanged
+ * reage automaticamente, mas aguarda o onLogin() para liberar
+ * o app (necessário para mostrar a tela de enroll biométrico).
  */
 function AdminGate() {
-  const [user, setUser]       = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]             = useState<any>(null)
+  const [loading, setLoading]       = useState(true)
+  // enrollDone: true quando o usuário passou pelo fluxo de login/enroll nesta sessão,
+  // OU quando já tinha sessão ativa ao carregar o app (não precisa re-enroll).
+  const [enrollDone, setEnrollDone] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(false)
+      if (!u) {
+        // Logout → reseta tudo
+        setEnrollDone(false)
+      } else if (loading) {
+        // Sessão já existia ao montar o componente (persistência Firebase) → vai direto pro app
+        setEnrollDone(true)
+      }
+      // Se !loading e u existe → foi um login novo → enrollDone permanece false até onLogin()
     })
     return () => unsub()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleLogout = () => signOut(auth)
 
   if (loading) return <AuthLoadingSkeleton />
-  if (!user) return <Login onLogin={() => {}} />
+  // Usuário autenticado mas ainda não passou pelo enroll → mantém Login visível
+  if (!user || !enrollDone) return <Login onLogin={() => setEnrollDone(true)} />
 
   return <AdminLayout onLogout={handleLogout} />
 }
