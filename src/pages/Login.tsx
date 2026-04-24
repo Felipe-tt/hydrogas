@@ -352,6 +352,7 @@ export function Login({ onLogin }: LoginProps) {
     {debugPanel}
     </div>
   )
+}
 
 function Spinner() {
   return (
