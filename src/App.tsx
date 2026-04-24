@@ -143,8 +143,11 @@ function AdminGate() {
   const [user, setUser]             = useState<any>(null)
   const [loading, setLoading]       = useState(true)
   const [enrollDone, setEnrollDone] = useState(false)
-  const firstFire     = useRef(true)
-  const enrollDoneRef = useRef(false)  // espelho imune a closures stale
+  const enrollDoneRef = useRef(false)
+
+  // Captura o estado do usuário ANTES de qualquer login novo.
+  // auth.currentUser é síncrono — se for não-null aqui, havia sessão persistida.
+  const hadSessionOnMount = useRef(auth.currentUser !== null)
 
   const handleEnrollDone = () => {
     enrollDoneRef.current = true
@@ -153,22 +156,19 @@ function AdminGate() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      const isFirstFire = firstFire.current
-      firstFire.current = false
-
       setUser(u)
       setLoading(false)
 
       if (!u) {
         // Logout → reseta tudo
         enrollDoneRef.current = false
+        hadSessionOnMount.current = false
         setEnrollDone(false)
-        firstFire.current = true
         return
       }
 
-      if (isFirstFire) {
-        // Sessão já existia (refresh da página)
+      // Sessão já existia antes de montar (refresh da página, não login novo)
+      if (hadSessionOnMount.current) {
         const hasBiometric =
           isBiometricSupported() &&
           localStorage.getItem('hg_bio_enrolled') === 'true' &&
@@ -177,13 +177,14 @@ function AdminGate() {
           enrollDoneRef.current = true
           setEnrollDone(true)
         }
-        // hasBiometric=true → Login mostra tela biometric via useEffect
+        // hasBiometric=true → Login mostra tela biometric, enrollDone fica false
+        // até o usuário autenticar via biometria e chamar onLogin()
+        hadSessionOnMount.current = false  // só aplica no primeiro disparo
         return
       }
 
-      // Disparos extras do onAuthStateChanged durante/após signInWithCustomToken.
-      // Só atualiza o state se o ref já tiver sido marcado como done
-      // (ou seja, onLogin() já foi chamado).
+      // Login novo (signInWithCustomToken) — pode disparar múltiplas vezes.
+      // Só libera o app se onLogin() já foi chamado pelo Login.
       if (enrollDoneRef.current) {
         setEnrollDone(true)
       }
@@ -198,6 +199,7 @@ function AdminGate() {
   if (!user || !enrollDone) return <Login onLogin={handleEnrollDone} />
   return <AdminLayout onLogout={handleLogout} />
 }
+
 
 export default function App() {
   return (
