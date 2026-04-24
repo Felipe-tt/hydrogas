@@ -350,24 +350,6 @@ export function Config() {
 
           <Divider />
 
-          {/* Logout — visível apenas no mobile (sidebar já tem no desktop) */}
-          <div className="show-on-mobile">
-            <Section
-              icon={<LogOut size={16} color="#dc2626" />}
-              iconBg="rgba(220,38,38,0.1)"
-              title="Sessão"
-              description="Encerrar o acesso ao sistema"
-            >
-              <button
-                className="btn-danger config-save-btn"
-                onClick={() => signOut(auth)}
-              >
-                <LogOut size={15} />Sair
-              </button>
-            </Section>
-            <Divider />
-          </div>
-
           {/* Save */}
           <div className="config-save-wrap">
             <button className="btn-primary config-save-btn" onClick={save} disabled={loading}>
@@ -378,6 +360,18 @@ export function Config() {
               )}
             </button>
           </div>
+
+          {/* Logout — visível apenas no mobile (sidebar já tem no desktop) */}
+          <div className="show-on-mobile config-logout-mobile-wrap">
+            <button
+              className="config-logout-mobile-btn"
+              onClick={() => signOut(auth)}
+            >
+              <LogOut size={13} />
+              Sair da conta
+            </button>
+          </div>
+
         </div>
 
         {/* ── RIGHT: info panels ── */}
