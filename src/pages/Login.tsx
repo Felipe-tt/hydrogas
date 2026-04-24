@@ -107,15 +107,14 @@ export function Login({ onLogin }: LoginProps) {
     await login(
       username, password,
       async () => {
-        // Checa no momento exato do sucesso — não depende do state assíncrono inicial
         const supported = isBiometricSupported()
-        if (!supported) { onLogin?.(); return }
-        // Já autenticou com senha → vai direto pro app, independente de ter biometria
-        if (bio.isEnrolled()) { onLogin?.(); return }
+        const enrolled = bio.isEnrolled()
+        const user = auth.currentUser
         const available = await isPlatformAuthenticatorAvailable()
+        alert(`[LOGIN DEBUG]\nsupported: ${supported}\nenrolled: ${enrolled}\nuser: ${user?.uid ?? 'null'}\navailable: ${available}`)
+        if (!supported) { onLogin?.(); return }
+        if (enrolled) { onLogin?.(); return }
         if (available) {
-          // Pequeno delay para garantir que o Firebase SDK propagou o token
-          // antes do useLayoutEffect disparar o enroll()
           await new Promise(resolve => setTimeout(resolve, 300))
           setScreen('enroll')
         } else {
