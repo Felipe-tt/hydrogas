@@ -38,7 +38,8 @@ const LS_ENROLLED      = 'hg_bio_enrolled'
 // ── Tipos das Cloud Functions ─────────────────────────────────────────────────
 
 interface RegisterChallengeResponse {
-  challenge: string  // base64url — challenge HMAC-assinado pelo servidor
+  challenge: string  // base64url — challenge assinado completo (random.timestamp.hmac)
+  random:    string  // base64url — bytes aleatórios puros para o WebAuthn
   rpId:      string  // ex: "meuapp.netlify.app"
   userId:    string  // base64url — handle fixo do admin
 }
@@ -50,7 +51,8 @@ interface VerifyRegistrationPayload {
 }
 
 interface AuthChallengeResponse {
-  challenge: string  // base64url — uso único, TTL 2 min
+  challenge: string  // base64url — string assinada completa (random.timestamp.hmac)
+  random:    string  // base64url — bytes puros para o WebAuthn
 }
 
 interface VerifyAuthPayload {
@@ -177,7 +179,10 @@ export function useBiometric(): UseBiometricReturn {
       // 2. Criar credencial no secure enclave do dispositivo
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge: base64urlToBuffer(data.challenge),
+          // Usa data.random (bytes puros) como challenge do WebAuthn.
+          // data.challenge é a string assinada completa (random.timestamp.hmac)
+          // usada pelo servidor para verificação — não é base64url decodificável diretamente.
+          challenge: base64urlToBuffer(data.random),
           rp: {
             id:   data.rpId,
             name: 'HidroGás',
@@ -277,7 +282,7 @@ export function useBiometric(): UseBiometricReturn {
       //    O SO apresenta Touch ID / Face ID / Windows Hello ao usuário
       const assertion = await navigator.credentials.get({
         publicKey: {
-          challenge:        base64urlToBuffer(data.challenge),
+          challenge:        base64urlToBuffer(data.random),
           rpId:             window.location.hostname,
           timeout:          60_000,
           userVerification: 'required',  // biometria obrigatória
