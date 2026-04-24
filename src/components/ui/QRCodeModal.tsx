@@ -43,8 +43,7 @@ export function QRCodeModal({ apt, onClose }: Props) {
 
       qr.append(qrRef.current)
       qrInstance.current = qr
-    } catch (err) {
-      console.error(err)
+    } catch (_err) {
       setError('Erro ao gerar QR Code')
     }
   }, [url, qrDotColor, qrAccentColor])
