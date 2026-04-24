@@ -107,14 +107,15 @@ export function Login({ onLogin }: LoginProps) {
     await login(
       username, password,
       async () => {
+        // Checa no momento exato do sucesso — não depende do state assíncrono inicial
         const supported = isBiometricSupported()
-        const enrolled = bio.isEnrolled()
-        const user = auth.currentUser
-        const available = await isPlatformAuthenticatorAvailable()
-        alert(`[LOGIN DEBUG]\nsupported: ${supported}\nenrolled: ${enrolled}\nuser: ${user?.uid ?? 'null'}\navailable: ${available}`)
         if (!supported) { onLogin?.(); return }
-        if (enrolled) { onLogin?.(); return }
+        // Já autenticou com senha → vai direto pro app, independente de ter biometria
+        if (bio.isEnrolled()) { onLogin?.(); return }
+        const available = await isPlatformAuthenticatorAvailable()
         if (available) {
+          // Pequeno delay para garantir que o Firebase SDK propagou o token
+          // antes do useLayoutEffect disparar o enroll()
           await new Promise(resolve => setTimeout(resolve, 300))
           setScreen('enroll')
         } else {
@@ -131,7 +132,9 @@ export function Login({ onLogin }: LoginProps) {
   }, [bio, onLogin])
 
   const handleEnrollAccept = useCallback(async () => {
+    alert('[ENROLL DEBUG] handleEnrollAccept chamado, bio.state: ' + bio.state)
     const ok = await bio.enroll()
+    alert('[ENROLL DEBUG] bio.enroll() retornou: ' + ok + ' | erro: ' + bio.error)
     if (ok) { onLogin?.(); return }
     const stillEnrolled = localStorage.getItem('hg_bio_enrolled') === 'true'
     if (!stillEnrolled) {
@@ -143,6 +146,7 @@ export function Login({ onLogin }: LoginProps) {
   // Ao entrar na tela 'enroll', dispara o prompt biométrico automaticamente.
   // A confirmação da digital É o aceite — não existe botão de "aceitar".
   useLayoutEffect(() => {
+    alert('[LAYOUT DEBUG] screen: ' + screen + ' | bio.state: ' + bio.state)
     if (screen === 'enroll' && bio.state === 'idle') {
       handleEnrollAccept()
     }
