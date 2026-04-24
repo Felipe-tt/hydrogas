@@ -227,19 +227,24 @@ export function useBiometric(): UseBiometricReturn {
       return true
 
     } catch (err: any) {
+      // Log completo do erro para debug
+      const errDetail = `name=${err?.name} code=${err?.code} msg=${err?.message}`
+      setError('DBG: ' + errDetail)
       if (err?.name === 'NotAllowedError') {
-        // Usuário cancelou ou timeout — não é erro, apenas desistência
-        setError('Registro cancelado.')
+        setError('Registro cancelado. ' + errDetail)
         setState('idle')
       } else if (err?.code === 'functions/unauthenticated') {
-        setError('Sessão expirada. Faça login com senha primeiro.')
+        setError('Sessão expirada. ' + errDetail)
         revoke()
         setState('error')
       } else if (err?.code === 'functions/resource-exhausted') {
         setError('Muitas tentativas. Aguarde 15 minutos.')
         setState('error')
+      } else if (err?.code === 'functions/invalid-argument') {
+        setError('Servidor rejeitou: ' + err?.message)
+        setState('error')
       } else {
-        setError('Erro ao registrar biometria. Tente novamente.')
+        setError('Erro: ' + errDetail)
         setState('error')
       }
       return false
