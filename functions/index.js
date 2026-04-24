@@ -771,156 +771,52 @@ function b64u(str) {
  *  - Suficiente para credentialPublicKey em fmt:'none' / fmt:'packed' / fmt:'fido-u2f'
  */
 function extractPublicKeyFromAttestation(attestationObjectB64u) {
-  const buf = b64u(attestationObjectB64u)
+  const cbor = require('cbor')
+  const buf  = b64u(attestationObjectB64u)
 
-  // CBOR map top-level: encontrar authData pelo key "authData"
-  // Formato: map(N) key:"fmt" value:text key:"attStmt" value:map key:"authData" value:bytes
-  // Usamos indexOf para localizar o bytestring "authData" como CBOR text
-  // CBOR text "authData" = 0x68 61 75 74 68 44 61 74 61
-  const AUTHDATA_KEY = Buffer.from([0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61])
-  let authDataStart  = -1
-  for (let i = 0; i <= buf.length - AUTHDATA_KEY.length; i++) {
-    if (buf.slice(i, i + AUTHDATA_KEY.length).equals(AUTHDATA_KEY)) {
-      authDataStart = i + AUTHDATA_KEY.length
-      break
-    }
-  }
-  if (authDataStart === -1) throw new Error('authData não encontrado no attestationObject')
+  const decoded  = cbor.decodeFirstSync(buf)
+  const authData = decoded.authData
+  if (!authData) throw new Error('authData ausente')
 
-  // O próximo byte após "authData" é o CBOR header do bytestring
-  // 0x58 NN = bytes(NN) (1 byte length), 0x59 NN NN = bytes(NNNN) (2 byte length)
-  let authData
-  const hdr = buf[authDataStart]
-  if (hdr === 0x58) {
-    const len = buf[authDataStart + 1]
-    authData  = buf.slice(authDataStart + 2, authDataStart + 2 + len)
-  } else if (hdr === 0x59) {
-    const len = (buf[authDataStart + 1] << 8) | buf[authDataStart + 2]
-    authData  = buf.slice(authDataStart + 3, authDataStart + 3 + len)
-  } else {
-    throw new Error('Formato authData inesperado')
-  }
-
-  // authData layout (spec §6.1):
-  //  [0..31]   rpIdHash (32 bytes)
-  //  [32]      flags (1 byte) — bit 6 = AT (attested credential data included)
-  //  [33..36]  signCount (4 bytes, big-endian)
-  //  [37..48]  aaguid (16 bytes)
-  //  [49..50]  credentialIdLength (2 bytes, big-endian)
-  //  [51..]    credentialId (credentialIdLength bytes)
-  //  [51+L..]  credentialPublicKey (CBOR)
   if (authData.length < 55) throw new Error('authData muito curto')
   const flags = authData[32]
   const AT    = (flags >> 6) & 1
   if (!AT) throw new Error('Attested Credential Data ausente no authData')
 
-  const credIdLen      = (authData[49] << 8) | authData[50]
+  const credIdLen       = (authData[49] << 8) | authData[50]
   const credPubKeyStart = 51 + credIdLen
   const credPubKeyCbor  = authData.slice(credPubKeyStart)
 
-  // Parse CBOR mínimo para COSE key (map com integer keys)
-  // COSE key para EC2 (alg -7): { 1:2, 3:-7, -1:1, -2:x(32), -3:y(32) }
-  // COSE key para RSA (alg -257): { 1:3, 3:-257, -1:n, -2:e }
-  const cose = parseCoseKey(credPubKeyCbor)
+  const cose = cbor.decodeFirstSync(credPubKeyCbor)
 
-  const alg = cose[3]
+  const alg = cose.get(3)
   if (alg === -7) {
-    // ES256 — ECDSA P-256
-    const x = cose[-2]
-    const y = cose[-3]
-    if (!x || !y || x.length !== 32 || y.length !== 32)
-      throw new Error('Chave EC inválida')
+    const x = cose.get(-2)
+    const y = cose.get(-3)
+    if (!x || !y) throw new Error('Chave EC inválida')
     return {
       algorithm: 'ES256',
-      publicKeyJwk: { kty: 'EC', crv: 'P-256', x: x.toString('base64url'), y: y.toString('base64url') },
+      publicKeyJwk: {
+        kty: 'EC', crv: 'P-256',
+        x: x.toString('base64url'),
+        y: y.toString('base64url'),
+      },
     }
   } else if (alg === -257) {
-    // RS256 — RSASSA-PKCS1-v1_5
-    const n = cose[-1]
-    const e = cose[-2]
+    const n = cose.get(-1)
+    const e = cose.get(-2)
     if (!n || !e) throw new Error('Chave RSA inválida')
     return {
       algorithm: 'RS256',
-      publicKeyJwk: { kty: 'RSA', n: n.toString('base64url'), e: e.toString('base64url') },
+      publicKeyJwk: {
+        kty: 'RSA',
+        n: n.toString('base64url'),
+        e: e.toString('base64url'),
+      },
     }
   } else {
     throw new Error(`Algoritmo COSE não suportado: ${alg}`)
   }
-}
-
-/** Parser CBOR mínimo para COSE key map (integer keys apenas) */
-function parseCoseKey(buf) {
-  const result = {}
-  let pos = 0
-  // Expect map header
-  const firstByte = buf[pos++]
-  const majorType = firstByte >> 5
-  if (majorType !== 5) throw new Error('COSE key não é um CBOR map')
-  let count = firstByte & 0x1f
-  if (count === 24) count = buf[pos++]
-  for (let i = 0; i < count; i++) {
-    const key = readCborInt(buf, pos)
-    pos = key.nextPos
-    const val = readCborValue(buf, pos)
-    pos = val.nextPos
-    result[key.value] = val.value
-  }
-  return result
-}
-
-function readCborInt(buf, pos) {
-  const b = buf[pos]
-  const major = b >> 5
-  const info  = b & 0x1f
-  if (major !== 0 && major !== 1) throw new Error('Esperado integer CBOR')
-  let value, nextPos
-  if (info < 24) {
-    value   = major === 1 ? -(info + 1) : info
-    nextPos = pos + 1
-  } else if (info === 24) {
-    value   = major === 1 ? -(buf[pos + 1] + 1) : buf[pos + 1]
-    nextPos = pos + 2
-  } else {
-    throw new Error('Integer CBOR muito grande')
-  }
-  return { value, nextPos }
-}
-
-function readCborValue(buf, pos) {
-  const b     = buf[pos]
-  const major = b >> 5
-  const info  = b & 0x1f
-  if (major === 0 || major === 1) return readCborInt(buf, pos)
-  if (major === 2) {
-    // byte string
-    let len, nextPos
-    if (info < 24) { len = info; nextPos = pos + 1 }
-    else if (info === 24) { len = buf[pos + 1]; nextPos = pos + 2 }
-    else if (info === 25) { len = (buf[pos + 1] << 8) | buf[pos + 2]; nextPos = pos + 3 }
-    else throw new Error('Byte string CBOR muito grande')
-    return { value: buf.slice(nextPos, nextPos + len), nextPos: nextPos + len }
-  }
-  if (major === 3) {
-    // text string
-    let len, nextPos
-    if (info < 24) { len = info; nextPos = pos + 1 }
-    else if (info === 24) { len = buf[pos + 1]; nextPos = pos + 2 }
-    else throw new Error('Text string CBOR muito grande')
-    return { value: buf.slice(nextPos, nextPos + len).toString('utf8'), nextPos: nextPos + len }
-  }
-  if (major === 5) {
-    // map — recursivo (para attStmt etc.)
-    let count = info, nextPos = pos + 1
-    const map = {}
-    if (count === 24) { count = buf[nextPos++] }
-    for (let i = 0; i < count; i++) {
-      const k = readCborValue(buf, nextPos); nextPos = k.nextPos
-      const v = readCborValue(buf, nextPos); nextPos = v.nextPos
-      map[k.value] = v.value
-    }
-    return { value: map, nextPos }
-  }
-  throw new Error(`Tipo CBOR não suportado: major=${major}`)
 }
 
 /**
