@@ -40,15 +40,15 @@ const LS_ENROLLED      = 'hg_bio_enrolled'
 interface RegisterChallengeResponse {
   challenge: string  // base64url — challenge assinado completo (random.timestamp.hmac)
   random:    string  // base64url — bytes aleatórios puros para o WebAuthn
-  rpId:      string  // ex: "meuapp.netlify.app"
-  userId:    string  // base64url — handle fixo do admin
+  rpId:      string
+  userId:    string
 }
 
 interface VerifyRegistrationPayload {
-  credentialId:      string  // base64url
-  clientDataJSON:    string  // base64url
-  attestationObject: string  // base64url
-  signedChallenge:   string  // base64url
+  credentialId:      string
+  clientDataJSON:    string
+  attestationObject: string
+  signedChallenge:   string  // challenge assinado completo (random.timestamp.hmac)
 }
 
 interface AuthChallengeResponse {
@@ -57,15 +57,15 @@ interface AuthChallengeResponse {
 }
 
 interface VerifyAuthPayload {
-  credentialId:      string  // base64url
-  clientDataJSON:    string  // base64url
-  authenticatorData: string  // base64url
-  signature:         string  // base64url
-  signedChallenge:   string  // base64url
+  credentialId:      string
+  clientDataJSON:    string
+  authenticatorData: string
+  signature:         string
+  signedChallenge:   string  // challenge assinado completo (random.timestamp.hmac)
 }
 
 interface VerifyAuthResponse {
-  token: string  // Firebase Custom Token
+  token: string
 }
 
 // ── Helpers de encoding ───────────────────────────────────────────────────────
@@ -88,7 +88,6 @@ function base64urlToBuffer(b64url: string): ArrayBuffer {
 
 // ── Verificação de suporte ────────────────────────────────────────────────────
 
-/** Verifica se a API WebAuthn está disponível (requer HTTPS) */
 export function isBiometricSupported(): boolean {
   return (
     window.isSecureContext &&
@@ -98,7 +97,6 @@ export function isBiometricSupported(): boolean {
   )
 }
 
-/** Verifica se o dispositivo tem autenticador biométrico nativo */
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   if (!isBiometricSupported()) return false
   try {
@@ -111,11 +109,11 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
 // ── Hook principal ────────────────────────────────────────────────────────────
 
 export type BiometricState =
-  | 'idle'            // aguardando ação
-  | 'enrolling'       // registrando credencial
-  | 'authenticating'  // verificando biometria
-  | 'success'         // autenticado
-  | 'error'           // falha (ver error)
+  | 'idle'
+  | 'enrolling'
+  | 'authenticating'
+  | 'success'
+  | 'error'
 
 export interface UseBiometricReturn {
   state:           BiometricState
@@ -133,8 +131,6 @@ export function useBiometric(): UseBiometricReturn {
 
   const functions = getFunctions(app, 'us-central1')
 
-  // ── Estado local ───────────────────────────────────────────────────────────
-
   const isEnrolled = useCallback((): boolean => {
     return (
       localStorage.getItem(LS_ENROLLED)      === 'true' &&
@@ -146,24 +142,18 @@ export function useBiometric(): UseBiometricReturn {
     return localStorage.getItem(LS_CREDENTIAL_ID)
   }, [])
 
-  /** Remove enroll local — usado quando o servidor invalida a credencial */
   const revoke = useCallback((): void => {
     localStorage.removeItem(LS_ENROLLED)
     localStorage.removeItem(LS_CREDENTIAL_ID)
   }, [])
 
   // ── Enroll ─────────────────────────────────────────────────────────────────
-  // Requer que o usuário já esteja autenticado (Firebase session ativa).
-  // O servidor rejeita a chamada se não houver token Firebase válido.
 
   const enroll = useCallback(async (): Promise<boolean> => {
     setState('enrolling')
     setError('')
 
     try {
-      // Garante que o token Firebase está propagado antes de qualquer chamada autenticada.
-      // Sem isso há race condition: o Custom Token pode não ter sido injetado ainda
-      // no SDK quando getBiometricRegisterChallenge é chamado logo após o login.
       const currentUser = auth.currentUser
       if (!currentUser) {
         setError('Sessão expirada. Faça login com senha primeiro.')
@@ -172,18 +162,13 @@ export function useBiometric(): UseBiometricReturn {
       }
       await currentUser.getIdToken()
 
-      // 1. Challenge do servidor (requer auth Firebase — rejeita se não autenticado)
       const getChallenge = httpsCallable<void, RegisterChallengeResponse>(
         functions, 'getBiometricRegisterChallenge'
       )
       const { data } = await getChallenge()
 
-      // 2. Criar credencial no secure enclave do dispositivo
       const credential = await navigator.credentials.create({
         publicKey: {
-          // Usa data.random (bytes puros) como challenge do WebAuthn.
-          // data.challenge é a string assinada completa (random.timestamp.hmac)
-          // usada pelo servidor para verificação — não é base64url decodificável diretamente.
           challenge: base64urlToBuffer(data.random),
           rp: {
             id:   data.rpId,
@@ -195,16 +180,16 @@ export function useBiometric(): UseBiometricReturn {
             displayName: 'Administrador HidroGás',
           },
           pubKeyCredParams: [
-            { type: 'public-key', alg: -7   }, // ES256 — preferido
-            { type: 'public-key', alg: -257  }, // RS256 — fallback (iOS antigo)
+            { type: 'public-key', alg: -7   },
+            { type: 'public-key', alg: -257  },
           ],
           authenticatorSelection: {
-            authenticatorAttachment: 'platform',  // só autenticador nativo do dispositivo
-            userVerification:        'required',  // biometria obrigatória (não só presença)
+            authenticatorAttachment: 'platform',
+            userVerification:        'required',
             residentKey:             'preferred',
           },
-          timeout:     60_000,  // 60s para o usuário agir
-          attestation: 'none',  // não precisamos de atestado de fabricante
+          timeout:     60_000,
+          attestation: 'none',
         },
       }) as PublicKeyCredential | null
 
@@ -216,7 +201,6 @@ export function useBiometric(): UseBiometricReturn {
 
       const response = credential.response as AuthenticatorAttestationResponse
 
-      // 3. Enviar chave pública ao servidor para armazenamento
       const register = httpsCallable<VerifyRegistrationPayload, { ok: boolean }>(
         functions, 'registerBiometric'
       )
@@ -224,10 +208,9 @@ export function useBiometric(): UseBiometricReturn {
         credentialId:      bufferToBase64url(credential.rawId),
         clientDataJSON:    bufferToBase64url(response.clientDataJSON),
         attestationObject: bufferToBase64url(response.attestationObject),
-        signedChallenge:   data.challenge,
+        signedChallenge:   data.challenge,  // ← CORRIGIDO
       })
 
-      // 4. Persistir apenas o credentialId (público — não é segredo)
       localStorage.setItem(LS_CREDENTIAL_ID, bufferToBase64url(credential.rawId))
       localStorage.setItem(LS_ENROLLED, 'true')
 
@@ -235,9 +218,7 @@ export function useBiometric(): UseBiometricReturn {
       return true
 
     } catch (err: any) {
-      // Log completo do erro para debug
       const errDetail = `name=${err?.name} code=${err?.code} msg=${err?.message}`
-      setError('DBG: ' + errDetail)
       if (err?.name === 'NotAllowedError') {
         setError('Registro cancelado. ' + errDetail)
         setState('idle')
@@ -260,8 +241,6 @@ export function useBiometric(): UseBiometricReturn {
   }, [functions, revoke])
 
   // ── Authenticate ───────────────────────────────────────────────────────────
-  // Fluxo completo: challenge → assinatura no dispositivo → verificação no servidor
-  // → Custom Token Firebase (mesmo mecanismo do adminLogin com senha)
 
   const authenticate = useCallback(async (): Promise<boolean> => {
     setState('authenticating')
@@ -275,24 +254,20 @@ export function useBiometric(): UseBiometricReturn {
     }
 
     try {
-      // 1. Challenge de uso único (TTL 2 min — destruído pelo servidor após verificação)
       const getChallenge = httpsCallable<void, AuthChallengeResponse>(
         functions, 'getBiometricAuthChallenge'
       )
       const { data } = await getChallenge()
 
-      // 2. Assinar o challenge com a chave privada do secure enclave
-      //    O SO apresenta Touch ID / Face ID / Windows Hello ao usuário
       const assertion = await navigator.credentials.get({
         publicKey: {
           challenge:        base64urlToBuffer(data.random),
           rpId:             window.location.hostname,
           timeout:          60_000,
-          userVerification: 'required',  // biometria obrigatória
+          userVerification: 'required',
           allowCredentials: [{
             type: 'public-key',
             id:   base64urlToBuffer(credentialId),
-            // transports omitido: máxima compatibilidade entre dispositivos
           }],
         },
       }) as PublicKeyCredential | null
@@ -305,7 +280,6 @@ export function useBiometric(): UseBiometricReturn {
 
       const response = assertion.response as AuthenticatorAssertionResponse
 
-      // 3. Verificar assinatura no servidor → emite Custom Token se válida
       const verify = httpsCallable<VerifyAuthPayload, VerifyAuthResponse>(
         functions, 'verifyBiometric'
       )
@@ -314,10 +288,9 @@ export function useBiometric(): UseBiometricReturn {
         clientDataJSON:    bufferToBase64url(response.clientDataJSON),
         authenticatorData: bufferToBase64url(response.authenticatorData),
         signature:         bufferToBase64url(response.signature),
-        signedChallenge:   data.challenge,
+        signedChallenge:   data.challenge,  // ← CORRIGIDO
       })
 
-      // 4. Estabelecer sessão Firebase
       await signInWithCustomToken(auth, verifyData.token)
 
       setState('success')
@@ -325,11 +298,9 @@ export function useBiometric(): UseBiometricReturn {
 
     } catch (err: any) {
       if (err?.name === 'NotAllowedError') {
-        // Usuário cancelou → volta para idle para permitir login com senha
         setState('idle')
         return false
       } else if (err?.code === 'functions/not-found') {
-        // Credencial revogada no servidor (ex: novo dispositivo registrado)
         setError('Biometria não encontrada. Faça login com senha para reativar.')
         revoke()
         setState('error')
