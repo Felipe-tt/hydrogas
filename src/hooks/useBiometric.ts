@@ -157,6 +157,17 @@ export function useBiometric(): UseBiometricReturn {
     setError('')
 
     try {
+      // Garante que o token Firebase está propagado antes de qualquer chamada autenticada.
+      // Sem isso há race condition: o Custom Token pode não ter sido injetado ainda
+      // no SDK quando getBiometricRegisterChallenge é chamado logo após o login.
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        setError('Sessão expirada. Faça login com senha primeiro.')
+        setState('error')
+        return false
+      }
+      await currentUser.getIdToken()
+
       // 1. Challenge do servidor (requer auth Firebase — rejeita se não autenticado)
       const getChallenge = httpsCallable<void, RegisterChallengeResponse>(
         functions, 'getBiometricRegisterChallenge'
