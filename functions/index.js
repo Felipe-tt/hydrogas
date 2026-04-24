@@ -1044,8 +1044,8 @@ exports.registerBiometric = onCall(
     try {
       publicKeyData = extractPublicKeyFromAttestation(attestationObject)
     } catch (err) {
-      logger.error('Erro ao extrair chave pública:', err)
-      throw new HttpsError('invalid-argument', 'Attestation inválido.')
+      logger.error('Erro ao extrair chave pública:', err.message, err.stack)
+      throw new HttpsError('invalid-argument', `Attestation inválido: ${err.message}`)
     }
 
     // Salvar credencial no RTDB (sobrescreve qualquer credencial anterior)
