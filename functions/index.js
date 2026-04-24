@@ -971,13 +971,15 @@ exports.getBiometricRegisterChallenge = onCall(
       throw new HttpsError('internal', 'Servidor mal configurado.')
     }
 
-    const { challenge } = generateSignedChallenge()
+    const { challenge, random } = generateSignedChallenge()
 
     // rpId = hostname sem porta (spec WebAuthn §5.4.2)
     // Em produção: seu domínio real. Em dev: "localhost"
     const rpId = process.env.BIO_RP_ID || 'localhost'
 
-    return { challenge, rpId, userId: BIO_ADMIN_USER_ID }
+    // challenge = string assinada completa (random.timestamp.hmac) — para verificação
+    // random    = bytes aleatórios puros em base64url — para o WebAuthn usar como challenge binário
+    return { challenge, random, rpId, userId: BIO_ADMIN_USER_ID }
   }
 )
 
@@ -1088,8 +1090,8 @@ exports.getBiometricAuthChallenge = onCall(
       throw new HttpsError('not-found', 'Nenhuma credencial registrada.')
     }
 
-    const { challenge } = generateSignedChallenge()
-    return { challenge }
+    const { challenge, random } = generateSignedChallenge()
+    return { challenge, random }
   }
 )
 
