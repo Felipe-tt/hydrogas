@@ -1004,8 +1004,8 @@ exports.registerBiometric = onCall(
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
     }
 
-    const { credentialId, clientDataJSON, attestationObject } = request.data || {}
-    if (!credentialId || !clientDataJSON || !attestationObject) {
+    const { credentialId, clientDataJSON, attestationObject, signedChallenge } = request.data || {}
+    if (!credentialId || !clientDataJSON || !attestationObject || !signedChallenge) {
       throw new HttpsError('invalid-argument', 'Dados incompletos.')
     }
 
@@ -1028,7 +1028,7 @@ exports.registerBiometric = onCall(
     }
 
     // Verificar challenge HMAC (previne forja de challenge pelo cliente)
-    if (!verifySignedChallenge(clientData.challenge)) {
+    if (!verifySignedChallenge(signedChallenge)) {
       throw new HttpsError('invalid-argument', 'Challenge inválido ou expirado.')
     }
 
@@ -1111,8 +1111,8 @@ exports.verifyBiometric = onCall(
       throw new HttpsError('resource-exhausted', 'Muitas tentativas. Aguarde 15 minutos.')
     }
 
-    const { credentialId, clientDataJSON, authenticatorData, signature } = request.data || {}
-    if (!credentialId || !clientDataJSON || !authenticatorData || !signature) {
+    const { credentialId, clientDataJSON, authenticatorData, signature, signedChallenge } = request.data || {}
+    if (!credentialId || !clientDataJSON || !authenticatorData || !signature || !signedChallenge) {
       throw new HttpsError('invalid-argument', 'Dados incompletos.')
     }
 
@@ -1153,7 +1153,7 @@ exports.verifyBiometric = onCall(
     }
 
     // Verificar challenge HMAC — uso único garantido pelo TTL no HMAC
-    if (!verifySignedChallenge(clientData.challenge)) {
+    if (!verifySignedChallenge(signedChallenge)) {
       await recordFailedAttempt(ipKey)
       throw new HttpsError('unauthenticated', 'Challenge inválido ou expirado.')
     }
