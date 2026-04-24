@@ -87,14 +87,8 @@ export function Login({ onLogin }: LoginProps) {
   const bio = useBiometric()
 
   useEffect(() => {
-    const supported = isBiometricSupported()
-    if (!supported) {
-      alert(`[BIO DEBUG]\nsecureContext: ${window.isSecureContext}\nPKC: ${typeof window.PublicKeyCredential}\nsupported: false`)
-      setBioChecked(true)
-      return
-    }
+    if (!isBiometricSupported()) { setBioChecked(true); return }
     isPlatformAuthenticatorAvailable().then(available => {
-      alert(`[BIO DEBUG]\nsecureContext: ${window.isSecureContext}\nPKC: ${typeof window.PublicKeyCredential}\nsupported: true\nplatformAuth: ${available}\nenrolled: ${localStorage.getItem('hg_bio_enrolled')}`)
       setBioAvail(available)
       setBioChecked(true)
     })
@@ -119,7 +113,14 @@ export function Login({ onLogin }: LoginProps) {
         // Já autenticou com senha → vai direto pro app, independente de ter biometria
         if (bio.isEnrolled()) { onLogin?.(); return }
         const available = await isPlatformAuthenticatorAvailable()
-        available ? setScreen('enroll') : onLogin?.()
+        if (available) {
+          // Pequeno delay para garantir que o Firebase SDK propagou o token
+          // antes do useLayoutEffect disparar o enroll()
+          await new Promise(resolve => setTimeout(resolve, 300))
+          setScreen('enroll')
+        } else {
+          onLogin?.()
+        }
       },
       () => { setPassword(''); passwordRef.current?.focus() },
     )
