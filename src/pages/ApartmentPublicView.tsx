@@ -523,7 +523,7 @@ export function ApartmentPublicView() {
     const result = await fn({ token: tok, password: pwd })
     const { _firebaseToken, ...safeData } = result.data as any
     if (_firebaseToken) {
-      try { await signInWithCustomToken(residentAuth, _firebaseToken) } catch (e) { console.warn('signInWithCustomToken falhou:', e) }
+      try { await signInWithCustomToken(residentAuth, _firebaseToken) } catch (_e) { /* silent */ }
     }
     setData(safeData as PublicData)
     setStatus('found')
