@@ -148,19 +148,18 @@ export function Login({ onLogin }: LoginProps) {
   }, [bio, onLogin])
 
   const handleEnrollAccept = useCallback(async () => {
-    log(`handleEnrollAccept: bio.state=${bio.state}`)
+    log('handleEnrollAccept chamado')
     const ok = await bio.enroll()
-    log(`enroll result: ok=${ok} error=${bio.error}`)
+    log('enroll result: ok=' + ok + ' error=' + bio.error)
     if (ok) { onLogin?.(); return }
-    const stillEnrolled = localStorage.getItem('hg_bio_enrolled') === 'true'
-    if (!stillEnrolled) { onLogin?.() }
+    // Cancelou (NotAllowedError) ou erro → fica na tela enroll
+    // O usuario pode tocar novamente no icone ou clicar "Agora nao"
   }, [bio, onLogin])
 
   useLayoutEffect(() => {
-    log(`LAYOUT: screen=${screen} bio.state=${bio.state}`)
-    if (screen === 'enroll' && bio.state === 'idle') {
-      handleEnrollAccept()
-    }
+    log('LAYOUT: screen=' + screen + ' bio.state=' + bio.state)
+    // NAO dispara automaticamente — Android bloqueia credentials.create()
+    // sem gesto direto do usuario. O toque no icone de digital e o trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen])
 
