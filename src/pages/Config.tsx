@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar } from 'lucide-react'
+import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar, LogOut } from 'lucide-react'
 import { useAppStore, useUIStore } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
 import { friendlyError } from '../lib/friendlyError'
 import { ConfigSkeleton, Spinner } from '../components/ui/Skeleton'
+import { auth } from '../infrastructure/firebase'
+import { signOut } from 'firebase/auth'
 
 function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11)
@@ -347,6 +349,24 @@ export function Config() {
           </Section>
 
           <Divider />
+
+          {/* Logout — visível apenas no mobile (sidebar já tem no desktop) */}
+          <div className="show-on-mobile">
+            <Section
+              icon={<LogOut size={16} color="#dc2626" />}
+              iconBg="rgba(220,38,38,0.1)"
+              title="Sessão"
+              description="Encerrar o acesso ao sistema"
+            >
+              <button
+                className="btn-danger config-save-btn"
+                onClick={() => signOut(auth)}
+              >
+                <LogOut size={15} />Sair
+              </button>
+            </Section>
+            <Divider />
+          </div>
 
           {/* Save */}
           <div className="config-save-wrap">
