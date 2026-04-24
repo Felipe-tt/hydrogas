@@ -3472,3 +3472,30 @@
   opacity: 0.5;
   cursor:  default;
 }
+
+/* ── Config: logout mobile ─────────────────────────────────── */
+
+.config-logout-mobile-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding-bottom: 8px;
+}
+
+.config-logout-mobile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.config-logout-mobile-btn:hover {
+  color: #dc2626;
+}
