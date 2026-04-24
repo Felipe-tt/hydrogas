@@ -81,7 +81,20 @@ export function Login({ onLogin }: LoginProps) {
   const [showPwd, setShowPwd]       = useState(false)
   const [bioAvailable, setBioAvail] = useState(false)
   const [bioChecked, setBioChecked] = useState(false)
+  const [dbgLog, setDbgLog]         = useState<string[]>([])
   const passwordRef                  = useRef<HTMLInputElement>(null)
+  const mountCount                   = useRef(0)
+
+  const log = (msg: string) => {
+    const ts = new Date().toISOString().slice(11, 23)
+    setDbgLog(prev => [...prev.slice(-20), `${ts} ${msg}`])
+  }
+
+  useEffect(() => {
+    mountCount.current += 1
+    log(`MOUNT #${mountCount.current}`)
+    return () => { log(`UNMOUNT #${mountCount.current}`) }
+  }, [])
 
   const { loading, error, login } = useAdminLogin()
   const bio = useBiometric()
@@ -91,13 +104,15 @@ export function Login({ onLogin }: LoginProps) {
     isPlatformAuthenticatorAvailable().then(available => {
       setBioAvail(available)
       setBioChecked(true)
+      log(`bioCheck: available=${available}`)
     })
   }, [])
 
   const enrolled = bio.isEnrolled()
-  
+
   useEffect(() => {
     if (!bioChecked) return
+    log(`enrolledCheck: bioAvail=${bioAvailable} enrolled=${enrolled}`)
     if (bioAvailable && enrolled) setScreen('biometric')
   }, [bioChecked, bioAvailable, enrolled])
 
@@ -107,18 +122,19 @@ export function Login({ onLogin }: LoginProps) {
     await login(
       username, password,
       async () => {
-        // Checa no momento exato do sucesso — não depende do state assíncrono inicial
         const supported = isBiometricSupported()
-        if (!supported) { onLogin?.(); return }
-        // Já autenticou com senha → vai direto pro app, independente de ter biometria
-        if (bio.isEnrolled()) { onLogin?.(); return }
+        const isEnrolled = bio.isEnrolled()
         const available = await isPlatformAuthenticatorAvailable()
+        log(`onSuccess: supported=${supported} enrolled=${isEnrolled} available=${available}`)
+        if (!supported) { log('-> onLogin (no support)'); onLogin?.(); return }
+        if (isEnrolled) { log('-> onLogin (enrolled)'); onLogin?.(); return }
         if (available) {
-          // Pequeno delay para garantir que o Firebase SDK propagou o token
-          // antes do useLayoutEffect disparar o enroll()
+          log('-> setScreen(enroll) em 300ms...')
           await new Promise(resolve => setTimeout(resolve, 300))
+          log('-> setScreen(enroll) NOW')
           setScreen('enroll')
         } else {
+          log('-> onLogin (not available)')
           onLogin?.()
         }
       },
@@ -132,26 +148,31 @@ export function Login({ onLogin }: LoginProps) {
   }, [bio, onLogin])
 
   const handleEnrollAccept = useCallback(async () => {
-    alert('[ENROLL DEBUG] handleEnrollAccept chamado, bio.state: ' + bio.state)
+    log(`handleEnrollAccept: bio.state=${bio.state}`)
     const ok = await bio.enroll()
-    alert('[ENROLL DEBUG] bio.enroll() retornou: ' + ok + ' | erro: ' + bio.error)
+    log(`enroll result: ok=${ok} error=${bio.error}`)
     if (ok) { onLogin?.(); return }
     const stillEnrolled = localStorage.getItem('hg_bio_enrolled') === 'true'
-    if (!stillEnrolled) {
-      onLogin?.()
-    }
-    // state='idle' (cancelamento) → fica na tela para o usuário tentar de novo ou pular
+    if (!stillEnrolled) { onLogin?.() }
   }, [bio, onLogin])
 
-  // Ao entrar na tela 'enroll', dispara o prompt biométrico automaticamente.
-  // A confirmação da digital É o aceite — não existe botão de "aceitar".
   useLayoutEffect(() => {
-    alert('[LAYOUT DEBUG] screen: ' + screen + ' | bio.state: ' + bio.state)
+    log(`LAYOUT: screen=${screen} bio.state=${bio.state}`)
     if (screen === 'enroll' && bio.state === 'idle') {
       handleEnrollAccept()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen])
+
+  const debugPanel = (
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.88)', color: '#0f0', fontFamily: 'monospace',
+      fontSize: 11, padding: '6px 8px', maxHeight: 200, overflowY: 'auto',
+    }}>
+      {dbgLog.map((l, i) => <div key={i}>{l}</div>)}
+    </div>
+  )
 
   const decorations = (
     <div className="login-bg-decorations">
@@ -209,6 +230,7 @@ export function Login({ onLogin }: LoginProps) {
         </div>
         <p className="login-footer-note">Autenticação protegida</p>
       </div>
+    {debugPanel}
     </div>
   )
 
@@ -264,6 +286,7 @@ export function Login({ onLogin }: LoginProps) {
         </div>
         <p className="login-footer-note">Autenticação protegida</p>
       </div>
+    {debugPanel}
     </div>
   )
 
@@ -326,9 +349,9 @@ export function Login({ onLogin }: LoginProps) {
         </div>
         <p className="login-footer-note">Autenticação protegida</p>
       </div>
+    {debugPanel}
     </div>
   )
-}
 
 function Spinner() {
   return (
