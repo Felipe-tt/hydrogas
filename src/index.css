@@ -349,6 +349,7 @@ select.input { cursor: pointer; }
 
 /* FAB */
 .fab { display: none; }
+.show-on-mobile { display: none; }
 @media (max-width: 768px) {
   .fab { display: flex; align-items: center; justify-content: center; position: fixed; bottom: calc(var(--nav-h) + 16px); right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--water); color: white; border: none; box-shadow: 0 4px 20px rgba(59,130,246,0.45); cursor: pointer; z-index: 40; -webkit-tap-highlight-color: transparent; }
   .hide-on-mobile { display: none !important; }
