@@ -48,6 +48,7 @@ interface VerifyRegistrationPayload {
   credentialId:      string  // base64url
   clientDataJSON:    string  // base64url
   attestationObject: string  // base64url
+  signedChallenge:   string  // base64url
 }
 
 interface AuthChallengeResponse {
@@ -60,6 +61,7 @@ interface VerifyAuthPayload {
   clientDataJSON:    string  // base64url
   authenticatorData: string  // base64url
   signature:         string  // base64url
+  signedChallenge:   string  // base64url
 }
 
 interface VerifyAuthResponse {
@@ -222,6 +224,7 @@ export function useBiometric(): UseBiometricReturn {
         credentialId:      bufferToBase64url(credential.rawId),
         clientDataJSON:    bufferToBase64url(response.clientDataJSON),
         attestationObject: bufferToBase64url(response.attestationObject),
+        signedChallenge:   data.challenge,
       })
 
       // 4. Persistir apenas o credentialId (público — não é segredo)
@@ -311,6 +314,7 @@ export function useBiometric(): UseBiometricReturn {
         clientDataJSON:    bufferToBase64url(response.clientDataJSON),
         authenticatorData: bufferToBase64url(response.authenticatorData),
         signature:         bufferToBase64url(response.signature),
+        signedChallenge:   data.challenge,
       })
 
       // 4. Estabelecer sessão Firebase
