@@ -122,17 +122,34 @@ function AdminLayout({ onLogout }: { onLogout: () => void }) {
 
 /**
  * AdminGate é a única fonte de verdade sobre autenticação.
- * Login.tsx chama signInWithCustomToken — o onAuthStateChanged
- * reage automaticamente, mas aguarda o onLogin() para liberar
- * o app (necessário para mostrar a tela de enroll biométrico).
+ *
+ * Fluxo de login com senha + enroll biométrico:
+ *  1. signInWithCustomToken → onAuthStateChanged pode disparar 2x ou mais
+ *  2. enrollDone começa false → Login permanece visível durante todo o fluxo
+ *  3. Login.tsx gerencia a tela de enroll internamente
+ *  4. onLogin() é chamado pelo Login APENAS quando o enroll terminar (ok ou skip)
+ *  5. onLogin() → setEnrollDone(true) → AdminLayout é montado
+ *
+ * Fluxo de sessão já existente (refresh da página):
+ *  1. onAuthStateChanged dispara com usuário já logado (isFirstFire=true)
+ *  2. Se tiver biometria cadastrada → Login mostra tela de digital
+ *  3. Se não tiver → vai direto pro app (enrollDone=true)
+ *
+ * enrollDoneRef espelha o state para que disparos extras do onAuthStateChanged
+ * (comuns durante signInWithCustomToken) não sobrescrevam o enrollDone=true
+ * que já foi setado pelo onLogin().
  */
 function AdminGate() {
   const [user, setUser]             = useState<any>(null)
   const [loading, setLoading]       = useState(true)
   const [enrollDone, setEnrollDone] = useState(false)
-  // Ref para saber se o primeiro disparo do onAuthStateChanged já ocorreu.
-  // Necessário porque o closure do useEffect captura loading=true para sempre.
-  const firstFire = useRef(true)
+  const firstFire     = useRef(true)
+  const enrollDoneRef = useRef(false)  // espelho imune a closures stale
+
+  const handleEnrollDone = () => {
+    enrollDoneRef.current = true
+    setEnrollDone(true)
+  }
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -143,25 +160,34 @@ function AdminGate() {
       setLoading(false)
 
       if (!u) {
-        // Logout → reseta tudo, inclusive firstFire para o próximo login
+        // Logout → reseta tudo
+        enrollDoneRef.current = false
         setEnrollDone(false)
         firstFire.current = true
-      } else if (isFirstFire) {
-        // Primeira execução com usuário = sessão já existia (persistência Firebase).
-        // Se tiver biometria cadastrada, mantém enrollDone=false para que o Login
-        // mostre a tela de digital. Caso contrário, vai direto pro app.
+        return
+      }
+
+      if (isFirstFire) {
+        // Sessão já existia (refresh da página)
         const hasBiometric =
           isBiometricSupported() &&
           localStorage.getItem('hg_bio_enrolled') === 'true' &&
           localStorage.getItem('hg_bio_cred_id')  !== null
         if (!hasBiometric) {
+          enrollDoneRef.current = true
           setEnrollDone(true)
         }
-        // hasBiometric=true → enrollDone fica false; Login detecta enrolled e
-        // vai pra tela 'biometric' automaticamente via useEffect
+        // hasBiometric=true → Login mostra tela biometric via useEffect
+        return
       }
-      // isFirstFire=false e u existe = login novo feito agora
-      // → enrollDone permanece false até onLogin() ser chamado pela tela de enroll
+
+      // Disparos extras do onAuthStateChanged durante/após signInWithCustomToken.
+      // Só atualiza o state se o ref já tiver sido marcado como done
+      // (ou seja, onLogin() já foi chamado).
+      if (enrollDoneRef.current) {
+        setEnrollDone(true)
+      }
+      // enrollDoneRef=false → Login ainda está no fluxo de enroll, não faz nada.
     })
     return () => unsub()
   }, [])
@@ -169,9 +195,7 @@ function AdminGate() {
   const handleLogout = () => signOut(auth)
 
   if (loading) return <AuthLoadingSkeleton />
-  // Usuário autenticado mas ainda não passou pelo enroll → mantém Login visível
-  if (!user || !enrollDone) return <Login onLogin={() => setEnrollDone(true)} />
-
+  if (!user || !enrollDone) return <Login onLogin={handleEnrollDone} />
   return <AdminLayout onLogout={handleLogout} />
 }
 
