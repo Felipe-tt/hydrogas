@@ -775,17 +775,21 @@ function extractPublicKeyFromAttestation(attestationObjectB64u) {
   const buf  = b64u(attestationObjectB64u)
 
   const decoded  = cbor.decodeFirstSync(buf)
-  const authData = decoded.authData
-  if (!authData) throw new Error('authData ausente')
+  const authData = Buffer.from(decoded.authData)  // garante Buffer
 
-  if (authData.length < 55) throw new Error('authData muito curto')
+  if (authData.length < 55) throw new Error('authData muito curto: ' + authData.length)
+
   const flags = authData[32]
   const AT    = (flags >> 6) & 1
-  if (!AT) throw new Error('Attested Credential Data ausente no authData')
+  if (!AT) throw new Error('Attested Credential Data ausente, flags=' + flags)
 
-  const credIdLen       = (authData[49] << 8) | authData[50]
-  const credPubKeyStart = 51 + credIdLen
+  // aaguid: bytes 37–52 (16 bytes)
+  // credIdLen: bytes 53–54
+  const credIdLen       = (authData[53] << 8) | authData[54]
+  const credPubKeyStart = 55 + credIdLen
   const credPubKeyCbor  = authData.slice(credPubKeyStart)
+
+  logger.info('authData len=' + authData.length + ' credIdLen=' + credIdLen + ' pubKeyStart=' + credPubKeyStart + ' remaining=' + credPubKeyCbor.length)
 
   const cose = cbor.decodeFirstSync(credPubKeyCbor)
 
@@ -798,8 +802,8 @@ function extractPublicKeyFromAttestation(attestationObjectB64u) {
       algorithm: 'ES256',
       publicKeyJwk: {
         kty: 'EC', crv: 'P-256',
-        x: x.toString('base64url'),
-        y: y.toString('base64url'),
+        x: Buffer.from(x).toString('base64url'),
+        y: Buffer.from(y).toString('base64url'),
       },
     }
   } else if (alg === -257) {
@@ -810,8 +814,8 @@ function extractPublicKeyFromAttestation(attestationObjectB64u) {
       algorithm: 'RS256',
       publicKeyJwk: {
         kty: 'RSA',
-        n: n.toString('base64url'),
-        e: e.toString('base64url'),
+        n: Buffer.from(n).toString('base64url'),
+        e: Buffer.from(e).toString('base64url'),
       },
     }
   } else {
