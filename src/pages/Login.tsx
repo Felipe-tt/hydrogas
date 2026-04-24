@@ -7,7 +7,7 @@
  *  'enroll'    → oferta de cadastro de digital (pós login com senha bem-sucedido)
  */
 
-import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Droplets, Lock, User, Eye, EyeOff, AlertCircle, Fingerprint,
 } from 'lucide-react'
@@ -81,20 +81,7 @@ export function Login({ onLogin }: LoginProps) {
   const [showPwd, setShowPwd]       = useState(false)
   const [bioAvailable, setBioAvail] = useState(false)
   const [bioChecked, setBioChecked] = useState(false)
-  const [dbgLog, setDbgLog]         = useState<string[]>([])
   const passwordRef                  = useRef<HTMLInputElement>(null)
-  const mountCount                   = useRef(0)
-
-  const log = (msg: string) => {
-    const ts = new Date().toISOString().slice(11, 23)
-    setDbgLog(prev => [...prev.slice(-20), `${ts} ${msg}`])
-  }
-
-  useEffect(() => {
-    mountCount.current += 1
-    log(`MOUNT #${mountCount.current}`)
-    return () => { log(`UNMOUNT #${mountCount.current}`) }
-  }, [])
 
   const { loading, error, login } = useAdminLogin()
   const bio = useBiometric()
@@ -104,7 +91,6 @@ export function Login({ onLogin }: LoginProps) {
     isPlatformAuthenticatorAvailable().then(available => {
       setBioAvail(available)
       setBioChecked(true)
-      log(`bioCheck: available=${available}`)
     })
   }, [])
 
@@ -112,7 +98,6 @@ export function Login({ onLogin }: LoginProps) {
 
   useEffect(() => {
     if (!bioChecked) return
-    log(`enrolledCheck: bioAvail=${bioAvailable} enrolled=${enrolled}`)
     if (bioAvailable && enrolled) setScreen('biometric')
   }, [bioChecked, bioAvailable, enrolled])
 
@@ -125,16 +110,12 @@ export function Login({ onLogin }: LoginProps) {
         const supported = isBiometricSupported()
         const isEnrolled = bio.isEnrolled()
         const available = await isPlatformAuthenticatorAvailable()
-        log(`onSuccess: supported=${supported} enrolled=${isEnrolled} available=${available}`)
-        if (!supported) { log('-> onLogin (no support)'); onLogin?.(); return }
-        if (isEnrolled) { log('-> onLogin (enrolled)'); onLogin?.(); return }
+        if (!supported) { onLogin?.(); return }
+        if (isEnrolled) { onLogin?.(); return }
         if (available) {
-          log('-> setScreen(enroll) em 300ms...')
           await new Promise(resolve => setTimeout(resolve, 300))
-          log('-> setScreen(enroll) NOW')
           setScreen('enroll')
         } else {
-          log('-> onLogin (not available)')
           onLogin?.()
         }
       },
@@ -148,30 +129,11 @@ export function Login({ onLogin }: LoginProps) {
   }, [bio, onLogin])
 
   const handleEnrollAccept = useCallback(async () => {
-    log('handleEnrollAccept chamado')
     const ok = await bio.enroll()
-    log('enroll result: ok=' + ok + ' error=' + bio.error)
     if (ok) { onLogin?.(); return }
     // Cancelou (NotAllowedError) ou erro → fica na tela enroll
     // O usuario pode tocar novamente no icone ou clicar "Agora nao"
   }, [bio, onLogin])
-
-  useLayoutEffect(() => {
-    log('LAYOUT: screen=' + screen + ' bio.state=' + bio.state)
-    // NAO dispara automaticamente — Android bloqueia credentials.create()
-    // sem gesto direto do usuario. O toque no icone de digital e o trigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen])
-
-  const debugPanel = (
-    <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
-      background: 'rgba(0,0,0,0.88)', color: '#0f0', fontFamily: 'monospace',
-      fontSize: 11, padding: '6px 8px', maxHeight: 200, overflowY: 'auto',
-    }}>
-      {dbgLog.map((l, i) => <div key={i}>{l}</div>)}
-    </div>
-  )
 
   const decorations = (
     <div className="login-bg-decorations">
@@ -229,7 +191,6 @@ export function Login({ onLogin }: LoginProps) {
         </div>
         <p className="login-footer-note">Autenticação protegida</p>
       </div>
-    {debugPanel}
     </div>
   )
 
@@ -285,7 +246,6 @@ export function Login({ onLogin }: LoginProps) {
         </div>
         <p className="login-footer-note">Autenticação protegida</p>
       </div>
-    {debugPanel}
     </div>
   )
 
@@ -348,7 +308,6 @@ export function Login({ onLogin }: LoginProps) {
         </div>
         <p className="login-footer-note">Autenticação protegida</p>
       </div>
-    {debugPanel}
     </div>
   )
 }
