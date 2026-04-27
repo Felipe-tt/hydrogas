@@ -849,11 +849,11 @@ function verifyWebAuthnSignature(publicKeyJwk, algorithm, authenticatorDataBuf, 
 
 exports.getBiometricRegisterChallenge = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request) => {
     // Requer sessão Firebase válida (só chega aqui pós-login com senha)
@@ -887,11 +887,11 @@ exports.getBiometricRegisterChallenge = onCall(
 
 exports.registerBiometric = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request) => {
     // Requer sessão Firebase válida
@@ -967,11 +967,11 @@ exports.registerBiometric = onCall(
 
 exports.getBiometricAuthChallenge = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request) => {
     const ipKey = getClientIp(request.rawRequest)
@@ -999,11 +999,11 @@ exports.getBiometricAuthChallenge = onCall(
 
 exports.verifyBiometric = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request) => {
     const ipKey = getClientIp(request.rawRequest)
