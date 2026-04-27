@@ -238,13 +238,15 @@ function ReadingRow({ reading: r, config, onClose, onDelete }: ReadingRowProps) 
           )}
           {isClosed
             ? <span className="badge badge-ok" style={{ fontSize: 11 }}><CheckCircle size={10} /> Fechada</span>
-            : <span className="badge badge-open" style={{ fontSize: 11 }}><Clock size={10} /> Aberta</span>}
+            : r.autoCreated
+              ? <span className="badge badge-open" style={{ fontSize: 11, opacity: 0.6 }}><Clock size={10} /> Aguardando mês</span>
+              : <span className="badge badge-open" style={{ fontSize: 11 }}><Clock size={10} /> Aberta</span>}
         </div>
       </div>
 
       {/* Actions */}
       <div className="reading-row-actions">
-        {!isClosed && (
+        {!isClosed && !r.autoCreated && (
           <button
             onClick={() => onClose(r)}
             title="Fechar leitura"
@@ -279,7 +281,7 @@ interface ApartmentCardProps {
 }
 
 function ApartmentCard({ apartment: apt, readings, config, onClose, onDelete }: ApartmentCardProps) {
-  const hasOpen   = readings.some(r => !r.closedAt)
+  const hasOpen   = readings.some(r => !r.closedAt && !r.autoCreated)
   const totalCost = readings.reduce((s, r) => s + (r.totalCost ?? 0), 0)
 
   return (
@@ -372,7 +374,7 @@ export function Readings() {
 
   const totalWater = monthReadings.filter(r => r.type === 'water' && r.closedAt).reduce((s, r) => s + (r.totalCost ?? 0), 0)
   const totalGas   = monthReadings.filter(r => r.type === 'gas'   && r.closedAt).reduce((s, r) => s + (r.totalCost ?? 0), 0)
-  const openCount  = monthReadings.filter(r => !r.closedAt).length
+  const openCount  = monthReadings.filter(r => !r.closedAt && !r.autoCreated).length
 
   const isLoading = config === null && apartments.length === 0 && readings.length === 0
   if (isLoading) return <ReadingsSkeleton />
@@ -392,8 +394,11 @@ export function Readings() {
   const handleOpen = async () => {
     if (!openForm.apartmentId) { toast('Selecione um apartamento', 'error'); return }
 
-    // Se já existe leitura pré-criada, abre direto o modal de fechar
+    // Se já existe leitura pré-criada, limpa o flag autoCreated e abre direto o modal de fechar
     if (preCreatedReading) {
+      if (preCreatedReading.autoCreated) {
+        await readingRepo.update(preCreatedReading.id, { autoCreated: false })
+      }
       setShowOpen(false)
       setShowClose(preCreatedReading)
       setEndValue('')
