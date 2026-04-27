@@ -61,7 +61,7 @@ Todo mês, o síndico anota os medidores de água e gás de cada apartamento, ca
 ### Geral
 - PWA — instalável no celular
 - Dark mode nativo
-- Efeito giroscópio no mobile (só porque dá)
+- Efeito giroscópio no mobile
 
 ---
 
