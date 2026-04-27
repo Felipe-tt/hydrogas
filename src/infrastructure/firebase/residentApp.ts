@@ -33,6 +33,8 @@ const existingApp = getApps().find(a => a.name === RESIDENT_APP_NAME)
 export const residentApp = existingApp ?? initializeApp(firebaseConfig, RESIDENT_APP_NAME)
 
 // Inicializa App Check apenas na primeira vez (evita erro de dupla inicialização)
+// e somente se a chave reCAPTCHA estiver configurada — sem ela, a chamada
+// lançaria erro silencioso que bloquearia todas as Cloud Functions com enforceAppCheck.
 if (!existingApp && import.meta.env.VITE_RECAPTCHA_KEY) {
   initializeAppCheck(residentApp, {
     provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
