@@ -97,8 +97,15 @@ export function isBiometricSupported(): boolean {
   )
 }
 
+/** Retorna true apenas em dispositivos móveis (iOS / Android).
+ *  No desktop — mesmo com Windows Hello disponível — biometria não é oferecida. */
+export function isMobileDevice(): boolean {
+  return /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+}
+
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   if (!isBiometricSupported()) return false
+  if (!isMobileDevice())       return false
   try {
     return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
   } catch {
