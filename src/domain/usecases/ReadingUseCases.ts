@@ -85,6 +85,7 @@ export class ReadingUseCases {
         month:       nextMonth,
         year:        nextYear,
         startValue:  endValue,
+        autoCreated: true,
       })
     }
   }
