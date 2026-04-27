@@ -19,6 +19,7 @@ import {
   useBiometric,
   isPlatformAuthenticatorAvailable,
   isBiometricSupported,
+  isMobileDevice,
 } from '../hooks/useBiometric'
 
 interface LoginProps { onLogin?: () => void }
@@ -88,6 +89,7 @@ export function Login({ onLogin }: LoginProps) {
 
   useEffect(() => {
     if (!isBiometricSupported()) { setBioChecked(true); return }
+    if (!isMobileDevice())       { setBioChecked(true); return }
     isPlatformAuthenticatorAvailable().then(available => {
       setBioAvail(available)
       setBioChecked(true)
@@ -110,7 +112,7 @@ export function Login({ onLogin }: LoginProps) {
         const supported = isBiometricSupported()
         const isEnrolled = bio.isEnrolled()
         const available = await isPlatformAuthenticatorAvailable()
-        if (!supported) { onLogin?.(); return }
+        if (!supported || !isMobileDevice()) { onLogin?.(); return }
         if (isEnrolled) { onLogin?.(); return }
         if (available) {
           await new Promise(resolve => setTimeout(resolve, 300))
