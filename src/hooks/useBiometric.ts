@@ -98,9 +98,12 @@ export function isBiometricSupported(): boolean {
 }
 
 /** Retorna true apenas em dispositivos móveis (iOS / Android).
- *  No desktop — mesmo com Windows Hello disponível — biometria não é oferecida. */
+ *  Combina userAgent + presença de touch para cobrir casos como
+ *  "Request Desktop Site" no iPad ou Chrome mobile com UA customizado. */
 export function isMobileDevice(): boolean {
-  return /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+  const uaMatch = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+  const hasTouch = navigator.maxTouchPoints > 0 && window.screen.width <= 1024
+  return uaMatch || hasTouch
 }
 
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
