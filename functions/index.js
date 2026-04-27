@@ -189,7 +189,7 @@ const ICON_BAG_16_B64  = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0
 // Gera <img> tag apontando para CID attachment em vez de SVG inline.
 // O CID é mapeado em emailIconAttachments() abaixo.
 function imgCid(cid, size, alt) {
-  return `<img src="cid:${cid}" width="${size}" height="${size}" alt="${alt}" style="display:block;border:0;">`
+  return `<img src="cid:${cid}" width="${size}" height="${size}" alt="${alt}" style="display:inline-block;vertical-align:middle;border:0;">`
 }
 
 // Retorna o array de attachments inline para passar ao nodemailer.
