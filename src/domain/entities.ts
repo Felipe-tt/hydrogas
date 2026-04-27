@@ -25,6 +25,8 @@ export interface Reading {
   totalCost?: number
   closedAt?: number
   createdAt: number
+  /** Criada automaticamente ao fechar o mês anterior — não conta como pendente até o usuário agir */
+  autoCreated?: boolean
 }
 
 export interface Config {
@@ -32,12 +34,8 @@ export interface Config {
   gasRate: number          // default 0.033
   condominiumName: string
   managerName?: string     // Nome do síndico
-  managerPhone?: string    // Telefone do síndico
-  managerEmail?: string    // Email do síndico para receber relatório mensal
+  managerPhone?: string    // Telefone/WhatsApp do síndico
   address?: string         // Endereço do condomínio
-  latitude?: number        // Latitude para o mapa (graus decimais)
-  longitude?: number       // Longitude para o mapa (graus decimais)
-  reportDay?: number       // Dia do mês para envio do relatório (1–28, default 1)
   updatedAt: number
 }
 
