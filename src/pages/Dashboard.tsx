@@ -169,7 +169,7 @@ export function Dashboard() {
   )
 
   const closed = useMemo(() => monthReadings.filter(r => r.closedAt), [monthReadings])
-  const open   = useMemo(() => monthReadings.filter(r => !r.closedAt), [monthReadings])
+  const open   = useMemo(() => monthReadings.filter(r => !r.closedAt && !r.autoCreated), [monthReadings])
 
   const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1
   const prevYear  = selectedMonth === 1 ? selectedYear - 1 : selectedYear
