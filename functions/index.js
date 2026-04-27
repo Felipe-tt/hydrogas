@@ -849,7 +849,7 @@ function verifyWebAuthnSignature(publicKeyJwk, algorithm, authenticatorDataBuf, 
 
 exports.getBiometricRegisterChallenge = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
@@ -887,7 +887,7 @@ exports.getBiometricRegisterChallenge = onCall(
 
 exports.registerBiometric = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
@@ -967,7 +967,7 @@ exports.registerBiometric = onCall(
 
 exports.getBiometricAuthChallenge = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
@@ -999,7 +999,7 @@ exports.getBiometricAuthChallenge = onCall(
 
 exports.verifyBiometric = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
