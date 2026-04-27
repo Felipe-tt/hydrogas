@@ -141,6 +141,8 @@ const ICON_DROP_16_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0
 const ICON_DROP_13_B64 = "iVBORw0KGgoAAAANSUhEUgAAAA0AAAANCAYAAABy6+R8AAAABmJLR0QA/wD/AP+gvaeTAAAA5UlEQVQoka2OvUoDURCFv7krMSGtrZ2Cla3mpxCMj5BaEdLnQQxiYbONvY8QDalSqFhYapEiDyCKBveC67HID7J7Vyycbs6Zb86B/5q9oVZqg6TbvlQU8l1I9Kk/F5xO1vxZyLessDv46IDFi13o+Ga/clEI7fSTTYt4ACo/5Gkqtu9a5XGwnkX0MgBANTJOgknzlMdQZUCp2FikLZPMqV4AzGxTI1dPuGkBMD907znoU6UrwUsY0bNbLV3noPsDe8XsCPAZIjHZ4ahpb8uu2Z+1od+S1EGsA5MvEd+2yk+/Vf/TfAOHLkax98sXWAAAAABJRU5ErkJggg=="
 const ICON_FIRE_16_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAA5ElEQVQ4jWNgoCX4X8Ev+L9AQACfGhZ8kr9+sc9lYGH4x8DAEIJLDRMuiZ8lomEMjAyBDP8Zgn8Wi5JmwP9QBmaG/4xtCBHGtv8N2NViFfwhK2HHwMCgjCSk+uezqA3RBjAx/TVDF/v7nxFDDKcBDP8Z/zMwMDAwSqgwMIqrQMQYGf4TbQAjw7+9DExMDMx2MQzM9tEMDIyMDExM//YTbQBb75uzDDLaWxj5RBgY+UQZmGS1NrJ1vzmH3TIc4P+Zmcr/uARuMzAwMDB9+6DKaJJ+F5danODv9ZVtf6+vbiVZ4wgDAARHNcqogouDAAAAAElFTkSuQmCC"
 const ICON_BAG_16_B64  = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABFUlEQVQ4jc2QPy9DURjGf++9V9QHECSWLsoXsDXSRNKOZgOzRfoRmIwSoWJqaOyW0kHC2G8gFgaTxuZPaHvPY6heym17DRLPdM57nj/vc+AvUaqcZXYPqzODOBY3PKjUplriBGMeQFg99P2l4vLi/XeuF2fQEvuYnnzZRNsPJoE337VLcdygz14FT8qvreQbAHvHtU05q8ZRYzcARkOC5+7Fhd4jaCw+6wPl8kXqZaRZlFxa2JwHt0KvHZKlHKQNXQHXD9OpnY1crt1ToSPWFhgGCLJdf0VJlgUYv2sK2O6pILl0nzo/IHOzw/4gMf6VgadfyCLup4HcZVK5ydWj89eH0tHpgjM/M0jsnG7WVwvnScOG4h0jpF3aZQmxQAAAAABJRU5ErkJggg=="
+const LOGO_40_B64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAABmJLR0QA/wD/AP+gvaeTAAAEbElEQVRYhc3YS2xUVRzH8e/vzJ1Hp+2IA5SmVkAwFNEa8IH4SMRGCDHEBxR0ozTRsGggiO400SZoTNToSiIQygZ1AQUXLCgkGBICJqARAYEUK1CL5ZHSF+10Hve46AyldEp620LnrE7Ouff8P/mf8597MmKINnVFwxzjUinDYqHpFqZIcgAQSOL2viTIDGfpi/SYSBjUBGqwcnf2+uI7GjfPbM/m0O0DDy1rnGblfgH2LYQGBB8bXH+/f75NmI9PPVD8PTVyhwROW3buJcnuACYOCn73cLfO1+NzKk9tLOoaBEzj6gH/OOEy/WOJuFNxtnZyJ4DJbGs6c+ONA/FUIODWgtVNYN+ZG7dtHdw3trK8umUVgNLVevIeFsSdcf39f/MD8VnGpFiRgzgQpd2JwHIHw+IcxCEJiyqNpOm5iOt71z5ugKKxxDlG7K4pYu7MwKhw6bFSM4afL4SY+3CAsgf9LHoib7Q4EH4zGlxewAwKsvLFfKyFV58NE/IPnveAA4EZTeZWLsynOOq7uWDJRB+vzA/z5Y4O8oLi3SX5o8IJ4YuWv18zElykwPDV6iglUYcDx2MAxBKi4VKSnw/3EItb1r4W4Y+/EzS3pkaEQ+CLPrauxisuLyS+WzuJslI/j0z10x2zHG9M4AKN//VhTlxIMKPYT/XSAs40J2m64nrGScIXLV9X4wXn88GWDyfzzOwgmfb8oyFaO11OXUgOCPLLnzFKJzl88Hoh56+kONeS9IQDMF6rtWJeHvPL+nGZtn55hGBg4LMpC59u7+Cng91seDvCjCmOJ1xfkXjAIZha5AzCARSERDRisgb8encn5y+nqF5a4AknKZ3BYeKEONOUyApsu+Fy5frgc4bAdcUPB7tZWB4g6M++bjYcpH9mhotDcOR0L4dO9g7AWQvf1HXi3iEzDZdSBBxRNCF7lof6mjlecJm31mxsZdXLBTw3J0hHj8uuQz0c+qv3jpkJB/sW6E0wbJwknJF8+JNJ2FrfxdZ9XdmfzRL86VkBrra7XO1wh43LusV341YyocDw5gsh9hzt9YSTNLCKR4ILBsSmtVHmzfRnDR7JF9++FyEWh20Huj3hEP1bPNLMJVMQi1tq10fZfbiHvb/30nLdJRwSC8r8vFMRJuVC9aZ2unqGBmXDAais6qId7bbKwBsLwlQtCjO9yJepJjp7LHuOxti0r5uOGyPASWh2VZMdyzNXfL8hWmiIxeHitRQp6+3M3R7fGeuCaGlzudxmh5z3goO+Kk6MFW5Y897unkkj1JyjOLC0GGSP5yQOkNEFA6rLSVzf2F4T9pk6ieYcxLny2Z3mt80l3YJPcgwH2B+P1ETOGICTW0q2IXblDo5rKdf5CNI3apBNJvxViGM5gIsLKo9+Hm66BQhnayd3JuJOhaT945k5weIjGwoPZlw3gRnkiaIpS5BdI9R+LwsC7Hbr8827FZdeKnt7cnXrfYlQaoWsrUTMEipF6b+IR49LApcl/YOox1L362eFp7M5/geB81LI65p6TQAAAABJRU5ErkJggg=="
+const LOGO_26_B64 = "iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAABmJLR0QA/wD/AP+gvaeTAAACjUlEQVRIibWWS0hUYRTH//9z7zjPNBVELWZwXIyYRIFCFEUPirJdIUIRGYmEC2vRYxkYQm4ijB5gRBEtdFMUSJtWSurCkkphohG1BHEjjDivxvu1sJHR0blzwbmb7/Cdw/md1z18RNrnbwp5lTI6FHCGZBVJJwiQxMZzi7tlCIJQ7LMltMffXpcvp3wzJfjOBVtJeQTCsZUjE8jGuxnRcP7708qxNdB/SG82RxYhqXNJiXZk4knZOP1NIa9hGMFtzGS9DghF9aU9ulJGR94gq3K1WxW1iVJozCNktTnEBaHQZxVSWaqjxmuzEkCdkHRZzaT5qBttZ3dYydIjuULqAw6QhMNOnG5wIrDbBm+ZnnMpJRfIqXoXOi8Xw+0kVgzi1vNFdPeHcf9qMVwOyalfGRltNK6rsqO7tQT+Ch0PrpVCQWFiJomhyTg+jETx4kYJdno2h6XLkg1CEneai+C0EwBwuM6OE/uda7r+wSj6BqO4d6nQtCqSDUISmjB9HULTuM7+/WgMRR6Bz6RfYvafPHwbRjhiAAA+T8bxaTyWYR/8k4S3TMsasG5W27FfCRy7vYCSQsH8orGpI3+5jr6hzAAsDQNJxJMK84sGqitsGbpDtQXQNGB6wcgasG4GSdfdvViIn3NJfPwSw4pBHKwtwMl9dlzvDZsOAwMtsyoXCAjYdKKxwYEDgQKIEBOzSbwbjSOSUOYbpebKb5ULxMqK2sxeSC7nG0JKRED8yC+EIDElFL7JL4QAOSCRv4lekqH8QRChIT0y/bIqpkQ1kVzKAwQg24e7XHMCAJPPdn2FUsdJzGxnJiBbRjo9r9a96wBg7815N+JsF7BZEQGSHqvTRWIK5AAN6Rnucs2lfP8DPCW07+LLDIMAAAAASUVORK5CYII="
 
 // Gera <img> tag apontando para CID attachment em vez de SVG inline.
 // O CID é mapeado em emailIconAttachments() abaixo.
@@ -156,6 +158,8 @@ function emailIconAttachments() {
     { cid: 'icon_drop_13', filename: 'icon_drop_13.png', content: Buffer.from(ICON_DROP_13_B64, 'base64'), contentType: 'image/png', contentDisposition: 'inline' },
     { cid: 'icon_fire_16', filename: 'icon_fire_16.png', content: Buffer.from(ICON_FIRE_16_B64, 'base64'), contentType: 'image/png', contentDisposition: 'inline' },
     { cid: 'icon_bag_16',  filename: 'icon_bag_16.png',  content: Buffer.from(ICON_BAG_16_B64,  'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+    { cid: 'logo_40',      filename: 'logo_40.png',      content: Buffer.from(LOGO_40_B64,       'base64'), contentType: 'image/png', contentDisposition: 'inline' },
+    { cid: 'logo_26',      filename: 'logo_26.png',      content: Buffer.from(LOGO_26_B64,       'base64'), contentType: 'image/png', contentDisposition: 'inline' },
   ]
 }
 
@@ -380,8 +384,8 @@ function buildEmailHtml({
                         <td valign="middle" style="padding-right:12px;">
                           <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                             <tr>
-                              <td align="center" valign="middle" style="width:40px;height:40px;background:#1e3a8a;border-radius:10px;">
-                                ${iconDrop(20)}
+                              <td align="center" valign="middle" style="width:40px;height:40px;">
+                                ${iconLogo(40)}
                               </td>
                             </tr>
                           </table>
@@ -488,9 +492,9 @@ function buildEmailHtml({
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
                         <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 14px;text-align:center;">
-                          <div style="width:34px;height:34px;background:#dbeafe;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
+                          <table cellpadding="0" cellspacing="0" style="margin:0 auto 10px;"><tr><td align="center" valign="middle" style="width:34px;height:34px;background:#dbeafe;border-radius:50%;">
                             ${iconDrop(16)}
-                          </div>
+                          </td></tr></table>
                           <div style="font-size:9px;font-weight:500;color:#1e40af;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">&#193;gua</div>
                           <div style="font-size:20px;font-weight:500;color:#1e40af;letter-spacing:-0.03em;line-height:1;">${formatBRL(agua)}</div>
                           <div style="font-size:11px;color:#60a5fa;margin-top:5px;">${formatM3(m3Agua)}&nbsp;consumidos</div>
@@ -504,9 +508,9 @@ function buildEmailHtml({
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
                         <td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 14px;text-align:center;">
-                          <div style="width:34px;height:34px;background:#ffedd5;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
+                          <table cellpadding="0" cellspacing="0" style="margin:0 auto 10px;"><tr><td align="center" valign="middle" style="width:34px;height:34px;background:#ffedd5;border-radius:50%;">
                             ${iconFire(16)}
-                          </div>
+                          </td></tr></table>
                           <div style="font-size:9px;font-weight:500;color:#c2410c;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">G&#225;s</div>
                           <div style="font-size:20px;font-weight:500;color:#c2410c;letter-spacing:-0.03em;line-height:1;">${formatBRL(gas)}</div>
                           <div style="font-size:11px;color:#fb923c;margin-top:5px;">${formatM3(m3Gas)}&nbsp;consumidos</div>
@@ -520,9 +524,9 @@ function buildEmailHtml({
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
                         <td style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:16px 14px;text-align:center;">
-                          <div style="width:34px;height:34px;background:#1e293b;border-radius:50%;margin:0 auto 10px;text-align:center;line-height:34px;">
+                          <table cellpadding="0" cellspacing="0" style="margin:0 auto 10px;"><tr><td align="center" valign="middle" style="width:34px;height:34px;background:#1e293b;border-radius:50%;">
                             ${iconBag(16)}
-                          </div>
+                          </td></tr></table>
                           <div style="font-size:9px;font-weight:500;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;">Total</div>
                           <div style="font-size:20px;font-weight:500;color:#f1f5f9;letter-spacing:-0.03em;line-height:1;">${formatBRL(geral)}</div>
                           <div style="font-size:11px;color:#64748b;margin-top:5px;">${numApts}&nbsp;apto${numApts !== 1 ? 's' : ''}&nbsp;&middot;&nbsp;m&#233;dia&nbsp;${formatBRL(avgPerApt)}</div>
@@ -659,8 +663,8 @@ function buildEmailHtml({
                         <td style="padding-right:8px;">
                           <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                             <tr>
-                              <td align="center" valign="middle" style="width:26px;height:26px;background:#1e3a8a;border-radius:6px;">
-                                ${iconDrop(13)}
+                              <td align="center" valign="middle" style="width:26px;height:26px;">
+                                ${iconLogo(26)}
                               </td>
                             </tr>
                           </table>
