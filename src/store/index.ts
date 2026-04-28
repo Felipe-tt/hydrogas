@@ -1,143 +1,307 @@
-import { create }                          from 'zustand'
-import type { Apartment, Reading, Config } from '../domain/entities'
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
+import { initializeApp }    from 'firebase/app'
+import { getDatabase, ref, push, set, get, update, remove, onValue, off, query, orderByChild, equalTo } from 'firebase/database'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import type { IApartmentRepository, IReadingRepository, IConfigRepository } from '../../domain/ports'
+import type { Apartment, Config, Reading } from '../../domain/entities'
 
-// ── App Store ─────────────────────────────────────────────────────────────────
-
-interface AppStore {
-  apartments:    Apartment[]
-  readings:      Reading[]
-  config:        Config | null
-  setApartments: (a: Apartment[]) => void
-  setReadings:   (r: Reading[])   => void
-  setConfig:     (c: Config)      => void
+const firebaseConfig = {
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY                       ,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN                   ,
+  databaseURL:       import.meta.env.VITE_FIREBASE_DATABASE_URL                  ,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID                    ,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET                ,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID           ,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID                        ,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-export const useAppStore = create<AppStore>(set => ({
-  apartments: [],
-  readings: [],
-  config: null,
-  setApartments: apartments => set({ apartments }),
-  setReadings:   readings   => set({ readings }),
-  setConfig:     config     => set({ config }),
-}))
+export const app  = initializeApp(firebaseConfig)
+export const db   = getDatabase(app)
+export const auth = getAuth(app)
 
-// ── UI Store ──────────────────────────────────────────────────────────────────
-
-export type ThemeName =
-  | 'ocean'     | 'emerald'   | 'rose'      | 'violet'    | 'amber'
-  | 'slate'     | 'teal'      | 'crimson'   | 'indigo'    | 'mint'
-  | 'sunset'    | 'nord'      | 'dracula'   | 'monokai'   | 'solarized'
-  | 'sakura'    | 'arctic'    | 'forest'    | 'candy'     | 'lava'
-  | 'neon'      | 'copper'    | 'midnight'  | 'sand'      | 'grape'
-  | 'steel'     | 'peach'     | 'obsidian'  | 'aurora'    | 'cyberpunk'
-
-export interface ThemeDefinition {
-  id:       ThemeName
-  label:    string
-  /** Cor principal de water para preview */
-  water:    string
-  /** Cor principal de gas para preview */
-  gas:      string
-  /** Cor de fundo do card de preview (light) */
-  bgLight:  string
-  /** Cor de fundo do card de preview (dark) */
-  bgDark:   string
+// App Check: só inicializa se a chave reCAPTCHA estiver configurada.
+// Sem isso, a ausência da variável causa erro silencioso que bloqueia
+// todas as Cloud Functions com enforceAppCheck: true.
+if (import.meta.env.VITE_RECAPTCHA_KEY) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
+    isTokenAutoRefreshEnabled: true,
+  })
 }
 
-export const THEMES: ThemeDefinition[] = [
-  { id: 'ocean',      label: 'Ocean',      water: '#2563eb', gas: '#ea580c', bgLight: '#f0f4f8',  bgDark: '#080c14' },
-  { id: 'emerald',    label: 'Emerald',    water: '#059669', gas: '#d97706', bgLight: '#ecfdf5',  bgDark: '#020f09' },
-  { id: 'rose',       label: 'Rose',       water: '#e11d48', gas: '#7c3aed', bgLight: '#fff1f2',  bgDark: '#100008' },
-  { id: 'violet',     label: 'Violet',     water: '#7c3aed', gas: '#db2777', bgLight: '#f5f3ff',  bgDark: '#08001a' },
-  { id: 'amber',      label: 'Amber',      water: '#d97706', gas: '#0891b2', bgLight: '#fffbeb',  bgDark: '#100a00' },
-  { id: 'slate',      label: 'Slate',      water: '#475569', gas: '#0f766e', bgLight: '#f1f5f9',  bgDark: '#060a12' },
-  { id: 'teal',       label: 'Teal',       water: '#0d9488', gas: '#7c3aed', bgLight: '#f0fdfa',  bgDark: '#010f0e' },
-  { id: 'crimson',    label: 'Crimson',    water: '#dc2626', gas: '#2563eb', bgLight: '#fff5f5',  bgDark: '#100000' },
-  { id: 'indigo',     label: 'Indigo',     water: '#4338ca', gas: '#0891b2', bgLight: '#eef2ff',  bgDark: '#060514' },
-  { id: 'mint',       label: 'Mint',       water: '#16a34a', gas: '#0891b2', bgLight: '#f0fdf4',  bgDark: '#010a04' },
-  { id: 'sunset',     label: 'Sunset',     water: '#f97316', gas: '#7c3aed', bgLight: '#fff7ed',  bgDark: '#0f0500' },
-  { id: 'nord',       label: 'Nord',       water: '#5e81ac', gas: '#bf616a', bgLight: '#eceff4',  bgDark: '#1c2030' },
-  { id: 'dracula',    label: 'Dracula',    water: '#6272a4', gas: '#ff79c6', bgLight: '#f8f8fc',  bgDark: '#1e1f29' },
-  { id: 'monokai',    label: 'Monokai',    water: '#75715e', gas: '#f92672', bgLight: '#f9f8f5',  bgDark: '#1c1d18' },
-  { id: 'solarized',  label: 'Solarized',  water: '#268bd2', gas: '#cb4b16', bgLight: '#fdf6e3',  bgDark: '#002b36' },
-  { id: 'sakura',     label: 'Sakura',     water: '#db2777', gas: '#059669', bgLight: '#fdf2f8',  bgDark: '#12000c' },
-  { id: 'arctic',     label: 'Arctic',     water: '#0ea5e9', gas: '#64748b', bgLight: '#f0f9ff',  bgDark: '#020d18' },
-  { id: 'forest',     label: 'Forest',     water: '#15803d', gas: '#92400e', bgLight: '#f0fdf4',  bgDark: '#010f06' },
-  { id: 'candy',      label: 'Candy',      water: '#ec4899', gas: '#8b5cf6', bgLight: '#fff0fa',  bgDark: '#120010' },
-  { id: 'lava',       label: 'Lava',       water: '#dc2626', gas: '#ea580c', bgLight: '#fff5f5',  bgDark: '#130000' },
-  { id: 'neon',       label: 'Neon',       water: '#06b6d4', gas: '#84cc16', bgLight: '#f0fffe',  bgDark: '#020d10' },
-  { id: 'copper',     label: 'Copper',     water: '#b45309', gas: '#065f46', bgLight: '#fffbf0',  bgDark: '#0e0800' },
-  { id: 'midnight',   label: 'Midnight',   water: '#312e81', gas: '#1e40af', bgLight: '#f0f0ff',  bgDark: '#030310' },
-  { id: 'sand',       label: 'Sand',       water: '#a16207', gas: '#b45309', bgLight: '#fefce8',  bgDark: '#100e00' },
-  { id: 'grape',      label: 'Grape',      water: '#6d28d9', gas: '#be185d', bgLight: '#f6f0ff',  bgDark: '#0a0018' },
-  { id: 'steel',      label: 'Steel',      water: '#1e3a5f', gas: '#374151', bgLight: '#f0f4f8',  bgDark: '#04090f' },
-  { id: 'peach',      label: 'Peach',      water: '#ea580c', gas: '#db2777', bgLight: '#fff8f0',  bgDark: '#100500' },
-  { id: 'obsidian',   label: 'Obsidian',   water: '#334155', gas: '#475569', bgLight: '#f8fafc',  bgDark: '#020408' },
-  { id: 'aurora',     label: 'Aurora',     water: '#0891b2', gas: '#7c3aed', bgLight: '#f0fffe',  bgDark: '#010e14' },
-  { id: 'cyberpunk',  label: 'Cyberpunk',  water: '#7c3aed', gas: '#eab308', bgLight: '#f5f0ff',  bgDark: '#06000f' },
-]
-
-function applyTheme(theme: ThemeName, dark: boolean) {
-  document.documentElement.setAttribute('data-theme', `${theme}-${dark ? 'dark' : 'light'}`)
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function snap<T>(snapshot: any): T[] {
+  if (!snapshot.exists()) return []
+  const val = snapshot.val()
+  return Object.entries(val).map(([id, data]) => ({
+    ...(data as any),
+    id,
+  })) as T[]
 }
 
-const VALID_THEMES = new Set<string>([
-  'ocean','emerald','rose','violet','amber','slate','teal','crimson','indigo','mint',
-  'sunset','nord','dracula','monokai','solarized','sakura','arctic','forest','candy',
-  'lava','neon','copper','midnight','sand','grape','steel','peach','obsidian','aurora','cyberpunk',
-])
+// ── Escreve/apaga o nó público de um apartamento em /public/{token} ───────────
+// Contém apenas: número, bloco, responsável e leituras fechadas.
+// Qualquer pessoa com o token pode ler; só autenticados podem escrever.
+export async function syncPublicNode(apt: Apartment): Promise<void> {
+  if (!apt.publicToken) return
 
-const savedTheme = (() => {
-  try {
-    const s = localStorage.getItem('hidrogas-theme')
-    if (s && VALID_THEMES.has(s)) return s as ThemeName
-  } catch {}
-  return 'ocean' as ThemeName
-})()
+  // Busca leituras fechadas do apartamento
+  const q = query(
+    ref(db, 'readings'),
+    orderByChild('apartmentId'),
+    equalTo(apt.id),
+  )
+  const snap = await get(q)
+  const readings: Reading[] = snap.exists()
+    ? Object.entries(snap.val())
+        .map(([id, v]) => ({ ...(v as any), id }))
+        .filter((r: any) => r.closedAt)
+    : []
 
-const savedDark = (() => {
-  try { const s = localStorage.getItem('hidrogas-dark-mode'); if (s !== null) return s === 'true' } catch {}
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-})()
+  // accessPasswordHash é validado pela Cloud Function diretamente de /apartments (admin-only).
+  // NUNCA é gravado em /public. hasPassword é derivado e injetado pela Cloud Function na resposta.
+  const configSnap = await get(ref(db, 'config'))
+  const configVal  = configSnap.exists() ? configSnap.val() : {}
 
-// Apply on load
-applyTheme(savedTheme, savedDark)
+  // Campos opcionais: omitir quando ausentes para não violar o .validate das regras
+  // (null não passa em newData.isString() nem em !newData.exists())
+  const condoInfo: Record<string, any> = {}
+  if (configVal.condominiumName) condoInfo.name         = configVal.condominiumName
+  if (configVal.managerName)     condoInfo.managerName  = configVal.managerName
+  if (configVal.managerPhone)    condoInfo.managerPhone = configVal.managerPhone
+  if (configVal.address)         condoInfo.address      = configVal.address
+  if (configVal.latitude  != null) condoInfo.latitude   = configVal.latitude
+  if (configVal.longitude != null) condoInfo.longitude  = configVal.longitude
 
-interface UIStore {
-  selectedMonth: number
-  selectedYear:  number
-  darkMode:      boolean
-  theme:         ThemeName
-  setMonth:      (m: number)    => void
-  setYear:       (y: number)    => void
-  setDarkMode:   (d: boolean)   => void
-  setTheme:      (t: ThemeName) => void
+  const publicData: Record<string, any> = {
+    number:    apt.number,
+    condoInfo,
+    readings:  readings.map(r => ({
+      id:          r.id,
+      type:        r.type,
+      month:       r.month,
+      year:        r.year,
+      startValue:  r.startValue  ?? 0,
+      endValue:    r.endValue    ?? 0,
+      consumption: r.consumption ?? 0,
+      totalCost:   r.totalCost   ?? 0,
+      closedAt:    r.closedAt,
+    })),
+    updatedAt: Date.now(),
+  }
+
+  // Campos opcionais do apartamento: só inclui se existirem
+  if (apt.block)       publicData.block       = apt.block
+  if (apt.responsible) publicData.responsible = apt.responsible
+
+  await set(ref(db, `public/${apt.publicToken}`), publicData)
 }
 
-const now = new Date()
+// Apaga o nó público (quando token é regenerado ou apartamento removido)
+export async function deletePublicNode(token: string): Promise<void> {
+  await remove(ref(db, `public/${token}`))
+}
 
-export const useUIStore = create<UIStore>(set => ({
-  selectedMonth: now.getMonth() + 1,
-  selectedYear:  now.getFullYear(),
-  darkMode:      savedDark,
-  theme:         savedTheme,
+// ─────────────────────────────────────────────────────────────────────────────
+// APARTMENTS
+// ─────────────────────────────────────────────────────────────────────────────
+export class FirebaseApartmentRepository implements IApartmentRepository {
+  private path = 'apartments'
 
-  setMonth: selectedMonth => set({ selectedMonth }),
-  setYear:  selectedYear  => set({ selectedYear }),
+  async getAll(): Promise<Apartment[]> {
+    const s = await get(ref(db, this.path))
+    return snap<Apartment>(s).sort((a, b) =>
+      a.number.localeCompare(b.number, undefined, { numeric: true })
+    )
+  }
 
-  setDarkMode: darkMode => {
-    try { localStorage.setItem('hidrogas-dark-mode', String(darkMode)) } catch {}
-    set(state => {
-      applyTheme(state.theme, darkMode)
-      return { darkMode }
+  async getById(id: string): Promise<Apartment | null> {
+    const s = await get(ref(db, `${this.path}/${id}`))
+    return s.exists() ? { ...s.val(), id } : null
+  }
+
+  async create(data: Omit<Apartment, 'id' | 'createdAt'>): Promise<Apartment> {
+    const r   = push(ref(db, this.path))
+    const apt: Apartment = { ...data, id: r.key!, createdAt: Date.now() }
+    await set(r, apt)
+    // Publica nó público inicial (sem leituras ainda)
+    await syncPublicNode(apt)
+    return apt
+  }
+
+  async update(id: string, data: Partial<Apartment>): Promise<void> {
+    // Se o token está sendo regenerado, apaga o nó público antigo
+    if (data.publicToken) {
+      const current = await this.getById(id)
+      if (current?.publicToken && current.publicToken !== data.publicToken) {
+        await deletePublicNode(current.publicToken)
+      }
+    }
+    await update(ref(db, `${this.path}/${id}`), data)
+    // Re-sincroniza o nó público com os dados atualizados
+    const updated = await this.getById(id)
+    if (updated) await syncPublicNode(updated)
+  }
+
+  async delete(id: string): Promise<void> {
+    const apt = await this.getById(id)
+    if (apt?.publicToken) await deletePublicNode(apt.publicToken)
+    await remove(ref(db, `${this.path}/${id}`))
+  }
+
+  subscribe(cb: (apartments: Apartment[]) => void): () => void {
+    const r = ref(db, this.path)
+    let unsubDb: any = null
+
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) return
+      unsubDb = onValue(r, snap => {
+        const list = snap.exists()
+          ? Object.entries(snap.val()).map(([id, v]) => ({ ...(v as any), id })) as Apartment[]
+          : []
+        cb(list.sort((a, b) =>
+          a.number.localeCompare(b.number, undefined, { numeric: true })
+        ))
+      })
     })
-  },
 
-  setTheme: theme => {
-    try { localStorage.setItem('hidrogas-theme', theme) } catch {}
-    set(state => {
-      applyTheme(theme, state.darkMode)
-      return { theme }
+    return () => {
+      if (unsubDb) off(r)
+      unsubAuth()
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// READINGS
+// ─────────────────────────────────────────────────────────────────────────────
+export class FirebaseReadingRepository implements IReadingRepository {
+  private path = 'readings'
+
+  async getAll(): Promise<Reading[]> {
+    const s = await get(ref(db, this.path))
+    return snap<Reading>(s)
+  }
+
+  async getByApartment(apartmentId: string): Promise<Reading[]> {
+    const q = query(
+      ref(db, this.path),
+      orderByChild('apartmentId'),
+      equalTo(apartmentId),
+    )
+    const s = await get(q)
+    return snap<Reading>(s)
+  }
+
+  async getByMonthYear(month: number, year: number): Promise<Reading[]> {
+    const all = await this.getAll()
+    return all.filter(r => r.month === month && r.year === year)
+  }
+
+  async create(data: Omit<Reading, 'id' | 'createdAt'>): Promise<Reading> {
+    const r       = push(ref(db, this.path))
+    const reading: Reading = { ...data, id: r.key!, createdAt: Date.now() }
+    await set(r, reading)
+    return reading
+  }
+
+  async update(id: string, data: Partial<Reading>): Promise<void> {
+    await update(ref(db, `${this.path}/${id}`), data)
+    // Se a leitura foi fechada (closedAt adicionado), re-sincroniza o nó público
+    if (data.closedAt) {
+      const snap     = await get(ref(db, `${this.path}/${id}`))
+      const reading  = snap.exists() ? { ...snap.val(), id } as Reading : null
+      if (reading?.apartmentId) {
+        const aptSnap = await get(ref(db, `apartments/${reading.apartmentId}`))
+        if (aptSnap.exists()) {
+          await syncPublicNode({ ...aptSnap.val(), id: reading.apartmentId })
+        }
+      }
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    // Captura o apartmentId antes de deletar para re-sincronizar
+    const snap    = await get(ref(db, `${this.path}/${id}`))
+    const reading = snap.exists() ? { ...snap.val(), id } as Reading : null
+    await remove(ref(db, `${this.path}/${id}`))
+    if (reading?.apartmentId) {
+      const aptSnap = await get(ref(db, `apartments/${reading.apartmentId}`))
+      if (aptSnap.exists()) {
+        await syncPublicNode({ ...aptSnap.val(), id: reading.apartmentId })
+      }
+    }
+  }
+
+  subscribe(cb: (readings: Reading[]) => void): () => void {
+    const r = ref(db, this.path)
+    let unsubDb: any = null
+
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) return
+      unsubDb = onValue(r, snap => {
+        const list = snap.exists()
+          ? Object.entries(snap.val()).map(([id, v]) => ({ ...(v as any), id })) as Reading[]
+          : []
+        cb(list)
+      })
     })
-  },
-}))
+
+    return () => {
+      if (unsubDb) off(r)
+      unsubAuth()
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const DEFAULT_CONFIG: Config = {
+  waterRate:       0.033,
+  gasRate:         0.033,
+  condominiumName: 'Meu Condomínio',
+  updatedAt:       Date.now(),
+}
+
+export class FirebaseConfigRepository implements IConfigRepository {
+  private path = 'config'
+
+  async get(): Promise<Config> {
+    const s = await get(ref(db, this.path))
+    return s.exists() ? s.val() : DEFAULT_CONFIG
+  }
+
+  async update(data: Partial<Config>): Promise<void> {
+    await update(ref(db, this.path), {
+      ...data,
+      updatedAt: Date.now(),
+    })
+    // Re-sincroniza todos os nós públicos para atualizar condoInfo
+    const aptsSnap = await get(ref(db, 'apartments'))
+    if (aptsSnap.exists()) {
+      const apts = Object.entries(aptsSnap.val())
+        .map(([id, v]) => ({ ...(v as any), id }))
+        .filter((a: any) => a.publicToken)
+      await Promise.all(apts.map((a: any) => syncPublicNode(a)))
+    }
+  }
+
+  subscribe(cb: (config: Config) => void): () => void {
+    const r = ref(db, this.path)
+    let unsubDb: any = null
+
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) return
+      unsubDb = onValue(r, snap => {
+        cb(snap.exists() ? snap.val() : DEFAULT_CONFIG)
+      })
+    })
+
+    return () => {
+      if (unsubDb) off(r)
+      unsubAuth()
+    }
+  }
+}
