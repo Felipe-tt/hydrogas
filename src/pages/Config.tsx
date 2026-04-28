@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar, LogOut } from 'lucide-react'
-import { useAppStore, useUIStore } from '../store'
+import { useAppStore, useUIStore, THEMES } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
 import { friendlyError } from '../lib/friendlyError'
@@ -32,7 +32,7 @@ interface FormErrors {
 export function Config() {
   const { config, readings, apartments } = useAppStore()
   const { toast } = useToast()
-  const { darkMode, setDarkMode } = useUIStore()
+  const { darkMode, setDarkMode, theme, setTheme } = useUIStore()
   const [form, setForm] = useState({
     waterRate: '0.033',
     gasRate: '0.033',
@@ -329,9 +329,10 @@ export function Config() {
             icon={darkMode ? <Moon size={16} color="#818cf8" /> : <Sun size={16} color="#f59e0b" />}
             iconBg={darkMode ? 'rgba(129,140,248,0.15)' : 'rgba(245,158,11,0.12)'}
             title="Aparência"
-            description="Tema visual da interface"
+            description="Tema visual e modo de cor da interface"
           >
-            <div className="config-appearance-row">
+            {/* Dark mode toggle */}
+            <div className="config-appearance-row" style={{ marginBottom: 16 }}>
               <div>
                 <div className="config-appearance-label">
                   {darkMode ? 'Modo escuro' : 'Modo claro'}
@@ -345,6 +346,35 @@ export function Config() {
                 <span className="dark-toggle-track" />
                 <span className="dark-toggle-thumb" />
               </label>
+            </div>
+
+            {/* Theme picker */}
+            <div className="config-theme-label">Paleta de cores</div>
+            <div className="config-theme-grid">
+              {THEMES.map(t => {
+                const isActive = theme === t.id
+                const bg = darkMode ? t.bgDark : t.bgLight
+                return (
+                  <button
+                    key={t.id}
+                    title={t.label}
+                    onClick={() => setTheme(t.id)}
+                    className="config-theme-swatch"
+                    style={{
+                      background: bg,
+                      border: isActive ? `2px solid ${t.water}` : '2px solid transparent',
+                      boxShadow: isActive ? `0 0 0 2px ${t.water}55` : 'none',
+                    }}
+                  >
+                    <span className="config-theme-swatch-dot" style={{ background: t.water }} />
+                    <span className="config-theme-swatch-dot" style={{ background: t.gas }} />
+                    {isActive && (
+                      <span className="config-theme-swatch-check" style={{ color: t.water }}>✓</span>
+                    )}
+                    <span className="config-theme-swatch-name">{t.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </Section>
 
