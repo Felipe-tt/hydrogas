@@ -30,49 +30,8 @@
     Permissions-Policy = "geolocation=(), camera=(), microphone=(), publickey-credentials-create=*, publickey-credentials-get=*"
 
     # ── Content Security Policy ───────────────────────────────────────────────
-    #
-    # default-src   → fallback restritivo para tudo não listado explicitamente
-    # script-src    → sem 'unsafe-inline': Vite não gera scripts inline em prod
-    # style-src     → 'unsafe-inline' necessário (Tailwind / CSS-in-JS em runtime)
-    # font-src      → Google Fonts + data URIs (ícones inline)
-    # img-src       → data URIs (QR Code) + domínios Google Maps
-    # connect-src   → Firebase (RTDB, Auth, Functions), reCAPTCHA, Nominatim
-    # frame-src     → Google Maps embed + reCAPTCHA iframe
-    # object-src    → bloqueia Flash e plugins legados
-    # base-uri      → impede injeção de <base> tag (open redirect via XSS)
-    #
-    Content-Security-Policy = """
-      default-src 'self';
-      script-src 'self'
-        www.google.com
-        www.recaptcha.net
-        *.googleapis.com
-        *.gstatic.com;
-      style-src 'self' 'unsafe-inline'
-        fonts.googleapis.com;
-      font-src 'self'
-        fonts.gstatic.com
-        data:;
-      img-src 'self'
-        data:
-        *.googleapis.com
-        *.gstatic.com
-        maps.gstatic.com;
-      connect-src 'self'
-        *.firebaseio.com
-        wss://*.firebaseio.com
-        *.googleapis.com
-        *.firebase.com
-        *.firebaseapp.com
-        *.cloudfunctions.net
-        *.run.app
-        www.google.com
-        www.recaptcha.net
-        nominatim.openstreetmap.org;
-      frame-src
-        www.google.com
-        maps.google.com
-        www.recaptcha.net;
-      object-src 'none';
-      base-uri 'self';
-    """
+    # script-src sem 'unsafe-inline': Vite não gera scripts inline em prod
+    # style-src mantém 'unsafe-inline': necessário para Tailwind em runtime
+    # object-src 'none': bloqueia Flash e plugins legados
+    # base-uri 'self': impede injeção de <base> tag via XSS
+    Content-Security-Policy = "default-src 'self'; script-src 'self' www.google.com www.recaptcha.net *.googleapis.com *.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com data:; img-src 'self' data: *.googleapis.com *.gstatic.com maps.gstatic.com; connect-src 'self' *.firebaseio.com wss://*.firebaseio.com *.googleapis.com *.firebase.com *.firebaseapp.com *.cloudfunctions.net *.run.app www.google.com www.recaptcha.net nominatim.openstreetmap.org; frame-src www.google.com maps.google.com www.recaptcha.net; object-src 'none'; base-uri 'self';"
