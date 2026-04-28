@@ -1510,19 +1510,60 @@ select.input { cursor: pointer; }
 
 .config-layout {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 28px;
   align-items: start;
+  /* garante que nenhuma coluna estoure */
+  overflow: hidden;
 }
+
+/* ambas as colunas precisam de min-width: 0 pra não vazar do grid */
+.config-left-col,
+.config-right-col {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .config-section-row {
   display: grid;
-  grid-template-columns: 190px 1fr;
-  gap: 32px;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 28px;
+  min-width: 0;
 }
-@media (max-width: 900px)  { .config-layout { grid-template-columns: 1fr; } }
-@media (max-width: 600px)  { .config-section-row { grid-template-columns: 1fr; gap: 12px; } }
-@media (min-width: 1400px) { .config-layout { grid-template-columns: 1fr 420px; gap: 36px; } .config-section-row { grid-template-columns: 210px 1fr; gap: 40px; } }
-@media (min-width: 1800px) { .config-layout { grid-template-columns: 1fr 480px; gap: 48px; } }
+
+/* Coluna direita: cards não podem ser mais largos que o container */
+.config-right-col .card,
+.config-info-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Breakpoints ── */
+
+/* Tablet largo: comprime coluna direita */
+@media (max-width: 1100px) {
+  .config-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; }
+}
+
+/* Tablet: colapsa layout em coluna única, section-row também */
+@media (max-width: 900px) {
+  .config-layout { grid-template-columns: minmax(0, 1fr); }
+  .config-section-row { grid-template-columns: 160px minmax(0, 1fr); gap: 20px; }
+}
+
+/* Mobile: section-row também vira coluna única */
+@media (max-width: 640px) {
+  .config-section-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+
+/* Desktop largo */
+@media (min-width: 1400px) {
+  .config-layout { grid-template-columns: minmax(0, 1fr) 400px; gap: 36px; }
+  .config-section-row { grid-template-columns: 200px minmax(0, 1fr); gap: 40px; }
+}
+@media (min-width: 1800px) {
+  .config-layout { grid-template-columns: minmax(0, 1fr) 460px; gap: 48px; }
+}
 
 /* ═══════════════════════════════════════════════════════════
    MISC UTILS
