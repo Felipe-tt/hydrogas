@@ -35,6 +35,7 @@
         "totalCost":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
         "createdAt":   { ".validate": "newData.isNumber()" },
         "closedAt":    { ".validate": "newData.isNumber()" },
+        "autoCreated": { ".validate": "newData.isBoolean()" },
         "$other":      { ".validate": false }
       }
     },
