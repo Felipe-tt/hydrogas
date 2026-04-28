@@ -2,6 +2,7 @@ import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
 import { initializeApp }    from 'firebase/app'
 import { getDatabase, ref, push, set, get, update, remove, onValue, off, query, orderByChild, equalTo } from 'firebase/database'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import type { IApartmentRepository, IReadingRepository, IConfigRepository } from '../../domain/ports'
 import type { Apartment, Config, Reading } from '../../domain/entities'
 
@@ -16,9 +17,10 @@ const firebaseConfig = {
   measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-export const app  = initializeApp(firebaseConfig)
-export const db   = getDatabase(app)
-export const auth = getAuth(app)
+export const app       = initializeApp(firebaseConfig)
+export const db        = getDatabase(app)
+export const auth      = getAuth(app)
+export const functions = getFunctions(app, 'us-central1')
 
 // App Check: só inicializa se a chave reCAPTCHA estiver configurada.
 // Sem isso, a ausência da variável causa erro silencioso que bloqueia
@@ -43,61 +45,18 @@ function snap<T>(snapshot: any): T[] {
 // ── Escreve/apaga o nó público de um apartamento em /public/{token} ───────────
 // Contém apenas: número, bloco, responsável e leituras fechadas.
 // Qualquer pessoa com o token pode ler; só autenticados podem escrever.
+// ── Sync do nó público via Cloud Function (escrita server-side apenas) ────────
+const _syncPublicNodeFn   = httpsCallable<{ apartmentId: string }, void>(functions, 'syncPublicNode')
+const _deletePublicNodeFn = httpsCallable<{ token: string }, void>(functions, 'deletePublicNode')
+
 export async function syncPublicNode(apt: Apartment): Promise<void> {
   if (!apt.publicToken) return
-
-  // Busca leituras fechadas do apartamento
-  const q = query(
-    ref(db, 'readings'),
-    orderByChild('apartmentId'),
-    equalTo(apt.id),
-  )
-  const snap = await get(q)
-  const readings: Reading[] = snap.exists()
-    ? Object.entries(snap.val())
-        .map(([id, v]) => ({ ...(v as any), id }))
-        .filter((r: any) => r.closedAt)
-    : []
-
-  // accessPasswordHash é validado pela Cloud Function diretamente de /apartments (admin-only).
-  // NUNCA é gravado em /public. hasPassword é derivado e injetado pela Cloud Function na resposta.
-  const configSnap = await get(ref(db, 'config'))
-  const configVal  = configSnap.exists() ? configSnap.val() : {}
-
-  const publicData = {
-    number:      apt.number,
-    block:       apt.block       ?? null,
-    responsible: apt.responsible ?? null,
-    // accessPasswordHash NUNCA vai para /public — fica só em /apartments (admin-only)
-    // hasPassword é derivado pela Cloud Function diretamente de /apartments
-    condoInfo: {
-      name:         configVal.condominiumName ?? null,
-      managerName:  configVal.managerName     ?? null,
-      managerPhone: configVal.managerPhone    ?? null,
-      address:      configVal.address         ?? null,
-      latitude:     configVal.latitude        ?? null,
-      longitude:    configVal.longitude       ?? null,
-    },
-    readings:    readings.map(r => ({
-      id:          r.id,
-      type:        r.type,
-      month:       r.month,
-      year:        r.year,
-      startValue:  r.startValue  ?? 0,
-      endValue:    r.endValue    ?? 0,
-      consumption: r.consumption ?? 0,
-      totalCost:   r.totalCost   ?? 0,
-      closedAt:    r.closedAt,
-    })),
-    updatedAt: Date.now(),
-  }
-
-  await set(ref(db, `public/${apt.publicToken}`), publicData)
+  await _syncPublicNodeFn({ apartmentId: apt.id })
 }
 
-// Apaga o nó público (quando token é regenerado ou apartamento removido)
 export async function deletePublicNode(token: string): Promise<void> {
-  await remove(ref(db, `public/${token}`))
+  await _deletePublicNodeFn({ token })
+}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
