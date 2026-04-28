@@ -4,6 +4,8 @@
  * adminLogin              → Login do síndico com Argon2id + Custom Token
  * hashApartmentPassword   → Gera hash Argon2id da senha do apartamento (autenticado)
  * resetApartmentRateLimit → Reseta rate limit de um apartamento (autenticado)
+ * syncPublicNode          → Reconstrói /public/{token} server-side (autenticado)
+ * deletePublicNode        → Apaga /public/{token} server-side (autenticado)
  * getPublicApartment      → Dados do apartamento para o morador (valida hash no servidor)
  * monthlyEmailReport      → Relatório de consumo por e-mail (dia configurável em /config/reportDay)
  */
@@ -1288,6 +1290,110 @@ exports.resetApartmentRateLimit = onCall(
       throw new HttpsError('invalid-argument', 'Token obrigatório.')
 
     await clearRateLimit(`apt:${token}`)
+    return { ok: true }
+  }
+)
+
+// ─── syncPublicNode ───────────────────────────────────────────────────────────
+// Reconstrói o nó /public/{token} a partir dos dados de /apartments e /readings.
+// Só admins podem chamar. A escrita em /public nunca passa pelo cliente.
+// ─────────────────────────────────────────────────────────────────────────────
+
+exports.syncPublicNode = onCall(
+  {
+    region:          'us-central1',
+    secrets:         ['DATABASE_URL'],
+    enforceAppCheck: true,
+    timeoutSeconds:  30,
+    memory:          '256MiB',
+  },
+  async (request) => {
+    if (!request.auth || request.auth.uid !== ADMIN_UID)
+      throw new HttpsError('unauthenticated', 'Acesso não autorizado.')
+
+    const { apartmentId } = request.data || {}
+    if (!apartmentId || typeof apartmentId !== 'string')
+      throw new HttpsError('invalid-argument', 'apartmentId obrigatório.')
+
+    const db = getDatabase()
+
+    const aptSnap = await db.ref(`apartments/${apartmentId}`).get()
+    if (!aptSnap.exists())
+      throw new HttpsError('not-found', 'Apartamento não encontrado.')
+
+    const apt = aptSnap.val()
+    if (!apt.publicToken) return { ok: true } // sem token, nada a sincronizar
+
+    // Leituras fechadas do apartamento
+    const readingsSnap = await db.ref('readings')
+      .orderByChild('apartmentId').equalTo(apartmentId).get()
+
+    const readings = readingsSnap.exists()
+      ? Object.entries(readingsSnap.val())
+          .map(([id, v]) => ({ ...v, id }))
+          .filter(r => r.closedAt)
+      : []
+
+    // Config do condomínio
+    const configSnap = await db.ref('config').get()
+    const config     = configSnap.exists() ? configSnap.val() : {}
+
+    const publicData = {
+      number:      apt.number,
+      block:       apt.block       ?? null,
+      responsible: apt.responsible ?? null,
+      condoInfo: {
+        name:         config.condominiumName ?? null,
+        managerName:  config.managerName     ?? null,
+        managerPhone: config.managerPhone    ?? null,
+        address:      config.address         ?? null,
+        latitude:     config.latitude        ?? null,
+        longitude:    config.longitude       ?? null,
+      },
+      readings: readings.map(r => ({
+        id:          r.id,
+        type:        r.type,
+        month:       r.month,
+        year:        r.year,
+        startValue:  r.startValue  ?? 0,
+        endValue:    r.endValue    ?? 0,
+        consumption: r.consumption ?? 0,
+        totalCost:   r.totalCost   ?? 0,
+        closedAt:    r.closedAt,
+      })),
+      updatedAt: Date.now(),
+    }
+
+    await db.ref(`public/${apt.publicToken}`).set(publicData)
+    return { ok: true }
+  }
+)
+
+// ─── deletePublicNode ─────────────────────────────────────────────────────────
+// Apaga o nó /public/{token}. Chamado ao regenerar token ou remover apartamento.
+// ─────────────────────────────────────────────────────────────────────────────
+
+exports.deletePublicNode = onCall(
+  {
+    region:          'us-central1',
+    secrets:         ['DATABASE_URL'],
+    enforceAppCheck: true,
+    timeoutSeconds:  15,
+    memory:          '256MiB',
+  },
+  async (request) => {
+    if (!request.auth || request.auth.uid !== ADMIN_UID)
+      throw new HttpsError('unauthenticated', 'Acesso não autorizado.')
+
+    const { token } = request.data || {}
+    if (!token || typeof token !== 'string')
+      throw new HttpsError('invalid-argument', 'Token obrigatório.')
+
+    // Valida formato UUID para evitar deleção de nós arbitrários
+    if (!/^[0-9a-f-]{36}$/.test(token))
+      throw new HttpsError('invalid-argument', 'Token inválido.')
+
+    await getDatabase().ref(`public/${token}`).remove()
     return { ok: true }
   }
 )
