@@ -44,7 +44,7 @@ function snap<T>(snapshot: any): T[] {
 
 // ── Escreve/apaga o nó público de um apartamento em /public/{token} ───────────
 // Contém apenas: número, bloco, responsável e leituras fechadas.
-// Qualquer pessoa com o token pode ler; só autenticados podem escrever.
+// Qualquer pessoa com o token pode ler; só autenticados podem escrever (via CF).
 // ── Sync do nó público via Cloud Function (escrita server-side apenas) ────────
 const _syncPublicNodeFn   = httpsCallable<{ apartmentId: string }, void>(functions, 'syncPublicNode')
 const _deletePublicNodeFn = httpsCallable<{ token: string }, void>(functions, 'deletePublicNode')
@@ -56,7 +56,6 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
 
 export async function deletePublicNode(token: string): Promise<void> {
   await _deletePublicNodeFn({ token })
-}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
