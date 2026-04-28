@@ -2,17 +2,77 @@
   command = "npm run build"
   publish = "dist"
 
+# ── SPA fallback ──────────────────────────────────────────────────────────────
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from   = "/*"
+  to     = "/index.html"
   status = 200
 
+# ── Security headers ──────────────────────────────────────────────────────────
 [[headers]]
   for = "/*"
+
   [headers.values]
+
+    # Impede o site de ser embarcado em iframes (clickjacking)
     X-Frame-Options = "DENY"
+
+    # Impede MIME-type sniffing
     X-Content-Type-Options = "nosniff"
-    Strict-Transport-Security = "max-age=31536000"
+
+    # Força HTTPS por 1 ano
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+    # Não vaza a URL completa como referrer para domínios externos
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Libera apenas o necessário para WebAuthn; bloqueia câmera, mic, geoloc
     Permissions-Policy = "geolocation=(), camera=(), microphone=(), publickey-credentials-create=*, publickey-credentials-get=*"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' *.googleapis.com *.gstatic.com www.google.com www.recaptcha.net *.firebaseio.com; style-src 'self' 'unsafe-inline' *.googleapis.com *.gstatic.com; font-src 'self' *.gstatic.com data:; img-src 'self' data: *.googleapis.com *.gstatic.com maps.gstatic.com; connect-src 'self' *.firebaseio.com *.googleapis.com *.firebase.com wss://*.firebaseio.com www.google.com www.recaptcha.net *.cloudfunctions.net *.run.app; frame-src www.google.com maps.google.com www.recaptcha.net *.firebaseio.com"
+
+    # ── Content Security Policy ───────────────────────────────────────────────
+    #
+    # default-src   → fallback restritivo para tudo não listado explicitamente
+    # script-src    → sem 'unsafe-inline': Vite não gera scripts inline em prod
+    # style-src     → 'unsafe-inline' necessário (Tailwind / CSS-in-JS em runtime)
+    # font-src      → Google Fonts + data URIs (ícones inline)
+    # img-src       → data URIs (QR Code) + domínios Google Maps
+    # connect-src   → Firebase (RTDB, Auth, Functions), reCAPTCHA, Nominatim
+    # frame-src     → Google Maps embed + reCAPTCHA iframe
+    # object-src    → bloqueia Flash e plugins legados
+    # base-uri      → impede injeção de <base> tag (open redirect via XSS)
+    #
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self'
+        www.google.com
+        www.recaptcha.net
+        *.googleapis.com
+        *.gstatic.com;
+      style-src 'self' 'unsafe-inline'
+        fonts.googleapis.com;
+      font-src 'self'
+        fonts.gstatic.com
+        data:;
+      img-src 'self'
+        data:
+        *.googleapis.com
+        *.gstatic.com
+        maps.gstatic.com;
+      connect-src 'self'
+        *.firebaseio.com
+        wss://*.firebaseio.com
+        *.googleapis.com
+        *.firebase.com
+        *.firebaseapp.com
+        *.cloudfunctions.net
+        *.run.app
+        www.google.com
+        www.recaptcha.net
+        nominatim.openstreetmap.org;
+      frame-src
+        www.google.com
+        maps.google.com
+        www.recaptcha.net;
+      object-src 'none';
+      base-uri 'self';
+    """
