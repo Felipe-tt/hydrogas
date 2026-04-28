@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar, LogOut, ChevronDown, Palette } from 'lucide-react'
+import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar, LogOut } from 'lucide-react'
 import { useAppStore, useUIStore, THEMES } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
@@ -33,8 +33,6 @@ export function Config() {
   const { config, readings, apartments } = useAppStore()
   const { toast } = useToast()
   const { darkMode, setDarkMode, theme, setTheme } = useUIStore()
-  const [themePickerOpen, setThemePickerOpen] = useState(false)
-  const activeTheme = THEMES.find(t => t.id === theme)!
   const [form, setForm] = useState({
     waterRate: '0.033',
     gasRate: '0.033',
@@ -350,54 +348,27 @@ export function Config() {
               </label>
             </div>
 
-            {/* Theme picker */}
-            <div className="config-theme-trigger-wrap">
-              <div className="config-theme-label"><Palette size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />Paleta de cores</div>
-              <button
-                className="config-theme-trigger"
-                onClick={() => setThemePickerOpen(o => !o)}
-                style={{ borderColor: activeTheme.water + '66' }}
-              >
-                <div className="config-theme-trigger-preview">
-                  <div className="config-theme-trigger-dots">
-                    <span style={{ background: activeTheme.water }} />
-                    <span style={{ background: activeTheme.gas }} />
-                  </div>
-                  <span className="config-theme-trigger-name">{activeTheme.label}</span>
-                </div>
-                <ChevronDown
-                  size={15}
-                  className="config-theme-trigger-chevron"
-                  style={{ transform: themePickerOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                />
-              </button>
-
-              {themePickerOpen && (
-                <div className="config-theme-grid">
-                  {THEMES.map(t => {
-                    const isActive = theme === t.id
-                    return (
-                      <button
-                        key={t.id}
-                        title={t.label}
-                        onClick={() => { setTheme(t.id); setThemePickerOpen(false) }}
-                        className="config-theme-swatch"
-                        style={{
-                          borderColor: isActive ? t.water : 'transparent',
-                          boxShadow:   isActive ? `0 0 0 2px ${t.water}44` : 'none',
-                        }}
-                      >
-                        <div className="config-theme-swatch-dots">
-                          <span className="config-theme-swatch-dot" style={{ background: t.water }} />
-                          <span className="config-theme-swatch-dot" style={{ background: t.gas }} />
-                          {isActive && <span className="config-theme-swatch-check">✓</span>}
-                        </div>
-                        <span className="config-theme-swatch-name">{t.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+            {/* Theme picker — carrossel horizontal */}
+            <div className="config-theme-label">Paleta de cores</div>
+            <div className="config-theme-carousel">
+              {THEMES.map(t => {
+                const isActive = theme === t.id
+                return (
+                  <button
+                    key={t.id}
+                    title={t.label}
+                    onClick={() => setTheme(t.id)}
+                    className={'config-theme-pill' + (isActive ? ' config-theme-pill--active' : '')}
+                    style={{ '--pill-water': t.water, '--pill-gas': t.gas } as React.CSSProperties}
+                  >
+                    <span className="config-theme-pill-duo">
+                      <span style={{ background: t.water }} />
+                      <span style={{ background: t.gas }} />
+                    </span>
+                    <span className="config-theme-pill-name">{t.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </Section>
 
