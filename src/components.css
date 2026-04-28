@@ -3594,6 +3594,7 @@
   gap: 12px;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 /* ── Preview + info ──────────────── */
@@ -3602,6 +3603,8 @@
   gap: 10px;
   align-items: flex-start;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tp-screen {
@@ -3676,7 +3679,9 @@
   display: flex; gap: 5px;
   overflow-x: auto; scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 1px;
+  padding-bottom: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .tp-cats::-webkit-scrollbar { display: none; }
 
@@ -3714,7 +3719,10 @@
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+  padding-bottom: 6px;
+  /* garante que o scroll não transborde o container */
+  width: 100%;
+  box-sizing: border-box;
 }
 .tp-scroll::-webkit-scrollbar { height: 3px; }
 .tp-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
@@ -3723,6 +3731,8 @@
   display: flex; gap: 7px;
   padding: 3px 2px 2px;
   width: max-content;
+  /* evita que o grid quebre o layout ao colapsar */
+  min-width: min-content;
 }
 
 /* ── Card de tema ────────────────── */
@@ -3780,15 +3790,54 @@
 }
 
 /* ── Responsive ──────────────────── */
+
+/* Telas médias: reduz preview mas mantém layout */
 @media (max-width: 520px) {
   .tp-screen { width: 118px; height: 79px; }
   .tp-card { width: 76px; }
   .tp-card-img { height: 50px; }
 }
-@media (max-width: 380px) {
-  .tp-screen { width: 96px; height: 64px; }
+
+/* Mobile compacto: empilha preview + info verticalmente,
+   pills lado a lado, grid menor */
+@media (max-width: 480px) {
+  .tp-top {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tp-screen {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 120 / 80; /* mesma proporção do SVG viewBox */
+    flex-shrink: 1;
+  }
+  .tp-screen svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .tp-info {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .tp-pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(50% - 3px);
+  }
+  .tp-count { flex: 0 0 auto; margin-left: auto; }
+  .tp-card { width: 72px; }
+  .tp-card-img { height: 48px; }
+  .tp-cat { font-size: 10px; padding: 4px 9px; }
+}
+
+/* Mobile muito pequeno */
+@media (max-width: 360px) {
+  .tp-card { width: 64px; }
+  .tp-card-img { height: 43px; }
   .tp-pill { font-size: 9px; padding: 4px 7px; }
   .tp-cat { font-size: 10px; padding: 4px 8px; }
-  .tp-card { width: 68px; }
-  .tp-card-img { height: 45px; }
 }
