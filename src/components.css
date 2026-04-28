@@ -3499,3 +3499,72 @@
 .config-logout-mobile-btn:hover {
   color: #dc2626;
 }
+
+/* ── Config Theme Picker ─────────────────────────────────────────────────── */
+.config-theme-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.config-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.config-theme-swatch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  min-height: 68px;
+}
+.config-theme-swatch:hover  { transform: translateY(-1px); }
+.config-theme-swatch:active { transform: translateY(0); }
+
+.config-theme-swatch-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: absolute;
+}
+.config-theme-swatch-dot:nth-child(1) { top: 10px; left: 10px; }
+.config-theme-swatch-dot:nth-child(2) { top: 10px; left: 26px; }
+
+.config-theme-swatch-check {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 14px;
+}
+
+.config-theme-swatch-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-top: auto;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 480px) {
+  .config-theme-grid {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px;
+  }
+  .config-theme-swatch {
+    min-height: 58px;
+    padding: 8px 4px 6px;
+  }
+}
