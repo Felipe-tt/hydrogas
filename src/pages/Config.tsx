@@ -353,7 +353,6 @@ export function Config() {
             <div className="config-theme-grid">
               {THEMES.map(t => {
                 const isActive = theme === t.id
-                const bg = darkMode ? t.bgDark : t.bgLight
                 return (
                   <button
                     key={t.id}
@@ -361,16 +360,15 @@ export function Config() {
                     onClick={() => setTheme(t.id)}
                     className="config-theme-swatch"
                     style={{
-                      background: bg,
-                      border: isActive ? `2px solid ${t.water}` : '2px solid transparent',
-                      boxShadow: isActive ? `0 0 0 2px ${t.water}55` : 'none',
+                      borderColor:  isActive ? t.water : 'transparent',
+                      boxShadow:    isActive ? `0 0 0 2px ${t.water}44` : 'none',
                     }}
                   >
-                    <span className="config-theme-swatch-dot" style={{ background: t.water }} />
-                    <span className="config-theme-swatch-dot" style={{ background: t.gas }} />
-                    {isActive && (
-                      <span className="config-theme-swatch-check" style={{ color: t.water }}>✓</span>
-                    )}
+                    <div className="config-theme-swatch-dots">
+                      <span className="config-theme-swatch-dot" style={{ background: t.water }} />
+                      <span className="config-theme-swatch-dot" style={{ background: t.gas }} />
+                      {isActive && <span className="config-theme-swatch-check">✓</span>}
+                    </div>
                     <span className="config-theme-swatch-name">{t.label}</span>
                   </button>
                 )
