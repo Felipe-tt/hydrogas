@@ -332,7 +332,7 @@ export function Config() {
             description="Tema visual e modo de cor da interface"
           >
             {/* Dark mode toggle */}
-            <div className="config-appearance-row" style={{ marginBottom: 16 }}>
+            <div className="config-appearance-row" style={{ marginBottom: 20 }}>
               <div>
                 <div className="config-appearance-label">
                   {darkMode ? 'Modo escuro' : 'Modo claro'}
@@ -348,9 +348,9 @@ export function Config() {
               </label>
             </div>
 
-            {/* Theme picker — carrossel horizontal */}
-            <div className="config-theme-label">Paleta de cores</div>
-            <div className="config-theme-carousel">
+            {/* Theme grid */}
+            <div className="theme-picker-label">Tema de cores</div>
+            <div className="theme-picker-grid">
               {THEMES.map(t => {
                 const isActive = theme === t.id
                 return (
@@ -358,14 +358,15 @@ export function Config() {
                     key={t.id}
                     title={t.label}
                     onClick={() => setTheme(t.id)}
-                    className={'config-theme-pill' + (isActive ? ' config-theme-pill--active' : '')}
-                    style={{ '--pill-water': t.water, '--pill-gas': t.gas } as React.CSSProperties}
+                    className={'theme-card' + (isActive ? ' theme-card--active' : '')}
+                    style={{ '--tc-water': t.water, '--tc-gas': t.gas } as React.CSSProperties}
                   >
-                    <span className="config-theme-pill-duo">
+                    <div className="theme-card-dots">
                       <span style={{ background: t.water }} />
                       <span style={{ background: t.gas }} />
-                    </span>
-                    <span className="config-theme-pill-name">{t.label}</span>
+                    </div>
+                    <span className="theme-card-name">{t.label}</span>
+                    {isActive && <span className="theme-card-check">✓</span>}
                   </button>
                 )
               })}
