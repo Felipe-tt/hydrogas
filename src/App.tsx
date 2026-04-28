@@ -16,6 +16,7 @@ import { Login } from './pages/Login'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from './infrastructure/firebase'
 import { isBiometricSupported } from './hooks/useBiometric'
+import { useSessionRenewal, clearCredentials } from './hooks/useSessionRenewal'
 
 import { useUIStore } from './store'
 import { Skeleton } from './components/ui/Skeleton'
@@ -94,6 +95,7 @@ function AuthLoadingSkeleton() {
 
 function AdminLayout({ onLogout }: { onLogout: () => void }) {
   useFirebaseSync()
+  useSessionRenewal()   // ← renova a sessão automaticamente antes de expirar
   const darkMode = useUIStore(s => s.darkMode)
   const theme    = useUIStore(s => s.theme)
 
@@ -191,7 +193,10 @@ function AdminGate() {
     return () => unsub()
   }, [])
 
-  const handleLogout = () => signOut(auth)
+  const handleLogout = () => {
+    clearCredentials()   // limpa credenciais da memória ao fazer logout
+    signOut(auth)
+  }
 
   if (loading) return <AuthLoadingSkeleton />
   if (!user || !enrollDone) return <Login onLogin={handleEnrollDone} />
