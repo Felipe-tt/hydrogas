@@ -21,6 +21,7 @@ import {
   isBiometricSupported,
   isMobileDevice,
 } from '../hooks/useBiometric'
+import { storeCredentials, clearCredentials } from '../hooks/useSessionRenewal'
 
 interface LoginProps { onLogin?: () => void }
 type Screen = 'password' | 'biometric' | 'enroll'
@@ -59,8 +60,12 @@ function useAdminLogin() {
         const userCredential = await signInWithCustomToken(auth, token)
         // Aguarda o SDK propagar o token internamente antes de chamar funções autenticadas
         await userCredential.user.getIdToken()
+        // Armazena credenciais em memória para renovação automática de sessão.
+        // NUNCA são gravadas em disco — somem no F5 ou ao fechar a aba.
+        storeCredentials(username.trim(), password)
         onSuccess()
       } catch (fbErr: any) {
+        clearCredentials()
         const code = fbErr?.code || ''
         if      (code === 'auth/invalid-custom-token')      { setError('Token de sessão inválido. Tente novamente.') }
         else if (code === 'auth/network-request-failed')    { setError('Falha de rede. Verifique sua internet.') }
