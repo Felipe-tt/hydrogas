@@ -96,12 +96,10 @@ function AuthLoadingSkeleton() {
 function AdminLayout({ onLogout }: { onLogout: () => void }) {
   useFirebaseSync()
   useSessionRenewal()   // ← renova a sessão automaticamente antes de expirar
-  const darkMode = useUIStore(s => s.darkMode)
-  const theme    = useUIStore(s => s.theme)
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', `${theme}-${darkMode ? 'dark' : 'light'}`)
-  }, [darkMode, theme])
+  // applyTheme é chamado direto no store ao setar darkMode/theme — sem flash
+  const _darkMode = useUIStore(s => s.darkMode)
+  const _theme    = useUIStore(s => s.theme)
+  void _darkMode; void _theme // manter subscription para re-render
 
   return (
     <div className="app-layout">
