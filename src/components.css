@@ -3501,140 +3501,77 @@
 }
 
 /* ── Config Theme Picker ─────────────────────────────────────────────────── */
-.config-theme-trigger-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .config-theme-label {
   font-size: 11px;
   font-weight: 700;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  margin-bottom: 0;
+  margin-bottom: 10px;
 }
 
-.config-theme-trigger {
+.config-theme-carousel {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.2s;
-}
-.config-theme-trigger:hover { background: var(--surface-3); }
-
-.config-theme-trigger-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.config-theme-trigger-dots {
-  display: flex;
-  gap: 4px;
-}
-.config-theme-trigger-dots span {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  display: block;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
-}
-
-.config-theme-trigger-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.config-theme-trigger-chevron {
-  color: var(--text-3);
-  transition: transform 0.2s cubic-bezier(0.34,1.2,0.64,1);
-  flex-shrink: 0;
-}
-
-.config-theme-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  flex-direction: row;
   gap: 8px;
-  animation: fadeUp 0.18s ease both;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
 }
+.config-theme-carousel::-webkit-scrollbar { display: none; }
 
-.config-theme-swatch {
+.config-theme-pill {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  padding: 10px 6px 9px;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 60px;
+  padding: 8px 4px 7px;
   border-radius: 12px;
-  cursor: pointer;
+  border: 2px solid transparent;
   background: var(--surface-2);
-  border: 2px solid transparent !important;
-  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
   outline: none;
 }
-.config-theme-swatch:hover {
-  transform: translateY(-2px);
-  background: var(--surface-3);
+.config-theme-pill:hover  { background: var(--surface-3); transform: translateY(-2px); }
+.config-theme-pill:active { transform: translateY(0); }
+.config-theme-pill--active {
+  border-color: var(--pill-water) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pill-water) 26%, transparent);
 }
-.config-theme-swatch:active { transform: translateY(0); }
 
-.config-theme-swatch-dots {
+.config-theme-pill-duo {
   position: relative;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  box-shadow: 0 2px 5px rgba(0,0,0,.2);
 }
-.config-theme-swatch-dot {
+.config-theme-pill-duo span {
   position: absolute;
   top: 0;
   width: 50%;
   height: 100%;
+  display: block;
 }
-.config-theme-swatch-dot:nth-child(1) { left: 0; }
-.config-theme-swatch-dot:nth-child(2) { right: 0; }
+.config-theme-pill-duo span:first-child { left: 0; }
+.config-theme-pill-duo span:last-child  { right: 0; }
 
-.config-theme-swatch-check {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 800;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,.5);
-  background: rgba(0,0,0,.18);
-}
-
-.config-theme-swatch-name {
-  font-size: 10px;
+.config-theme-pill-name {
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-2);
   text-align: center;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-}
-
-@media (max-width: 480px) {
-  .config-theme-grid {
-    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-    gap: 6px;
-  }
-  .config-theme-swatch { padding: 8px 4px 7px; }
-  .config-theme-swatch-dots { width: 28px; height: 28px; }
+  letter-spacing: 0.01em;
 }
