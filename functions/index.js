@@ -5,7 +5,6 @@
  * hashApartmentPassword   → Gera hash Argon2id da senha do apartamento (autenticado)
  * resetApartmentRateLimit → Reseta rate limit de um apartamento (autenticado)
  * getPublicApartment      → Dados do apartamento para o morador (valida hash no servidor)
- * monthlyBackup           → Snapshot do RTDB no Storage (todo dia 1 às 03h)
  * monthlyEmailReport      → Relatório de consumo por e-mail (dia configurável em /config/reportDay)
  */
 
@@ -16,7 +15,6 @@ const argon2                 = require('argon2')
 const { initializeApp }      = require('firebase-admin/app')
 const { getAuth }            = require('firebase-admin/auth')
 const { getDatabase }        = require('firebase-admin/database')
-const { getStorage }         = require('firebase-admin/storage')
 const nodemailer             = require('nodemailer')
 
 initializeApp({ databaseURL: process.env.DATABASE_URL })
@@ -1369,61 +1367,6 @@ exports.getPublicApartment = onCall(
   }
 )
 
-// ─── monthlyBackup ────────────────────────────────────────────────────────────
-// Roda todo dia 1 às 03:00 (Brasília).
-// Salva snapshot do RTDB em gs://<bucket>/backups/rtdb-YYYY-MM.json
-//
-// Secret necessário:
-//   firebase functions:secrets:set STORAGE_BUCKET
-//   → valor: <SEU-PROJETO>.appspot.com
-// ─────────────────────────────────────────────────────────────────────────────
-
-exports.monthlyBackup = onSchedule(
-  {
-    schedule:       '0 3 1 * *',
-    timeZone:       'America/Sao_Paulo',
-    secrets:        ['DATABASE_URL', 'STORAGE_BUCKET'],
-    timeoutSeconds: 120,
-    memory:         '512MiB',
-    region:         'us-central1',
-  },
-  async () => {
-    const snap = await getDatabase().ref('/').get()
-    if (!snap.exists()) {
-      logger.warn('monthlyBackup: banco vazio.')
-      return
-    }
-
-    const raw = snap.val()
-
-    // Remove campos sensíveis antes de salvar no Storage:
-    // - _rateLimit: dados operacionais temporários, sem valor para backup
-    // - apartments[*].accessPasswordHash: hashes Argon2id — não devem vazar se bucket for comprometido
-    const sanitized = { ...raw, _rateLimit: undefined }
-    if (sanitized.apartments) {
-      sanitized.apartments = Object.fromEntries(
-        Object.entries(sanitized.apartments).map(([id, apt]) => {
-          const { accessPasswordHash: _omit, ...safeApt } = apt
-          return [id, safeApt]
-        })
-      )
-    }
-
-    const now      = new Date()
-    const label    = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    const filePath = `backups/rtdb-${label}.json`
-
-    await getStorage()
-      .bucket(process.env.STORAGE_BUCKET)
-      .file(filePath)
-      .save(JSON.stringify(sanitized, null, 2), {
-        contentType: 'application/json',
-        metadata:    { metadata: { createdAt: now.toISOString() } },
-      })
-
-    logger.info(`monthlyBackup: salvo em gs://${process.env.STORAGE_BUCKET}/${filePath}`)
-  }
-)
 
 // ─── monthlyEmailReport ───────────────────────────────────────────────────────
 // Roda todo dia às 08:00 (Brasília).
