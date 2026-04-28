@@ -7,6 +7,7 @@ import { friendlyError } from '../lib/friendlyError'
 import { ConfigSkeleton, Spinner } from '../components/ui/Skeleton'
 import { auth } from '../infrastructure/firebase'
 import { signOut } from 'firebase/auth'
+import { ThemePicker } from '../components/ui/ThemePicker'
 
 function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11)
@@ -348,29 +349,14 @@ export function Config() {
               </label>
             </div>
 
-            {/* Theme grid */}
+            {/* Theme grid — v2 */}
             <div className="theme-picker-label">Tema de cores</div>
-            <div className="theme-picker-grid">
-              {THEMES.map(t => {
-                const isActive = theme === t.id
-                return (
-                  <button
-                    key={t.id}
-                    title={t.label}
-                    onClick={() => setTheme(t.id)}
-                    className={'theme-card' + (isActive ? ' theme-card--active' : '')}
-                    style={{ '--tc-water': t.water, '--tc-gas': t.gas } as React.CSSProperties}
-                  >
-                    <div className="theme-card-dots">
-                      <span style={{ background: t.water }} />
-                      <span style={{ background: t.gas }} />
-                    </div>
-                    <span className="theme-card-name">{t.label}</span>
-                    {isActive && <span className="theme-card-check">✓</span>}
-                  </button>
-                )
-              })}
-            </div>
+            <ThemePicker
+              themes={THEMES}
+              currentTheme={theme}
+              darkMode={darkMode}
+              onSelect={setTheme}
+            />
           </Section>
 
           <Divider />
