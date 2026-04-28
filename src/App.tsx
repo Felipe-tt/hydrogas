@@ -167,10 +167,15 @@ function AdminGate() {
 
       // Sessão já existia antes de montar (refresh da página, não login novo)
       if (hadSessionOnMount.current) {
+        // Validação defensiva: além de existir, o credId deve ter formato mínimo
+        // de base64url (≥16 chars, apenas caracteres válidos) para evitar que um
+        // XSS residual force degradação forjando valores inválidos no localStorage.
+        const credId = localStorage.getItem('hg_bio_cred_id')
+        const credIdValid = credId !== null && credId.length >= 16 && /^[A-Za-z0-9+/=_-]+$/.test(credId)
         const hasBiometric =
           isBiometricSupported() &&
           localStorage.getItem('hg_bio_enrolled') === 'true' &&
-          localStorage.getItem('hg_bio_cred_id')  !== null
+          credIdValid
         if (!hasBiometric) {
           enrollDoneRef.current = true
           setEnrollDone(true)
