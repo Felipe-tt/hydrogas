@@ -3515,63 +3515,61 @@
   flex-direction: row;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   scroll-snap-type: x mandatory;
 }
 .config-theme-carousel::-webkit-scrollbar { display: none; }
 
+/* card retangular — duas bolinhas no canto superior esquerdo, nome em baixo */
 .config-theme-pill {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
   flex-shrink: 0;
-  width: 60px;
-  padding: 8px 4px 7px;
+  width: 72px;
+  height: 60px;
+  padding: 8px;
   border-radius: 12px;
   border: 2px solid transparent;
-  background: var(--surface-2);
+  background: var(--surface-3);
   cursor: pointer;
   scroll-snap-align: start;
-  transition: transform 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s, background 0.15s;
   outline: none;
 }
-.config-theme-pill:hover  { background: var(--surface-3); transform: translateY(-2px); }
+.config-theme-pill:hover  { transform: translateY(-2px); background: var(--surface-4); }
 .config-theme-pill:active { transform: translateY(0); }
 .config-theme-pill--active {
   border-color: var(--pill-water) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pill-water) 26%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pill-water) 25%, transparent);
 }
 
+/* duas bolinhas no canto superior esquerdo */
 .config-theme-pill-duo {
-  position: relative;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,.2);
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
 }
 .config-theme-pill-duo span {
-  position: absolute;
-  top: 0;
-  width: 50%;
-  height: 100%;
   display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
 }
-.config-theme-pill-duo span:first-child { left: 0; }
-.config-theme-pill-duo span:last-child  { right: 0; }
 
 .config-theme-pill-name {
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-2);
-  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
