@@ -609,8 +609,8 @@ export function ApartmentPublicView() {
   )
 
   // Sub-views
-  if (subView === 'consumo') return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className={fontSize === 'large' ? 'resident-large' : ''}><ConsumoView readings={data?.readings ?? []} onClose={() => setSubView(null)} /></div>
-  if (subView === 'sobre')   return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className={fontSize === 'large' ? 'resident-large' : ''}><SobreView condoName={condoName} condoInfo={data?.condoInfo} onClose={() => setSubView(null)} /></div>
+  if (subView === 'consumo') return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }} className={fontSize === 'large' ? 'resident-large' : ''}><ConsumoView readings={data?.readings ?? []} onClose={() => setSubView(null)} /></div>
+  if (subView === 'sobre')   return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }} className={fontSize === 'large' ? 'resident-large' : ''}><SobreView condoName={condoName} condoInfo={data?.condoInfo} onClose={() => setSubView(null)} /></div>
 
   if (status === 'loading') return (
     <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className="public-screen">
