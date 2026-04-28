@@ -3583,3 +3583,424 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ThemePicker v2 — Immersive, fully responsive
+   ═══════════════════════════════════════════════════════════ */
+
+.tp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Preview Panel ──────────────────────────────────────── */
+
+.tp-preview-panel {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.tp-preview-screen {
+  position: relative;
+  flex-shrink: 0;
+  width: 160px;
+  height: 107px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid var(--border-strong);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--tc-water, #2563eb) 15%, transparent),
+    0 4px 16px rgba(0,0,0,.15);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Tiny notch/camera dot like a real screen */
+.tp-preview-screen::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.25);
+  z-index: 2;
+}
+
+.tp-preview-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 5px 7px;
+  background: linear-gradient(to top, rgba(0,0,0,.55), transparent);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.tp-preview-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tp-preview-active-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  background: rgba(255,255,255,.18);
+  padding: 2px 5px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.tp-preview-colors {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-height: 107px;
+}
+
+.tp-color-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background 0.2s;
+}
+
+/* ── Category Filter Tabs ───────────────────────────────── */
+
+.tp-cats-wrap {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.tp-cats-wrap::-webkit-scrollbar { display: none; }
+
+.tp-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-3);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tp-cat:hover {
+  background: var(--surface-4);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.tp-cat--active {
+  background: var(--water);
+  border-color: var(--water);
+  color: #fff;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--water) 40%, transparent);
+}
+
+.tp-cat--active:hover {
+  background: var(--water);
+  color: #fff;
+}
+
+.tp-cat-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.25);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+/* ── Grid Scroll Wrapper ────────────────────────────────── */
+
+.tp-grid-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.tp-scroll-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+}
+
+.tp-scroll-btn:hover {
+  background: var(--surface-4);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.tp-scroll-btn--left  { margin-right: 6px; }
+.tp-scroll-btn--right { margin-left:  6px; }
+
+.tp-grid {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x mandatory;
+  flex: 1;
+}
+
+.tp-grid::-webkit-scrollbar { display: none; }
+
+/* ── Theme Card v2 ──────────────────────────────────────── */
+
+.theme-card-v2 {
+  position: relative;
+  flex-shrink: 0;
+  width: 90px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  outline: none;
+  overflow: hidden;
+  scroll-snap-align: start;
+  transition:
+    transform     0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color  0.18s ease,
+    box-shadow    0.18s ease,
+    background    0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-card-v2:hover {
+  transform: translateY(-3px) scale(1.03);
+  border-color: color-mix(in srgb, var(--tc-water) 50%, transparent);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,.12),
+    0 0 0 1px color-mix(in srgb, var(--tc-water) 20%, transparent);
+}
+
+.theme-card-v2:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.theme-card-v2--active {
+  border-color: var(--tc-water);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--tc-water) 22%, transparent),
+    0 4px 12px rgba(0,0,0,.1);
+}
+
+/* Preview area */
+.theme-card-v2-preview {
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+  border-radius: 6px 6px 0 0;
+  display: block;
+  background: var(--tc-bg, var(--surface-3));
+}
+
+/* Footer */
+.theme-card-v2-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px 6px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.theme-card-v2-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.theme-card-v2-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+
+.theme-card-v2-name {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.theme-card-v2-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--tc-water);
+  color: #fff;
+  flex-shrink: 0;
+  animation: tp-check-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tp-check-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Glow ring for active theme */
+.theme-card-v2-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ring-color, #2563eb) 35%, transparent);
+}
+
+/* ── Active Strip ───────────────────────────────────────── */
+
+.tp-active-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+  padding-top: 2px;
+}
+
+.tp-active-label {
+  font-weight: 500;
+}
+
+.tp-active-name {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tp-active-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ── Responsive tweaks ──────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .tp-preview-panel {
+    gap: 10px;
+  }
+
+  .tp-preview-screen {
+    width: 130px;
+    height: 87px;
+  }
+
+  .tp-preview-colors {
+    min-height: 87px;
+  }
+
+  .tp-color-pill {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+
+  .tp-scroll-btn {
+    display: none;
+  }
+
+  .theme-card-v2 {
+    width: 80px;
+  }
+
+  .theme-card-v2-preview {
+    height: 53px;
+  }
+}
+
+@media (max-width: 400px) {
+  .tp-preview-screen {
+    width: 110px;
+    height: 73px;
+  }
+
+  .tp-preview-colors {
+    min-height: 73px;
+    gap: 6px;
+  }
+
+  .tp-color-pill {
+    font-size: 9px;
+    padding: 5px 7px;
+  }
+
+  .theme-card-v2 {
+    width: 72px;
+  }
+
+  .theme-card-v2-preview {
+    height: 48px;
+  }
+
+  .tp-cat {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+}
+
