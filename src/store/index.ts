@@ -64,19 +64,19 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
   const configSnap = await get(ref(db, 'config'))
   const configVal  = configSnap.exists() ? configSnap.val() : {}
 
-  // Campos opcionais: omitir quando ausentes para não violar o .validate das regras
-  // (null não passa em newData.isString() nem em !newData.exists())
-  const condoInfo: Record<string, any> = {}
-  if (configVal.condominiumName) condoInfo.name         = configVal.condominiumName
-  if (configVal.managerName)     condoInfo.managerName  = configVal.managerName
-  if (configVal.managerPhone)    condoInfo.managerPhone = configVal.managerPhone
-  if (configVal.address)         condoInfo.address      = configVal.address
-  if (configVal.latitude  != null) condoInfo.latitude   = configVal.latitude
-  if (configVal.longitude != null) condoInfo.longitude  = configVal.longitude
-
-  const publicData: Record<string, any> = {
+  // Campos opcionais omitidos quando ausentes — null viola o .validate das regras
+  const publicData = {
     number:    apt.number,
-    condoInfo,
+    ...(apt.block                   && { block:       apt.block }),
+    ...(apt.responsible             && { responsible: apt.responsible }),
+    condoInfo: {
+      ...(configVal.condominiumName && { name:         configVal.condominiumName }),
+      ...(configVal.managerName     && { managerName:  configVal.managerName }),
+      ...(configVal.managerPhone    && { managerPhone: configVal.managerPhone }),
+      ...(configVal.address         && { address:      configVal.address }),
+      ...(configVal.latitude  != null && { latitude:  configVal.latitude }),
+      ...(configVal.longitude != null && { longitude: configVal.longitude }),
+    },
     readings:  readings.map(r => ({
       id:          r.id,
       type:        r.type,
@@ -90,10 +90,6 @@ export async function syncPublicNode(apt: Apartment): Promise<void> {
     })),
     updatedAt: Date.now(),
   }
-
-  // Campos opcionais do apartamento: só inclui se existirem
-  if (apt.block)       publicData.block       = apt.block
-  if (apt.responsible) publicData.responsible = apt.responsible
 
   await set(ref(db, `public/${apt.publicToken}`), publicData)
 }
