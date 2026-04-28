@@ -360,7 +360,7 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
           {info?.managerPhone && (
             <InfoRow
               icon={<Phone size={14} />} label="Contato" value={info.managerPhone}
-              href={`https://wa.me/55${info.managerPhone.replace(/\D/g,'')}`} linkLabel="WhatsApp"
+              href={(() => { const d = info.managerPhone.replace(/\D/g, '').slice(0, 11); return /^\d{10,11}$/.test(d) ? `https://wa.me/55${d}` : undefined })()}  linkLabel="WhatsApp"
             />
           )}
           {info?.address && <InfoRow icon={<MapPin size={14} />} label="Endereço" value={info.address} />}
@@ -376,6 +376,7 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
                 src={iframeSrc}
                 className="sobre-map-iframe"
                 loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                sandbox="allow-scripts allow-same-origin"
               />
               <div className="sobre-map-overlay" />
             </div>
@@ -521,11 +522,18 @@ export function ApartmentPublicView() {
   async function fetchDataFromFunction(tok: string, pwd: string) {
     const fn = httpsCallable<{ token: string; password: string }, PublicData & { _firebaseToken?: string }>(functions, 'getPublicApartment')
     const result = await fn({ token: tok, password: pwd })
-    const { _firebaseToken, ...safeData } = result.data as any
-    if (_firebaseToken) {
-      try { await signInWithCustomToken(residentAuth, _firebaseToken) } catch (_e) { /* silent */ }
+    const raw = result.data as any
+
+    // Extrair e consumir o token imediatamente, antes de qualquer outra operação,
+    // para evitar que ele permaneça no objeto de dados ou apareça em logs.
+    const firebaseToken: string | undefined = raw._firebaseToken
+    delete raw._firebaseToken
+
+    if (firebaseToken) {
+      try { await signInWithCustomToken(residentAuth, firebaseToken) } catch (_e) { /* silent */ }
     }
-    setData(safeData as PublicData)
+
+    setData(raw as PublicData)
     setStatus('found')
   }
 
