@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Save, Droplets, Flame, Building2, Moon, Sun, Info, Calculator, Shield, Bell, Phone, User, MapPin, AlertCircle, Mail, Calendar, LogOut } from 'lucide-react'
-import { useAppStore, useUIStore, THEMES } from '../store'
+import { useAppStore, useUIStore, THEMES, type ThemeName } from '../store'
 import { configRepo } from '../lib/container'
 import { useToast } from '../components/ui/Toast'
 import { friendlyError } from '../lib/friendlyError'
@@ -355,7 +355,7 @@ export function Config() {
               themes={THEMES}
               currentTheme={theme}
               darkMode={darkMode}
-              onSelect={setTheme}
+              onSelect={(id: ThemeName) => setTheme(id)}
             />
           </Section>
 
