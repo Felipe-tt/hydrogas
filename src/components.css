@@ -3500,76 +3500,86 @@
   color: #dc2626;
 }
 
-/* ── Config Theme Picker ─────────────────────────────────────────────────── */
-.config-theme-label {
+/* ── Theme Picker ────────────────────────────────────────────────────────── */
+.theme-picker-label {
   font-size: 11px;
   font-weight: 700;
   color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.config-theme-carousel {
-  display: flex;
-  flex-direction: row;
+.theme-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  scroll-snap-type: x mandatory;
 }
-.config-theme-carousel::-webkit-scrollbar { display: none; }
 
-/* card retangular — duas bolinhas no canto superior esquerdo, nome em baixo */
-.config-theme-pill {
+.theme-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  flex-shrink: 0;
-  width: 72px;
-  height: 60px;
-  padding: 8px;
-  border-radius: 12px;
+  justify-content: space-between;
+  padding: 9px 9px 8px;
+  height: 58px;
+  border-radius: 10px;
   border: 2px solid transparent;
   background: var(--surface-3);
   cursor: pointer;
-  scroll-snap-align: start;
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s, background 0.15s;
   outline: none;
+  overflow: hidden;
 }
-.config-theme-pill:hover  { transform: translateY(-2px); background: var(--surface-4); }
-.config-theme-pill:active { transform: translateY(0); }
-.config-theme-pill--active {
-  border-color: var(--pill-water) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pill-water) 25%, transparent);
+.theme-card:hover  { background: var(--surface-4); transform: translateY(-1px); }
+.theme-card:active { transform: translateY(0); }
+.theme-card--active {
+  border-color: var(--tc-water);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc-water) 25%, transparent);
 }
 
-/* duas bolinhas no canto superior esquerdo */
-.config-theme-pill-duo {
-  position: absolute;
-  top: 8px;
-  left: 8px;
+.theme-card-dots {
   display: flex;
-  gap: 4px;
+  gap: 5px;
+  align-items: center;
 }
-.config-theme-pill-duo span {
-  display: block;
+.theme-card-dots span {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
 
-.config-theme-pill-name {
+.theme-card-name {
   font-size: 9px;
   font-weight: 700;
   color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
   letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.theme-card-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--tc-water);
+  line-height: 1;
+}
+
+@media (max-width: 520px) {
+  .theme-picker-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 380px) {
+  .theme-picker-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
