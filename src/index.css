@@ -920,15 +920,27 @@
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
   color: var(--text);
   margin: 0;
   min-height: 100vh;
+  width: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* Wrapper isolado da view pública do morador */
+[data-theme="ocean-dark"],
+[data-theme="ocean-light"] {
+  width: 100%;
+  display: block;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
