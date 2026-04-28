@@ -51,7 +51,7 @@ function useWindowWidth() {
 }
 
 // ── Prefs ─────────────────────────────────────────────────────────────────────
-function useResidentPrefs() {
+function useResidentPrefs(wrapperRef: React.RefObject<HTMLDivElement | null>) {
   const [darkMode, setDarkModeState] = useState<boolean>(() => {
     try { const s = localStorage.getItem('hidrogas-resident-dark'); if (s !== null) return s === 'true' } catch {}
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
@@ -60,17 +60,21 @@ function useResidentPrefs() {
     try { return (localStorage.getItem('hidrogas-resident-font') as any) ?? 'normal' } catch { return 'normal' }
   })
   useEffect(() => {
-    const root = document.documentElement
-    if (darkMode) root.setAttribute('data-theme', 'dark')
-    else root.removeAttribute('data-theme')
+    // Aplica o tema no wrapper da view pública, nunca no <html> global
+    // (que pertence ao tema do admin e usa nomes como "ocean-dark", "emerald-light" etc.)
+    const el = wrapperRef.current
+    if (!el) return
+    el.setAttribute('data-theme', darkMode ? 'ocean-dark' : 'ocean-light')
     try { localStorage.setItem('hidrogas-resident-dark', String(darkMode)) } catch {}
-  }, [darkMode])
+  }, [darkMode, wrapperRef])
   useEffect(() => {
-    if (fontSize === 'large') document.body.classList.add('resident-large')
-    else document.body.classList.remove('resident-large')
+    const el = wrapperRef.current
+    if (!el) return
+    if (fontSize === 'large') el.classList.add('resident-large')
+    else el.classList.remove('resident-large')
     try { localStorage.setItem('hidrogas-resident-font', fontSize) } catch {}
-    return () => document.body.classList.remove('resident-large')
-  }, [fontSize])
+    return () => el?.classList.remove('resident-large')
+  }, [fontSize, wrapperRef])
   return { darkMode, setDarkMode: setDarkModeState, fontSize, setFontSize: setFontSizeState }
 }
 
@@ -360,7 +364,7 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
           {info?.managerPhone && (
             <InfoRow
               icon={<Phone size={14} />} label="Contato" value={info.managerPhone}
-              href={(() => { const d = info.managerPhone.replace(/\D/g, '').slice(0, 11); return /^\d{10,11}$/.test(d) ? `https://wa.me/55${d}` : undefined })()}  linkLabel="WhatsApp"
+              href={`https://wa.me/55${info.managerPhone.replace(/\D/g,'')}`} linkLabel="WhatsApp"
             />
           )}
           {info?.address && <InfoRow icon={<MapPin size={14} />} label="Endereço" value={info.address} />}
@@ -376,7 +380,6 @@ function SobreView({ condoName, condoInfo, onClose }: { condoName: string; condo
                 src={iframeSrc}
                 className="sobre-map-iframe"
                 loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                sandbox="allow-scripts allow-same-origin"
               />
               <div className="sobre-map-overlay" />
             </div>
@@ -507,6 +510,8 @@ export function ApartmentPublicView() {
   const isMobile = w < 480
   const isSmall  = w < 360
 
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
   const [status,       setStatus]       = useState<Status>('loading')
   const [data,         setData]         = useState<PublicData | null>(null)
   const [condoName,    setCondoName]    = useState<string>('Condomínio')
@@ -517,23 +522,16 @@ export function ApartmentPublicView() {
   const [showSettings, setShowSettings] = useState(false)
   const [subView,      setSubView]      = useState<SubView>(null)
 
-  const { darkMode, setDarkMode, fontSize, setFontSize } = useResidentPrefs()
+  const { darkMode, setDarkMode, fontSize, setFontSize } = useResidentPrefs(wrapperRef)
 
   async function fetchDataFromFunction(tok: string, pwd: string) {
     const fn = httpsCallable<{ token: string; password: string }, PublicData & { _firebaseToken?: string }>(functions, 'getPublicApartment')
     const result = await fn({ token: tok, password: pwd })
-    const raw = result.data as any
-
-    // Extrair e consumir o token imediatamente, antes de qualquer outra operação,
-    // para evitar que ele permaneça no objeto de dados ou apareça em logs.
-    const firebaseToken: string | undefined = raw._firebaseToken
-    delete raw._firebaseToken
-
-    if (firebaseToken) {
-      try { await signInWithCustomToken(residentAuth, firebaseToken) } catch (_e) { /* silent */ }
+    const { _firebaseToken, ...safeData } = result.data as any
+    if (_firebaseToken) {
+      try { await signInWithCustomToken(residentAuth, _firebaseToken) } catch (_e) { /* silent */ }
     }
-
-    setData(raw as PublicData)
+    setData(safeData as PublicData)
     setStatus('found')
   }
 
@@ -573,7 +571,7 @@ export function ApartmentPublicView() {
   const totalWater = readings.filter(r => r.type === 'water').reduce((a, r) => a + r.totalCost, 0)
   const totalGas   = readings.filter(r => r.type === 'gas').reduce((a, r) => a + r.totalCost, 0)
 
-  const Header = () => (
+  const Header = ({ showSettingsBtn = false }: { showSettingsBtn?: boolean }) => (
     <header className="public-header">
       <div className="public-header-inner">
         <div className="public-header-logo">
@@ -584,22 +582,26 @@ export function ApartmentPublicView() {
           <div className="public-header-condo">{condoName}</div>
         </div>
         <div className="public-header-settings-wrap">
-          <button
-            onClick={() => setShowSettings(v => !v)}
-            className="public-header-settings-btn"
-            style={{
-              background: showSettings ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.07)',
-            }}
-          >
-            <Settings size={17} style={{ transition: 'transform 0.4s', transform: showSettings ? 'rotate(60deg)' : 'none' }} />
-          </button>
-          {showSettings && (
-            <SettingsPanel
-              onClose={() => setShowSettings(false)}
-              darkMode={darkMode} setDarkMode={setDarkMode}
-              fontSize={fontSize} setFontSize={setFontSize}
-              onOpenSubView={setSubView}
-            />
+          {showSettingsBtn && (
+            <>
+              <button
+                onClick={() => setShowSettings(v => !v)}
+                className="public-header-settings-btn"
+                style={{
+                  background: showSettings ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.07)',
+                }}
+              >
+                <Settings size={17} style={{ transition: 'transform 0.4s', transform: showSettings ? 'rotate(60deg)' : 'none' }} />
+              </button>
+              {showSettings && (
+                <SettingsPanel
+                  onClose={() => setShowSettings(false)}
+                  darkMode={darkMode} setDarkMode={setDarkMode}
+                  fontSize={fontSize} setFontSize={setFontSize}
+                  onOpenSubView={setSubView}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -607,11 +609,11 @@ export function ApartmentPublicView() {
   )
 
   // Sub-views
-  if (subView === 'consumo') return <ConsumoView readings={data?.readings ?? []} onClose={() => setSubView(null)} />
-  if (subView === 'sobre')   return <SobreView condoName={condoName} condoInfo={data?.condoInfo} onClose={() => setSubView(null)} />
+  if (subView === 'consumo') return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className={fontSize === 'large' ? 'resident-large' : ''}><ConsumoView readings={data?.readings ?? []} onClose={() => setSubView(null)} /></div>
+  if (subView === 'sobre')   return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className={fontSize === 'large' ? 'resident-large' : ''}><SobreView condoName={condoName} condoInfo={data?.condoInfo} onClose={() => setSubView(null)} /></div>
 
   if (status === 'loading') return (
-    <div className="public-screen">
+    <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className="public-screen">
       <Header />
       <div className="public-screen-center">
         <div className="public-loading-inner">
@@ -623,7 +625,7 @@ export function ApartmentPublicView() {
   )
 
   if (status === 'invalid') return (
-    <div className="public-screen">
+    <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className="public-screen">
       <Header />
       <div className="public-screen-center" style={{ padding: 20 }}>
         <div className="public-invalid-inner">
@@ -638,7 +640,7 @@ export function ApartmentPublicView() {
   )
 
   if (status === 'auth') return (
-    <div className="public-screen">
+    <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className="public-screen">
       <Header />
       <div className="public-auth-wrap">
         <div className="public-auth-inner">
@@ -694,8 +696,8 @@ export function ApartmentPublicView() {
   const hPad = isSmall ? '12px' : isMobile ? '14px' : '16px'
 
   return (
-    <div className="public-main">
-      <Header />
+    <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className={`public-main${fontSize === 'large' ? ' resident-large' : ''}`}>
+      <Header showSettingsBtn />
       <div className="public-main-inner" style={{ padding: `14px ${hPad} 64px` }}>
 
         {/* Apt header */}
