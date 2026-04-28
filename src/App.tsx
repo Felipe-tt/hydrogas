@@ -95,13 +95,11 @@ function AuthLoadingSkeleton() {
 function AdminLayout({ onLogout }: { onLogout: () => void }) {
   useFirebaseSync()
   const darkMode = useUIStore(s => s.darkMode)
+  const theme    = useUIStore(s => s.theme)
 
   useEffect(() => {
-    const root = document.documentElement
-    darkMode
-      ? root.setAttribute('data-theme', 'dark')
-      : root.removeAttribute('data-theme')
-  }, [darkMode])
+    document.documentElement.setAttribute('data-theme', `${theme}-${darkMode ? 'dark' : 'light'}`)
+  }, [darkMode, theme])
 
   return (
     <div className="app-layout">
