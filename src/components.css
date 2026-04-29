@@ -3210,6 +3210,22 @@
   line-height: 1.5;
 }
 
+.public-auth-card {
+  padding: 20px 18px;
+}
+
+@media (min-width: 768px) {
+  .public-auth-card {
+    padding: 28px 24px;
+  }
+  .subview-content {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
 /* Public main content */
 .public-main {
   min-height: 100dvh;
