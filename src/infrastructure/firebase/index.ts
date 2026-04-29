@@ -102,6 +102,19 @@ export class FirebaseApartmentRepository implements IApartmentRepository {
   async delete(id: string): Promise<void> {
     const apt = await this.getById(id)
     if (apt?.publicToken) await deletePublicNode(apt.publicToken)
+
+    // Remove todas as leituras do apartamento antes de deletar
+    const readingsSnap = await get(query(
+      ref(db, 'readings'),
+      orderByChild('apartmentId'),
+      equalTo(id),
+    ))
+    if (readingsSnap.exists()) {
+      const updates: Record<string, null> = {}
+      Object.keys(readingsSnap.val()).forEach(key => { updates[`readings/${key}`] = null })
+      await update(ref(db, '/'), updates)
+    }
+
     await remove(ref(db, `${this.path}/${id}`))
   }
 
