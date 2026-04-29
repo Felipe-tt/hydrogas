@@ -7,3 +7,10 @@ dist/**
 firebase-debug.log
 functions/node_modules/
 functions/.env
+
+# Local Netlify folder
+.netlify
+.bubblewrap/
+android_sdk/
+app/build/
+build/
