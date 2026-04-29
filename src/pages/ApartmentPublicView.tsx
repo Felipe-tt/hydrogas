@@ -506,9 +506,10 @@ function YearSection({ year, months }: { year: string; months: Record<string, Pu
 // ── Main ──────────────────────────────────────────────────────────────────────
 export function ApartmentPublicView() {
   const { token } = useParams<{ token: string }>()
-  const w        = useWindowWidth()
-  const isMobile = w < 480
-  const isSmall  = w < 360
+  const w         = useWindowWidth()
+  const isMobile  = w < 480
+  const isSmall   = w < 360
+  const isDesktop = w >= 768
 
   const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -609,8 +610,8 @@ export function ApartmentPublicView() {
   )
 
   // Sub-views
-  if (subView === 'consumo') return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }} className={fontSize === 'large' ? 'resident-large' : ''}><ConsumoView readings={data?.readings ?? []} onClose={() => setSubView(null)} /></div>
-  if (subView === 'sobre')   return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }} className={fontSize === 'large' ? 'resident-large' : ''}><SobreView condoName={condoName} condoInfo={data?.condoInfo} onClose={() => setSubView(null)} /></div>
+  if (subView === 'consumo') return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }} className={fontSize === 'large' ? 'resident-large' : ''}><div style={{ maxWidth: isDesktop ? 680 : undefined, margin: isDesktop ? '0 auto' : undefined }}><ConsumoView readings={data?.readings ?? []} onClose={() => setSubView(null)} /></div></div>
+  if (subView === 'sobre')   return <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }} className={fontSize === 'large' ? 'resident-large' : ''}><div style={{ maxWidth: isDesktop ? 680 : undefined, margin: isDesktop ? '0 auto' : undefined }}><SobreView condoName={condoName} condoInfo={data?.condoInfo} onClose={() => setSubView(null)} /></div></div>
 
   if (status === 'loading') return (
     <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className="public-screen">
@@ -643,7 +644,7 @@ export function ApartmentPublicView() {
     <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className="public-screen">
       <Header />
       <div className="public-auth-wrap">
-        <div className="public-auth-inner">
+        <div className="public-auth-inner" style={{ maxWidth: isDesktop ? 440 : undefined, width: '100%', margin: isDesktop ? '0 auto' : undefined }}>
           <div className="public-auth-logo-wrap">
             <div className="public-auth-logo">
               <Building2 size={28} color="var(--water)" />
@@ -698,7 +699,7 @@ export function ApartmentPublicView() {
   return (
     <div ref={wrapperRef} data-theme={darkMode ? 'ocean-dark' : 'ocean-light'} className={`public-main${fontSize === 'large' ? ' resident-large' : ''}`}>
       <Header showSettingsBtn />
-      <div className="public-main-inner" style={{ padding: `14px ${hPad} 64px` }}>
+      <div className="public-main-inner" style={{ padding: `14px ${hPad} 64px`, maxWidth: isDesktop ? 680 : undefined, margin: isDesktop ? '0 auto' : undefined }}>
 
         {/* Apt header */}
         <div className="card public-apt-card" style={{ padding: isMobile ? '13px 14px' : '16px 20px' }}>
