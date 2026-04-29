@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — HidroGás</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 32px 20px; color: #1e293b; line-height: 1.7; }
+    h1 { color: #1d4ed8; font-size: 1.6rem; margin-bottom: 4px; }
+    h2 { font-size: 1.05rem; margin-top: 28px; color: #0f172a; }
+    p, li { color: #475569; font-size: 0.95rem; }
+    ul { padding-left: 20px; }
+    .updated { color: #94a3b8; font-size: 0.85rem; margin-bottom: 28px; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>Política de Privacidade</h1>
+  <p class="updated">Última atualização: abril de 2025</p>
+
+  <p>O aplicativo <strong>HidroGás</strong> é um sistema de gestão de leituras de água e gás destinado a condomínios. Esta política descreve como os dados são coletados, usados e protegidos.</p>
+
+  <h2>1. Dados coletados</h2>
+  <ul>
+    <li><strong>Administrador:</strong> nome de usuário e senha (armazenados como hash Argon2id, nunca em texto puro).</li>
+    <li><strong>Moradores:</strong> nenhum dado pessoal é coletado. O acesso é feito por link/token anônimo.</li>
+    <li><strong>Leituras:</strong> valores de consumo de água e gás por unidade, sem vinculação a CPF ou dados pessoais.</li>
+    <li><strong>Biometria:</strong> dados de digital/Face ID são processados inteiramente no dispositivo via WebAuthn. Nenhum dado biométrico é enviado ou armazenado em servidores.</li>
+  </ul>
+
+  <h2>2. Uso dos dados</h2>
+  <p>Os dados são usados exclusivamente para:</p>
+  <ul>
+    <li>Calcular o consumo e o custo de água e gás por apartamento;</li>
+    <li>Gerar relatórios mensais para o síndico;</li>
+    <li>Permitir que moradores consultem seu próprio histórico de consumo.</li>
+  </ul>
+
+  <h2>3. Compartilhamento</h2>
+  <p>Os dados <strong>não são compartilhados, vendidos ou repassados</strong> a terceiros. O único serviço externo utilizado é o Firebase (Google), para autenticação e armazenamento de dados, sujeito à <a href="https://firebase.google.com/support/privacy" target="_blank">Política de Privacidade do Google</a>.</p>
+
+  <h2>4. Segurança</h2>
+  <p>O aplicativo adota as seguintes medidas de segurança:</p>
+  <ul>
+    <li>Senhas com hash Argon2id (64 MiB, 3 iterações);</li>
+    <li>Autenticação biométrica via WebAuthn processada localmente no dispositivo;</li>
+    <li>Rate limiting em todas as operações sensíveis;</li>
+    <li>Regras de acesso no Firebase que impedem leitura de dados administrativos sem autenticação válida;</li>
+    <li>Comunicação exclusivamente via HTTPS.</li>
+  </ul>
+
+  <h2>5. Retenção de dados</h2>
+  <p>Os dados de leitura são mantidos enquanto o condomínio utilizar o sistema. O administrador pode excluir dados a qualquer momento pelo painel.</p>
+
+  <h2>6. Direitos do usuário</h2>
+  <p>O administrador do sistema pode solicitar a exclusão de todos os dados entrando em contato pelo e-mail abaixo.</p>
+
+  <h2>7. Contato</h2>
+  <p>Dúvidas sobre esta política? Entre em contato: <a href="mailto:contato@hidrogas.app">contato@hidrogas.app</a></p>
+</body>
+</html>

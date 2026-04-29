@@ -1,0 +1,106 @@
+{
+  "rules": {
+    "apartments": {
+      ".read":  "auth != null && auth.token.role === 'admin'",
+      ".write": "auth != null && auth.token.role === 'admin'",
+      ".indexOn": ["publicToken"],
+      "$apt": {
+        ".validate": "newData.hasChildren(['number', 'publicToken'])",
+        "id":          { ".validate": "newData.isString()" },
+        "number":      { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "publicToken": { ".validate": "newData.isString() && newData.val().length === 36" },
+        "block":       { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "responsible": { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "observation": { ".validate": "newData.isString() && newData.val().length <= 500" },
+        "active":      { ".validate": "newData.isBoolean()" },
+        "createdAt":   { ".validate": "newData.isNumber()" },
+        "accessPasswordHash": { ".validate": "newData.isString()" },
+        "$other":      { ".validate": false }
+      }
+    },
+    "readings": {
+      ".read":  "auth != null && auth.token.role === 'admin'",
+      ".write": "auth != null && auth.token.role === 'admin'",
+      ".indexOn": ["year", "apartmentId"],
+      "$reading": {
+        ".validate": "newData.hasChildren(['apartmentId', 'type', 'month', 'year'])",
+        "id":          { ".validate": "newData.isString()" },
+        "apartmentId": { ".validate": "newData.isString()" },
+        "type":        { ".validate": "newData.isString() && (newData.val() === 'water' || newData.val() === 'gas')" },
+        "month":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12" },
+        "year":        { ".validate": "newData.isNumber() && newData.val() >= 2000 && newData.val() <= 2100" },
+        "startValue":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "endValue":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "consumption": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "totalCost":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "createdAt":   { ".validate": "newData.isNumber()" },
+        "closedAt":    { ".validate": "newData.isNumber()" },
+        "autoCreated": { ".validate": "newData.isBoolean()" },
+        "$other":      { ".validate": false }
+      }
+    },
+    "config": {
+      ".read":  "auth != null && auth.token.role === 'admin'",
+      ".write": "auth != null && auth.token.role === 'admin'",
+      "waterRate":       { ".validate": "newData.isNumber() && newData.val() > 0" },
+      "gasRate":         { ".validate": "newData.isNumber() && newData.val() > 0" },
+      "condominiumName": { ".validate": "newData.isString() && newData.val().length <= 100" },
+      "managerName":     { ".validate": "newData.isString() && newData.val().length <= 100" },
+      "managerPhone":    { ".validate": "newData.isString() && newData.val().length <= 20" },
+      "managerEmail":    { ".validate": "newData.isString() && newData.val().length <= 200" },
+      "reportDay":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 28" },
+      "address":         { ".validate": "newData.isString() && newData.val().length <= 200" },
+      "latitude":        { ".validate": "newData.isNumber() && newData.val() >= -90  && newData.val() <= 90" },
+      "longitude":       { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+      "updatedAt":       { ".validate": "newData.isNumber()" },
+      "$other":          { ".validate": false }
+    },
+    "public": {
+      "$token": {
+        ".read":  "auth != null && auth.token.aptToken === $token",
+        ".write": "auth != null && (auth.token.role === 'admin' || auth.uid === 'hydrogas-admin')",
+        "number":      { ".validate": "newData.isString() || !newData.exists()" },
+        "block":       { ".validate": "newData.isString() || !newData.exists()" },
+        "responsible": { ".validate": "newData.isString() || !newData.exists()" },
+        "hasPassword": { ".validate": "newData.isBoolean() || !newData.exists()" },
+        "updatedAt":   { ".validate": "newData.isNumber() || !newData.exists()" },
+        "condoInfo": {
+          "name":         { ".validate": "newData.isString() && newData.val().length <= 100 || !newData.exists()" },
+          "managerName":  { ".validate": "newData.isString() && newData.val().length <= 100 || !newData.exists()" },
+          "managerPhone": { ".validate": "newData.isString() && newData.val().length <= 20  || !newData.exists()" },
+          "address":      { ".validate": "newData.isString() && newData.val().length <= 200 || !newData.exists()" },
+          "latitude":     { ".validate": "newData.isNumber() && newData.val() >= -90  && newData.val() <= 90  || !newData.exists()" },
+          "longitude":    { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180 || !newData.exists()" },
+          "$other":       { ".validate": false }
+        },
+        "readings": {
+          "$reading": {
+            "id":          { ".validate": "newData.isString()" },
+            "type":        { ".validate": "newData.isString() && (newData.val() === 'water' || newData.val() === 'gas')" },
+            "month":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12" },
+            "year":        { ".validate": "newData.isNumber() && newData.val() >= 2000 && newData.val() <= 2100" },
+            "startValue":  { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "endValue":    { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "consumption": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "totalCost":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "closedAt":    { ".validate": "newData.isNumber()" },
+            "$other":      { ".validate": false }
+          }
+        },
+        "$other": { ".validate": false }
+      }
+    },
+    "_rateLimit": {
+      ".read":  false,
+      ".write": false
+    },
+    "_biometric": {
+      ".read":  false,
+      ".write": false
+    },
+    "$other": {
+      ".read":  false,
+      ".write": false
+    }
+  }
+}
