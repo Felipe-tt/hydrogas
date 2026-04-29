@@ -37,22 +37,9 @@ export class ReadingUseCases {
     const all = await this.readingRepo.getAll()
     const reading = all.find(r => r.id === readingId)
     if (!reading) throw new Error('Leitura não encontrada.')
+    if (reading.closedAt) throw new Error('Esta leitura já foi fechada.')
     if (endValue < reading.startValue)
       throw new Error('Valor final não pode ser menor que o inicial.')
-
-    // Verifica se já existe uma leitura fechada do mesmo tipo/mês/apartamento
-    const alreadyClosed = all.find(
-      r => r.id !== readingId
-        && r.apartmentId === reading.apartmentId
-        && r.type === reading.type
-        && r.month === reading.month
-        && r.year === reading.year
-        && !!r.closedAt,
-    )
-    if (alreadyClosed) {
-      const typeLabel = reading.type === 'water' ? 'água' : 'gás'
-      throw new Error(`Já existe uma leitura de ${typeLabel} fechada para este apartamento neste mês.`)
-    }
 
     const consumption = endValue - reading.startValue
     const rate = reading.type === 'water' ? config.waterRate : config.gasRate
