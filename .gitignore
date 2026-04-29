@@ -14,3 +14,4 @@ functions/.env
 android_sdk/
 app/build/
 build/
+android.keystore
