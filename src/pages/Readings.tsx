@@ -379,7 +379,7 @@ export function Readings() {
   const isLoading = config === null && apartments.length === 0 && readings.length === 0
   if (isLoading) return <ReadingsSkeleton />
 
-  // Leitura pré-criada automaticamente (aberta, sem endValue) para o mês/ap/tipo selecionado
+  // Leitura pré-criada automaticamente (aberta, com flag autoCreated) para o mês/ap/tipo selecionado
   const preCreatedReading = openForm.apartmentId
     ? readings.find(
         r =>
@@ -387,22 +387,27 @@ export function Readings() {
           r.type        === openForm.type         &&
           r.month       === selectedMonth          &&
           r.year        === selectedYear           &&
-          !r.closedAt,
+          !r.closedAt                              &&
+          !!r.autoCreated,
       ) ?? null
     : null
 
   const handleOpen = async () => {
     if (!openForm.apartmentId) { toast('Selecione um apartamento', 'error'); return }
 
-    // Se já existe leitura pré-criada, limpa o flag autoCreated e abre direto o modal de fechar
+    // Se já existe leitura pré-criada (autoCreated), limpa o flag e abre direto o modal de fechar
     if (preCreatedReading) {
-      if (preCreatedReading.autoCreated) {
+      setLoading(true)
+      try {
         await readingRepo.update(preCreatedReading.id, { autoCreated: false })
-      }
-      setShowOpen(false)
-      setShowClose(preCreatedReading)
-      setEndValue('')
-      setOpenForm({ apartmentId: '', type: 'water', startValue: '' })
+        // Usa o objeto atualizado (sem autoCreated) para o modal de fechar
+        const updatedReading = { ...preCreatedReading, autoCreated: false }
+        setShowOpen(false)
+        setShowClose(updatedReading)
+        setEndValue('')
+        setOpenForm({ apartmentId: '', type: 'water', startValue: '' })
+      } catch (e: any) { toast(friendlyError(e), 'error') }
+      setLoading(false)
       return
     }
 
@@ -419,9 +424,12 @@ export function Readings() {
 
   const handleClose = async () => {
     if (!showClose || !endValue) { toast('Informe a leitura final', 'error'); return }
+    const end = parseFloat(endValue)
+    if (isNaN(end)) { toast('Leitura final inválida', 'error'); return }
+    if (end < showClose.startValue) { toast('Leitura final não pode ser menor que a inicial', 'error'); return }
     setLoading(true)
     try {
-      await readingUseCases.closeReading(showClose.id, parseFloat(endValue))
+      await readingUseCases.closeReading(showClose.id, end)
       toast('Leitura fechada! Custo calculado.')
       setShowClose(null); setEndValue('')
     } catch (e: any) { toast(friendlyError(e), 'error') }
