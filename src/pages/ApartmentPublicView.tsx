@@ -645,14 +645,14 @@ export function ApartmentPublicView() {
       <Header />
       <div className="public-auth-wrap">
         <div className="public-auth-inner" >
-          <div className="public-auth-logo-wrap">
-            <div className="public-auth-logo">
-              <Building2 size={28} color="var(--water)" />
-            </div>
-            <h2 className="public-auth-title">Área do Morador</h2>
-            <p className="public-auth-sub">Digite a senha para acessar seu histórico</p>
-          </div>
           <div className="card public-auth-card">
+            <div className="public-auth-logo-wrap">
+              <div className="public-auth-logo">
+                <Building2 size={28} color="var(--water)" />
+              </div>
+              <h2 className="public-auth-title">Área do Morador</h2>
+              <p className="public-auth-sub">Digite a senha para acessar seu histórico</p>
+            </div>
             <label className="public-auth-label">Senha de acesso</label>
             <div
               className="public-auth-input-wrap"
