@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.hidrogas.app",
+    "sha256_cert_fingerprints": [
+      "02:C6:F6:E0:BF:B8:BD:CB:6E:DA:21:06:3D:0E:87:BA:89:02:1A:43:FD:83:2F:E8:1F:B4:2B:A6:3F:0F:D0:56"
+    ]
+  }
+}]

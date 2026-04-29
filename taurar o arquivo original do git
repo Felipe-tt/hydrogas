@@ -1,0 +1,218 @@
+[1mdiff --git a/app/build.gradle b/app/build.gradle[m
+[1mindex ef9a170d..e69de29b 100644[m
+[1m--- a/app/build.gradle[m
+[1m+++ b/app/build.gradle[m
+[36m@@ -1,213 +0,0 @@[m
+[31m-/*[m
+[31m- * Copyright 2019 Google Inc.[m
+[31m- *[m
+[31m- * Licensed under the Apache License, Version 2.0 (the "License");[m
+[31m- * you may not use this file except in compliance with the License.[m
+[31m- * You may obtain a copy of the License at[m
+[31m- *[m
+[31m- *      http://www.apache.org/licenses/LICENSE-2.0[m
+[31m- *[m
+[31m- * Unless required by applicable law or agreed to in writing, software[m
+[31m- * distributed under the License is distributed on an "AS IS" BASIS,[m
+[31m- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.[m
+[31m- * See the License for the specific language governing permissions and[m
+[31m- * limitations under the License.[m
+[31m- */[m
+[31m-[m
+[31m-import groovy.xml.MarkupBuilder[m
+[31m-[m
+[31m-plugins {[m
+[31m-    id 'com.android.application'[m
+[31m-}[m
+[31m-[m
+[31m-def twaManifest = [[m
+[31m-    applicationId: 'com.hidrogas.app',[m
+[31m-    hostName: 'hydrogas-77f04.web.app', // The domain being opened in the TWA.[m
+[31m-    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.[m
+[31m-    name: 'HidroGás', // The application name.[m
+[31m-    launcherName: 'HidroGás', // The name shown on the Android Launcher.[m
+[31m-    themeColor: '#2563EB', // The color used for the status bar.[m
+[31m-    themeColorDark: '#000000', // The color used for the dark status bar.[m
+[31m-    navigationColor: '#000000', // The color used for the navigation bar.[m
+[31m-    navigationColorDark: '#000000', // The color used for the dark navbar.[m
+[31m-    navigationDividerColor: '#000000', // The navbar divider color.[m
+[31m-    navigationDividerColorDark: '#000000', // The dark navbar divider color.[m
+[31m-    backgroundColor: '#334DA1', // The color used for the splash screen background.[m
+[31m-    enableNotifications: true, // Set to true to enable notification delegation.[m
+[31m-    // Every shortcut must include the following fields:[m
+[31m-    // - name: String that will show up in the shortcut.[m
+[31m-    // - short_name: Shorter string used if |name| is too long.[m
+[31m-    // - url: Absolute path of the URL to launch the app with (e.g '/create').[m
+[31m-    // - icon: Name of the resource in the drawable folder to use as an icon.[m
+[31m-    shortcuts: [],[m
+[31m-    // The duration of fade out animation in milliseconds to be played when removing splash screen.[m
+[31m-    splashScreenFadeOutDuration: 300,[m
+[31m-    generatorApp: 'bubblewrap-cli', // Application that generated the Android Project[m
+[31m-    // The fallback strategy for when Trusted Web Activity is not available. Possible values are[m
+[31m-    // 'customtabs' and 'webview'.[m
+[31m-    fallbackType: 'customtabs',[m
+[31m-    enableSiteSettingsShortcut: 'true',[m
+[31m-    orientation: 'default',[m
+[31m-][m
+[31m-[m
+[31m-android {[m
+[31m-    compileSdkVersion 36[m
+[31m-    namespace "com.hidrogas.app"[m
+[31m-    defaultConfig {[m
+[31m-        applicationId "com.hidrogas.app"[m
+[31m-        minSdkVersion 21[m
+[31m-        targetSdkVersion 35[m
+[31m-        versionCode 1[m
+[31m-        versionName "1"[m
+[31m-[m
+[31m-        // The name for the application[m
+[31m-        resValue "string", "appName", twaManifest.name[m
+[31m-[m
+[31m-        // The name for the application on the Android Launcher[m
+[31m-        resValue "string", "launcherName", twaManifest.launcherName[m
+[31m-[m
+[31m-        // The URL that will be used when launching the TWA from the Android Launcher[m
+[31m-        def launchUrl = "https://" + twaManifest.hostName + twaManifest.launchUrl[m
+[31m-        resValue "string", "launchUrl", launchUrl[m
+[31m-[m
+[31m-        [m
+[31m-[m
+[31m-        [m
+[31m-            // The URL the Web Manifest for the Progressive Web App that the TWA points to. This[m
+[31m-            // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of[m
+[31m-            // the TWA, as it will probably give a better user experience for non-mobile devices.[m
+[31m-            resValue "string", "webManifestUrl", 'https://hydrogas-77f04.web.app/manifest.webmanifest'[m
+[31m-        [m
+[31m-[m
+[31m-        [m
+[31m-            // This is used by Meta Quest.[m
+[31m-            resValue "string", "fullScopeUrl", 'https://hydrogas-77f04.web.app/'[m
+[31m-        [m
+[31m-[m
+[31m-        [m
+[31m-[m
+[31m-        // The hostname is used when building the intent-filter, so the TWA is able to[m
+[31m-        // handle Intents to open host url of the application.[m
+[31m-        resValue "string", "hostName", twaManifest.hostName[m
+[31m-[m
+[31m-        // This attribute sets the status bar color for the TWA. It can be either set here or in[m
+[31m-        // `res/values/colors.xml`. Setting in both places is an error and the app will not[m
+[31m-        // compile. If not set, the status bar color defaults to #FFFFFF - white.[m
+[31m-        resValue "color", "colorPrimary", twaManifest.themeColor[m
+[31m-[m
+[31m-        // This attribute sets the dark status bar color for the TWA. It can be either set here or in[m
+[31m-        // `res/values/colors.xml`. Setting in both places is an error and the app will not[m
+[31m-        // compile. If not set, the status bar color defaults to #000000 - white.[m
+[31m-        resValue "color", "colorPrimaryDark", twaManifest.themeColorDark[m
+[31m-[m
+[31m-        // This attribute sets the navigation bar color for the TWA. It can be either set here or[m
+[31m-        // in `res/values/colors.xml`. Setting in both places is an error and the app will not[m
+[31m-        // compile. If not set, the navigation bar color defaults to #FFFFFF - white.[m
+[31m-        resValue "color", "navigationColor", twaManifest.navigationColor[m
+[31m-[m
+[31m-        // This attribute sets the dark navigation bar color for the TWA. It can be either set here[m
+[31m-        // or in `res/values/colors.xml`. Setting in both places is an error and the app will not[m
+[31m-        // compile. If not set, the navigation bar color defaults to #000000 - black.[m
+[31m-        resValue "color", "navigationColorDark", twaManifest.navigationColorDark[m
+[31m-[m
+[31m-        // This attribute sets the navbar divider color for the TWA. It can be either [m
+[31m-        // set here or in `res/values/colors.xml`. Setting in both places is an error and the app [m
+[31m-        // will not compile. If not set, the divider color defaults to #00000000 - transparent.[m
+[31m-        resValue "color", "navigationDividerColor", twaManifest.navigationDividerColor[m
+[31m-[m
+[31m-        // This attribute sets the dark navbar divider color for the TWA. It can be either [m
+[31m-        // set here or in `res/values/colors.xml`. Setting in both places is an error and the [m
+[31m-        //app will not compile. If not set, the divider color defaults to #000000 - black.[m
+[31m-        resValue "color", "navigationDividerColorDark", twaManifest.navigationDividerColorDark[m
+[31m-[m
+[31m-        // Sets the color for the background used for the splash screen when launching the[m
+[31m-        // Trusted Web Activity.[m
+[31m-        resValue "color", "backgroundColor", twaManifest.backgroundColor[m
+[31m-[m
+[31m-        // Defines a provider authority for the Splash Screen[m
+[31m-        resValue "string", "providerAuthority", twaManifest.applicationId + '.fileprovider'[m
+[31m-[m
+[31m-        // The enableNotification resource is used to enable or disable the[m
+[31m-        // TrustedWebActivityService, by changing the android:enabled and android:exported[m
+[31m-        // attributes[m
+[31m-        resValue "bool", "enableNotification", twaManifest.enableNotifications.toString()[m
+[31m-[m
+[31m-        twaManifest.shortcuts.eachWithIndex { shortcut, index ->[m
+[31m-            resValue "string", "shortcut_name_$index", "$shortcut.name"[m
+[31m-            resValue "string", "shortcut_short_name_$index", "$shortcut.short_name"[m
+[31m-        }[m
+[31m-[m
+[31m-        // The splashScreenFadeOutDuration resource is used to set the duration of fade out animation in milliseconds[m
+[31m-        // to be played when removing splash screen. The default is 0 (no animation).[m
+[31m-        resValue "integer", "splashScreenFadeOutDuration", twaManifest.splashScreenFadeOutDuration.toString()[m
+[31m-[m
+[31m-        resValue "string", "generatorApp", twaManifest.generatorApp[m
+[31m-[m
+[31m-        resValue "string", "fallbackType", twaManifest.fallbackType[m
+[31m-[m
+[31m-        resValue "bool", "enableSiteSettingsShortcut", twaManifest.enableSiteSettingsShortcut[m
+[31m-        resValue "string", "orientation", twaManifest.orientation[m
+[31m-[m
+[31m-        [m
+[31m-    }[m
+[31m-    buildTypes {[m
+[31m-        release {[m
+[31m-            minifyEnabled true[m
+[31m-        }[m
+[31m-    }[m
+[31m-    compileOptions {[m
+[31m-        sourceCompatibility JavaVersion.VERSION_1_8[m
+[31m-        targetCompatibility JavaVersion.VERSION_1_8[m
+[31m-    }[m
+[31m-    lintOptions {[m
+[31m-        checkReleaseBuilds false[m
+[31m-    }[m
+[31m-}[m
+[31m-[m
+[31m-task generateShorcutsFile {[m
+[31m-    assert twaManifest.shortcuts.size() < 5, "You can have at most 4 shortcuts."[m
+[31m-    twaManifest.shortcuts.eachWithIndex { s, i ->[m
+[31m-        assert s.name != null, 'Missing `name` in shortcut #' + i[m
+[31m-        assert s.short_name != null, 'Missing `short_name` in shortcut #' + i[m
+[31m-        assert s.url != null, 'Missing `icon` in shortcut #' + i[m
+[31m-        assert s.icon != null, 'Missing `url` in shortcut #' + i[m
+[31m-    }[m
+[31m-[m
+[31m-    def shortcutsFile = new File("$projectDir/src/main/res/xml", "shortcuts.xml")[m
+[31m-[m
+[31m-    def xmlWriter = new StringWriter()[m
+[31m-    def xmlMarkup = new MarkupBuilder(new IndentPrinter(xmlWriter, "    ", true))[m
+[31m-[m
+[31m-    xmlMarkup[m
+[31m-        .'shortcuts'('xmlns:android': 'http://schemas.android.com/apk/res/android') {[m
+[31m-            twaManifest.shortcuts.eachWithIndex { s, i ->[m
+[31m-                'shortcut'([m
+[31m-                        'android:shortcutId': 'shortcut' + i,[m
+[31m-                        'android:enabled': 'true',[m
+[31m-                        'android:icon': '@drawable/' + s.icon,[m
+[31m-                        'android:shortcutShortLabel': '@string/shortcut_short_name_' + i,[m
+[31m-                        'android:shortcutLongLabel': '@string/shortcut_name_' + i) {[m
+[31m-                    'intent'([m
+[31m-                            'android:action': 'android.intent.action.MAIN',[m
+[31m-                            'android:targetPackage': twaManifest.applicationId,[m
+[31m-                            'android:targetClass': twaManifest.applicationId + '.LauncherActivity',[m
+[31m-                            'android:data': s.url)[m
+[31m-                    'categories'('android:name': 'android.intent.category.LAUNCHER')[m
+[31m-                }[m
+[31m-            }[m
+[31m-        }[m
+[31m-    shortcutsFile.text = xmlWriter.toString() + '\n'[m
+[31m-}[m
+[31m-[m
+[31m-preBuild.dependsOn(generateShorcutsFile)[m
+[31m-[m
+[31m-repositories {[m
+[31m-    [m
+[31m-}[m
+[31m-[m
+[31m-dependencies {[m
+[31m-    implementation fileTree(include: ['*.jar'], dir: 'libs')[m
+[31m-    [m
+[31m-        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'[m
+[31m-    [m
+[31m-}[m
