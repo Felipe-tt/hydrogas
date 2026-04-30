@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade — HidroGás</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+    header { background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 100%); padding: 48px 24px 40px; text-align: center; color: white; }
+    header h1 { font-size: 28px; font-weight: 700; } header .subtitle { font-size: 14px; opacity: 0.85; margin-top: 8px; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 14px; font-size: 12px; margin-top: 12px; }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+    .intro-card { background: white; border: 1px solid #e2e8f0; border-left: 4px solid #0ea5e9; border-radius: 12px; padding: 20px 24px; margin-bottom: 36px; font-size: 15px; color: #475569; }
+    section { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+    section h2 { font-size: 17px; font-weight: 700; color: #1e3a8a; margin-bottom: 14px; }
+    p { font-size: 15px; color: #475569; margin-bottom: 10px; } p:last-child { margin-bottom: 0; }
+    ul { padding-left: 20px; margin: 10px 0; } li { font-size: 15px; color: #475569; margin-bottom: 6px; }
+    .contact-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px 20px; margin-top: 14px; }
+    .contact-box p { color: #1e40af; margin-bottom: 4px; }
+    footer { text-align: center; padding: 32px 24px; font-size: 13px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Política de Privacidade</h1>
+  <p class="subtitle">HidroGás — Sistema de gestão de consumo de água e gás</p>
+  <span class="badge">Última atualização: abril de 2026</span>
+</header>
+<main>
+  <div class="intro-card">Este documento descreve como o aplicativo <strong>HidroGás</strong> trata as informações dos usuários. Ao utilizar o aplicativo, você concorda com as práticas aqui descritas.</div>
+  <section><h2>1. Informações Coletadas</h2>
+    <p>O HidroGás coleta apenas os dados necessários para o funcionamento do sistema:</p>
+    <ul>
+      <li>Dados das unidades: número do apartamento, bloco e nome do responsável.</li>
+      <li>Leituras de consumo: valores de medição, datas e custos calculados.</li>
+      <li>Configurações do condomínio: nome, endereço e contato do administrador.</li>
+      <li>Credenciais de acesso: armazenadas exclusivamente como hash criptográfico (Argon2id).</li>
+      <li>Autenticação biométrica (opcional): somente a chave pública gerada pelo dispositivo — nenhum dado biométrico é transmitido ou armazenado.</li>
+    </ul>
+    <p>Nenhuma informação pessoal sensível (CPF, RG, dados bancários) é coletada.</p>
+  </section>
+  <section><h2>2. Uso das Informações</h2>
+    <p>Os dados coletados são usados exclusivamente para:</p>
+    <ul>
+      <li>Calcular e exibir o consumo de água e gás por unidade.</li>
+      <li>Gerar relatórios mensais enviados por e-mail ao administrador.</li>
+      <li>Permitir que moradores consultem seu histórico via link privado.</li>
+      <li>Autenticar o acesso administrativo ao sistema.</li>
+    </ul>
+    <p>As informações não são compartilhadas com terceiros nem utilizadas para fins publicitários.</p>
+  </section>
+  <section><h2>3. Armazenamento e Segurança</h2>
+    <p>Os dados são armazenados no Firebase Realtime Database (Google) e protegidos por:</p>
+    <ul>
+      <li>Autenticação com senha e verificação via App Check (reCAPTCHA v3).</li>
+      <li>Regras de acesso que impedem leitura ou escrita não autorizadas.</li>
+      <li>Comunicação criptografada via HTTPS em todas as requisições.</li>
+      <li>Rate limiting contra tentativas de acesso por força bruta.</li>
+    </ul>
+    <p>Cada morador acessa apenas os dados da sua própria unidade, por meio de token único e privado.</p>
+  </section>
+  <section><h2>4. Notificações</h2>
+    <p>O aplicativo pode solicitar permissão para enviar notificações (POST_NOTIFICATIONS). Essa permissão é opcional e pode ser revogada a qualquer momento nas configurações do dispositivo.</p>
+  </section>
+  <section><h2>5. Serviços de Terceiros</h2>
+    <p>O HidroGás utiliza os seguintes serviços, sujeitos às suas próprias políticas de privacidade:</p>
+    <ul>
+      <li>Firebase (Google): banco de dados, autenticação e hospedagem.</li>
+      <li>Google reCAPTCHA: proteção contra acesso automatizado.</li>
+      <li>Gmail (Google): envio de relatórios mensais.</li>
+    </ul>
+  </section>
+  <section><h2>6. Direitos dos Usuários</h2>
+    <p>O administrador do condomínio pode, a qualquer momento, consultar, editar ou excluir os dados armazenados, bem como revogar o acesso de moradores ao portal de consulta. Para solicitar a exclusão completa dos dados, entre em contato pelo e-mail abaixo.</p>
+  </section>
+  <section><h2>7. Público-alvo</h2>
+    <p>O HidroGás é destinado ao uso administrativo de condomínios. O aplicativo não coleta dados de menores de 13 anos.</p>
+  </section>
+  <section><h2>8. Alterações nesta Política</h2>
+    <p>Esta política pode ser atualizada periodicamente. A data de "Última atualização" no topo da página reflete a versão vigente.</p>
+  </section>
+  <section><h2>9. Contato</h2>
+    <p>Dúvidas sobre esta política ou sobre o tratamento de dados:</p>
+    <div class="contact-box">
+      <p>E-mail: hidrogas.noreply@gmail.com</p>
+    </div>
+  </section>
+</main>
+<footer>© 2026 HidroGás · Todos os direitos reservados</footer>
+</body>
+</html>
