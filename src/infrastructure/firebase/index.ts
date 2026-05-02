@@ -1,4 +1,4 @@
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check'
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
 import { initializeApp }    from 'firebase/app'
 import { getDatabase, ref, push, set, get, update, remove, onValue, off, query, orderByChild, equalTo } from 'firebase/database'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
@@ -27,7 +27,7 @@ export const functions = getFunctions(app, 'us-central1')
 // todas as Cloud Functions com enforceAppCheck: true.
 if (import.meta.env.VITE_RECAPTCHA_KEY) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_RECAPTCHA_KEY),
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_KEY),
     isTokenAutoRefreshEnabled: true,
   })
 }
