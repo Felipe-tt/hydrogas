@@ -27,7 +27,7 @@ export const functions = getFunctions(app, 'us-central1')
 // todas as Cloud Functions com enforceAppCheck: true.
 if (import.meta.env.VITE_RECAPTCHA_KEY) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_RECAPTCHA_KEY, { isEnterprise: true }),
+    provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_RECAPTCHA_KEY),
     isTokenAutoRefreshEnabled: true,
   })
 }
