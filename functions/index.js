@@ -893,7 +893,7 @@ function verifyWebAuthnSignature(publicKeyJwk, algorithm, authenticatorDataBuf, 
 
 exports.getBiometricRegisterChallenge = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
@@ -919,7 +919,11 @@ exports.getBiometricRegisterChallenge = onCall(
 
     // rpId = hostname sem porta (spec WebAuthn §5.4.2)
     // Em produção: seu domínio real. Em dev: "localhost"
-    const rpId = process.env.BIO_RP_ID || 'localhost'
+    if (!process.env.BIO_RP_ID) {
+      logger.error('BIO_RP_ID não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+    const rpId = process.env.BIO_RP_ID
 
     // challenge = string assinada completa (random.timestamp.hmac) — para verificação
     // random    = bytes aleatórios puros em base64url — para o WebAuthn usar como challenge binário
@@ -931,7 +935,7 @@ exports.getBiometricRegisterChallenge = onCall(
 
 exports.registerBiometric = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
@@ -977,7 +981,11 @@ exports.registerBiometric = onCall(
     }
 
     // Verificar origin (previne phishing)
-    const expectedOrigins = (process.env.BIO_ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+    if (!process.env.BIO_ALLOWED_ORIGINS) {
+      logger.error('BIO_ALLOWED_ORIGINS não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+    const expectedOrigins = process.env.BIO_ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
     if (!expectedOrigins.includes(clientData.origin)) {
       logger.warn('Origin inválida no registro:', clientData.origin)
       throw new HttpsError('invalid-argument', 'Origin inválida.')
@@ -1011,7 +1019,7 @@ exports.registerBiometric = onCall(
 
 exports.getBiometricAuthChallenge = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  15,
     memory:          '256MiB',
     region:          'us-central1',
@@ -1043,7 +1051,7 @@ exports.getBiometricAuthChallenge = onCall(
 
 exports.verifyBiometric = onCall(
   {
-    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY'],
+    secrets:         ['DATABASE_URL', 'BIO_HMAC_KEY', 'BIO_RP_ID', 'BIO_ALLOWED_ORIGINS'],
     timeoutSeconds:  30,
     memory:          '256MiB',
     region:          'us-central1',
@@ -1103,7 +1111,11 @@ exports.verifyBiometric = onCall(
     }
 
     // Verificar origin
-    const expectedOrigins = (process.env.BIO_ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+    if (!process.env.BIO_ALLOWED_ORIGINS) {
+      logger.error('BIO_ALLOWED_ORIGINS não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+    const expectedOrigins = process.env.BIO_ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
     if (!expectedOrigins.includes(clientData.origin)) {
       logger.warn('Origin inválida na verificação:', clientData.origin)
       await recordFailedAttempt(ipKey)
@@ -1117,7 +1129,11 @@ exports.verifyBiometric = onCall(
     }
 
     // Verificar rpIdHash (SHA-256 do rpId esperado)
-    const expectedRpId     = process.env.BIO_RP_ID || 'localhost'
+    if (!process.env.BIO_RP_ID) {
+      logger.error('BIO_RP_ID não configurado!')
+      throw new HttpsError('internal', 'Servidor mal configurado.')
+    }
+    const expectedRpId = process.env.BIO_RP_ID
     const expectedRpIdHash = crypto.createHash('sha256').update(expectedRpId).digest()
     const receivedRpIdHash = authDataBuf.slice(0, 32)
     if (!crypto.timingSafeEqual(expectedRpIdHash, receivedRpIdHash)) {
