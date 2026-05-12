@@ -16,3 +16,6 @@ app/build/
 build/
 android.keystore
 twa-manifest.json
+
+.gradle/
+.firebase/
