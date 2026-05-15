@@ -17,6 +17,8 @@
   "overrides": {
     "tar": ">=7.5.11",
     "uuid": ">=10.0.0",
-    "@tootallnate/once": ">=3.0.1"
+    "@tootallnate/once": ">=3.0.1",
+    "protobufjs": ">=7.5.0",
+    "@protobufjs/utf8": ">=1.1.0"
   }
 }

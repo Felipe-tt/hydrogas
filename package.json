@@ -41,6 +41,8 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "overrides": {
-    "serialize-javascript": ">=7.0.5"
+    "serialize-javascript": ">=7.0.5",
+    "protobufjs": ">=7.5.0",
+    "@protobufjs/utf8": ">=1.1.0"
   }
 }
