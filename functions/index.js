@@ -19,7 +19,7 @@ const { getAuth }            = require('firebase-admin/auth')
 const { getDatabase }        = require('firebase-admin/database')
 const nodemailer             = require('nodemailer')
 
-initializeApp({ databaseURL: process.env.DATABASE_URL })
+initializeApp()
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
