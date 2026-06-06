@@ -923,7 +923,7 @@ exports.getBiometricRegisterChallenge = onCall(
       logger.error('BIO_RP_ID não configurado!')
       throw new HttpsError('internal', 'Servidor mal configurado.')
     }
-    const rpId = process.env.BIO_RP_ID
+    const rpId = process.env.BIO_RP_ID.trim()
 
     // challenge = string assinada completa (random.timestamp.hmac) — para verificação
     // random    = bytes aleatórios puros em base64url — para o WebAuthn usar como challenge binário
@@ -1133,7 +1133,7 @@ exports.verifyBiometric = onCall(
       logger.error('BIO_RP_ID não configurado!')
       throw new HttpsError('internal', 'Servidor mal configurado.')
     }
-    const expectedRpId = process.env.BIO_RP_ID
+    const expectedRpId = process.env.BIO_RP_ID.trim()
     const expectedRpIdHash = crypto.createHash('sha256').update(expectedRpId).digest()
     const receivedRpIdHash = authDataBuf.slice(0, 32)
     if (!crypto.timingSafeEqual(expectedRpIdHash, receivedRpIdHash)) {
