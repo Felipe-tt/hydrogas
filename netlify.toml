@@ -2,7 +2,19 @@
   command = "npm run build"
   publish = "dist"
 
+# ── WebAuthn discovery ────────────────────────────────────────────────────────
+[[headers]]
+  for = "/.well-known/webauthn"
+  [headers.values]
+    Content-Type = "application/json"
+
 # ── SPA fallback ──────────────────────────────────────────────────────────────
+[[redirects]]
+  from   = "/.well-known/webauthn"
+  to     = "/.well-known/webauthn"
+  status = 200
+  force  = true
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
