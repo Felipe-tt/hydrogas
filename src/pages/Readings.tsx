@@ -437,10 +437,11 @@ export function Readings() {
   }
 
   const handleDelete = async () => {
-    if (!deleting) return
+    if (!deleting || loading) return
+    setLoading(true)
     try { await readingRepo.delete(deleting.id); toast('Leitura removida') }
     catch (e: any) { toast(friendlyError(e), 'error') }
-    setDeleting(null)
+    finally { setLoading(false); setDeleting(null) }
   }
 
   // Filter button helpers
@@ -759,6 +760,7 @@ export function Readings() {
           message={`Remover esta leitura de ${deleting.type === 'water' ? 'água' : 'gás'}? Esta ação não pode ser desfeita.`}
           onConfirm={handleDelete}
           onCancel={() => setDeleting(null)}
+          loading={loading}
         />
       )}
     </div>
