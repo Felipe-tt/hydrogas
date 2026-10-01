@@ -23,3 +23,6 @@ jobs:
         run: |
           tail -c 60000 build.log > tail.log
           gh issue create --title "android-build-check falhou (run ${{ github.run_id }})" --body-file tail.log
+      - name: Submit dependency graph (pra Dependabot ver as versões forçadas)
+        if: success()
+        uses: gradle/actions/dependency-submission@v4
