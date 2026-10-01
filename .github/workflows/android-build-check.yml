@@ -15,4 +15,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Resolve dependencies and assemble debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+      - name: On failure, publish error tail as an issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tail -c 60000 build.log > tail.log
+          gh issue create --title "android-build-check falhou (run ${{ github.run_id }})" --body-file tail.log
