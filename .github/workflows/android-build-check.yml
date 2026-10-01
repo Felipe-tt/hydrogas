@@ -3,6 +3,9 @@ name: Android build check
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   assembleDebug:
     runs-on: ubuntu-latest
